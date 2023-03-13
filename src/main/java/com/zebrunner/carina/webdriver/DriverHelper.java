@@ -15,35 +15,20 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver;
 
-import java.awt.*;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.StringSelection;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.invoke.MethodHandles;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.zebrunner.carina.crypto.Algorithm;
+import com.zebrunner.carina.crypto.CryptoTool;
+import com.zebrunner.carina.crypto.CryptoToolBuilder;
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.LogicUtils;
+import com.zebrunner.carina.utils.common.CommonUtils;
+import com.zebrunner.carina.utils.messager.Messager;
+import com.zebrunner.carina.utils.retry.ActionPoller;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.gui.AbstractPage;
+import com.zebrunner.carina.webdriver.listener.DriverListener;
+import com.zebrunner.carina.webdriver.locator.LocatorType;
+import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.JavascriptException;
@@ -74,20 +59,34 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.SkipException;
 
-import com.zebrunner.carina.crypto.Algorithm;
-import com.zebrunner.carina.crypto.CryptoTool;
-import com.zebrunner.carina.crypto.CryptoToolBuilder;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.utils.LogicUtils;
-import com.zebrunner.carina.utils.common.CommonUtils;
-import com.zebrunner.carina.utils.messager.Messager;
-import com.zebrunner.carina.utils.retry.ActionPoller;
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.gui.AbstractPage;
-import com.zebrunner.carina.webdriver.listener.DriverListener;
-import com.zebrunner.carina.webdriver.locator.LocatorType;
-import com.zebrunner.carina.webdriver.locator.LocatorUtils;
+import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.invoke.MethodHandles;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * DriverHelper - WebDriver wrapper for logging and reporting features. Also it
@@ -96,36 +95,26 @@ import com.zebrunner.carina.webdriver.locator.LocatorUtils;
  * @author Alex Khursevich
  */
 public class DriverHelper {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
     protected static final long EXPLICIT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT);
-    
     protected static final long SHORT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT) / 3;
-
     protected static final long RETRY_TIME = Configuration.getLong(Parameter.RETRY_INTERVAL);
-
-    protected long timer;
-
     protected WebDriver driver;
-    
     protected String pageURL = getUrl();
-
     protected CryptoTool cryptoTool = null;
-
     protected static String CRYPTO_PATTERN = Configuration.get(Parameter.CRYPTO_PATTERN);
+
+    @Deprecated(forRemoval = true, since = "1.0.0")
+    protected long timer;
 
     public DriverHelper() {
     }
 
     public DriverHelper(WebDriver driver) {
         this();
-        
+        Objects.requireNonNull(driver, "WebDriver not initialized, check log files for details!");
         this.driver = driver;
-
-        if (driver == null) {
-            throw new RuntimeException("WebDriver not initialized, check log files for details!");
-        }
-
     }
     
     /**
@@ -642,7 +631,6 @@ public class DriverHelper {
      * @return String saved in clipboard
      */
     public String getClipboardText() {
-        String clipboardText = "";
         try {
             LOGGER.debug("Trying to get clipboard from remote machine with hub...");
             String url = getSelenoidClipboardUrl(driver);
@@ -659,26 +647,28 @@ public class DriverHelper {
                 con.addRequestProperty("Authorization", basicAuthPayload);
             }
 
+            String clipboardText = "";
             int status = con.getResponseCode();
             if (200 <= status && status <= 299) {
                 BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
                 String inputLine;
-                StringBuffer content = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 while ((inputLine = br.readLine()) != null) {
-                    content.append(inputLine);
+                    sb.append(inputLine);
                 }
                 br.close();
-                clipboardText = content.toString();
+                clipboardText = sb.toString();
             } else {
                 LOGGER.debug("Trying to get clipboard from local java machine...");
                 clipboardText = (String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+
+            clipboardText = clipboardText.replaceAll("\n", "");
+            LOGGER.info("Clipboard: {}", clipboardText);
+            return clipboardText;
+        } catch (Exception e) {
+            throw new RuntimeException("Error when try to get clipboard text.", e);
         }
-        clipboardText = clipboardText.replaceAll("\n", "");
-        LOGGER.info("Clipboard: " + clipboardText);
-        return clipboardText;
     }
 
     /**
