@@ -98,7 +98,6 @@ public interface IAndroidUtils extends IMobileUtils {
     static final int SCROLL_MAX_SEARCH_SWIPES = 55;
     static final long SCROLL_TIMEOUT = 300;
     static final AdbExecutor executor = new AdbExecutor();
-    static final String[] baseInitCmd = executor.getDefaultCmd();
     static final String LANGUAGE_CHANGE_APP_PATH = "app/ADB_Change_Language.apk";
 
     /**
@@ -787,7 +786,7 @@ public interface IAndroidUtils extends IMobileUtils {
         UTILS_LOGGER.info("Command: {}", command);
         String[] listOfCommands = command.split(" ");
 
-        String[] execCmd = CmdLine.insertCommandsAfter(baseInitCmd, listOfCommands);
+        String[] execCmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), listOfCommands);
 
         try {
             UTILS_LOGGER.info("Try to execute following cmd: {}", CmdLine.arrayToString(execCmd));

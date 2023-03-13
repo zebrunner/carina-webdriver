@@ -278,9 +278,9 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
         String[] getNotificationsCmd = null;
         String deviceName = IDriverPool.getDefaultDevice().getAdbName();
         if (!deviceName.isEmpty()) {
-            getNotificationsCmd = CmdLine.insertCommandsAfter(baseInitCmd, "-s", deviceName, "shell", "dumpsys", "notification");
+            getNotificationsCmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "-s", deviceName, "shell", "dumpsys", "notification");
         } else {
-            getNotificationsCmd = CmdLine.insertCommandsAfter(baseInitCmd, "shell", "dumpsys", "notification");
+            getNotificationsCmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "shell", "dumpsys", "notification");
         }
 
         LOGGER.info("getNotifications cmd was built: " + CmdLine.arrayToString(getNotificationsCmd));
