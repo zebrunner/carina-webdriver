@@ -101,7 +101,7 @@ public class CapabilitiesLoader {
      *
      * @param fileName path to the properties file with custom capabilities
      * @return capabilities see {@link MutableCapabilities}
-     * @throws UncheckedIOException -> FileNotFoundException if the file is not found
+     * @throws UncheckedIOException FileNotFoundException if the file is not found
      * @throws RuntimeException     if an error occurred while loading capabilities from a file
      */
     public MutableCapabilities getCapabilities(String fileName) {

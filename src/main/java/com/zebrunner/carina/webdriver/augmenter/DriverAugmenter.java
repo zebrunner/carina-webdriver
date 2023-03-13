@@ -33,7 +33,7 @@ public class DriverAugmenter extends Augmenter {
     /**
      * @param driver see {@link WebDriver}
      * @return see {@link RemoteWebDriver}
-     * @apiNote Renamed from extractRemoteWebDriver to extractRemoteDriver in 1.0.0.
+     * @since 1.0.0 Renamed from extractRemoteWebDriver to extractRemoteDriver.
      */
     protected RemoteWebDriver extractRemoteDriver(WebDriver driver) {
         if (driver.getClass().isAnnotationPresent(Augmentable.class)
