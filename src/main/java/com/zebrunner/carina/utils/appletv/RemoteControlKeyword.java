@@ -26,17 +26,13 @@ public enum RemoteControlKeyword {
 	SELECT("select"),
 	PLAY("playpause");
 
-	private String controlKeyword;
+	private final String controlKeyword;
 
-	private RemoteControlKeyword(String controlKeyword) {
-		this.setControlKeyword(controlKeyword);
+	RemoteControlKeyword(String controlKeyword) {
+		this.controlKeyword = controlKeyword;
 	}
 
 	public String getControlKeyword() {
 		return controlKeyword;
-	}
-
-	public void setControlKeyword(String controlKeyword) {
-		this.controlKeyword = controlKeyword;
 	}
 }
