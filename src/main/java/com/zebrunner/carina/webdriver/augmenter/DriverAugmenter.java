@@ -20,13 +20,22 @@ import org.openqa.selenium.remote.Augmentable;
 import org.openqa.selenium.remote.Augmenter;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
+/**
+ * @deprecated use {@link Augmenter} instead
+ */
+@Deprecated(forRemoval = true, since = "1.0.0")
 public class DriverAugmenter extends Augmenter {
 
     public DriverAugmenter() {
         super();
     }
 
-    protected RemoteWebDriver extractRemoteWebDriver(WebDriver driver) {
+    /**
+     * @param driver see {@link WebDriver}
+     * @return see {@link RemoteWebDriver}
+     * @since 1.0.0 Renamed from extractRemoteWebDriver to extractRemoteDriver.
+     */
+    protected RemoteWebDriver extractRemoteDriver(WebDriver driver) {
         if (driver.getClass().isAnnotationPresent(Augmentable.class)
                 || driver
                         .getClass()

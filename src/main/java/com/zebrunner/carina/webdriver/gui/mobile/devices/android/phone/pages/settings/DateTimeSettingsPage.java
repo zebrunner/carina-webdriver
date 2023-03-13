@@ -15,63 +15,61 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.settings;
 
-import java.lang.invoke.MethodHandles;
-
+import com.zebrunner.carina.utils.android.IAndroidUtils;
+import com.zebrunner.carina.webdriver.DriverHelper;
+import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.FindBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.android.IAndroidUtils;
-import com.zebrunner.carina.webdriver.DriverHelper;
-import com.zebrunner.carina.webdriver.IDriverPool;
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
+import java.lang.invoke.MethodHandles;
 
 public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroidUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @FindBy(xpath = "//android.widget.TextView[@text = 'Date & time']")
-    protected ExtendedWebElement dateAndTimeScreenHeaderTitle;
+    private ExtendedWebElement dateAndTimeScreenHeaderTitle;
 
     @FindBy(xpath = "//android.widget.TextView[@text = 'Time zone']")
-    protected ExtendedWebElement timeZoneOption;
+    private ExtendedWebElement timeZoneOption;
 
     @FindBy(xpath = "//android.widget.TextView[@text = 'Region']")
-    protected ExtendedWebElement timeZoneRegionOption;
+    private ExtendedWebElement timeZoneRegionOption;
 
     @FindBy(id = "android:id/search_src_text")
-    protected ExtendedWebElement timeZoneRegionSearchInputField;
+    private ExtendedWebElement timeZoneRegionSearchInputField;
 
     @FindBy(xpath = "//*[@resource-id='com.android.settings:id/recycler_view']//android.widget.TextView[contains(@text,'%s')]")
-    protected ExtendedWebElement timeZoneRegionSearchResult;
+    private ExtendedWebElement timeZoneRegionSearchResult;
+
+    @FindBy(xpath = "//android.widget.TextView[@text = 'Select time zone']")
+    private ExtendedWebElement selectTimeZone;
+
+    @FindBy(xpath = "//android.widget.ListView")
+    private ExtendedWebElement scrollableContainer;
+
+    @FindBy(id = "com.android.settings:id/recycler_view")
+    private ExtendedWebElement scrollableContainerInVersion8_1;
+
+    @FindBy(className = "android.widget.ListView")
+    private ExtendedWebElement scrollableContainerByClassName;
+
+    @FindBy(xpath = "//android.widget.TextView[contains(@text,'%s')]")
+    private ExtendedWebElement tzSelectionBase;
+
+    @FindBy(id = "com.android.settings:id/next_button")
+    private ExtendedWebElement nextButton;
+
+    private static final String SELECT_TIME_ZONE_TEXT = "Select time zone";
 
     public DateTimeSettingsPage(WebDriver driver) {
         super(driver);
-
     }
-
-    @FindBy(xpath = "//android.widget.TextView[@text = 'Select time zone']")
-    protected ExtendedWebElement selectTimeZone;
-
-    @FindBy(xpath = "//android.widget.ListView")
-    protected ExtendedWebElement scrollableContainer;
-
-    @FindBy(id = "com.android.settings:id/recycler_view")
-    protected ExtendedWebElement scrollableContainerInVersion8_1;
-
-    @FindBy(className = "android.widget.ListView")
-    protected ExtendedWebElement scrollableContainerByClassName;
-
-    @FindBy(xpath = "//android.widget.TextView[contains(@text,'%s')]")
-    protected ExtendedWebElement tzSelectionBase;
-
-    @FindBy(id = "com.android.settings:id/next_button")
-    protected ExtendedWebElement nextButton;
-
-    protected static final String SELECT_TIME_ZONE_TEXT = "Select time zone";
 
     /**
      * openTimeZoneSetting
@@ -147,30 +145,24 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
     /**
      * selectTimezoneByGMT
      *
-     * @param tzGMT         String
-     * @param deviceOsVersion  int
+     * @param tzGMT           String
+     * @param deviceOsVersion int
      * @return boolean
      */
-    private boolean locateTimeZoneByGMT(String tzGMT, int deviceOsVersion){
-        LOGGER.info("Searching for tz by GTM: " + tzGMT);
+    private boolean locateTimeZoneByGMT(String tzGMT, int deviceOsVersion) {
+        LOGGER.info("Searching for tz by GTM: {}", tzGMT);
         boolean result = false;
 
-        if (deviceOsVersion > 8) {
-            try {
+        try {
+            if (deviceOsVersion > 8) {
                 result = scroll(tzGMT, scrollableContainerInVersion8_1,
                         SelectorType.ID, SelectorType.TEXT_CONTAINS).isElementPresent();
-            } catch (NoSuchElementException e){
-                e.printStackTrace();
-                result = false;
-            }
-        } else {
-            try {
+            } else {
                 result = scroll(tzGMT, scrollableContainerByClassName,
                         SelectorType.CLASS_NAME, SelectorType.TEXT_CONTAINS).isElementPresent();
-            } catch (NoSuchElementException e){
-                e.printStackTrace();
-                result = false;
             }
+        } catch (NoSuchElementException e) {
+            LOGGER.debug("Element is not found.", e);
         }
 
         return result;
@@ -184,7 +176,7 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
      * @return boolean
      */
     private boolean locateTimeZoneByCity(String tz, int deviceOsVersion){
-        LOGGER.info("Searching for tz by City: " + tz);
+        LOGGER.info("Searching for tz by City: {}", tz);
         boolean result = false;
 
         if (deviceOsVersion > 8) {
@@ -192,16 +184,14 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
                 result = scroll(tz, scrollableContainerInVersion8_1,
                         SelectorType.ID, SelectorType.TEXT_CONTAINS).isElementPresent();
             } catch (NoSuchElementException e){
-                e.printStackTrace();
-                result = false;
+                LOGGER.debug("Element is not found.", e);
             }
         } else {
             try {
                 result = scroll(tz, scrollableContainerByClassName,
                         SelectorType.CLASS_NAME, SelectorType.TEXT_CONTAINS).isElementPresent();
             } catch (NoSuchElementException e){
-                e.printStackTrace();
-                result = false;
+                LOGGER.debug("Element is not found.", e);
             }
         }
 

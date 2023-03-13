@@ -15,20 +15,22 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.capability;
 
-import java.lang.invoke.MethodHandles;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
+import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
 
-import com.zebrunner.carina.utils.R;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandles;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 
 /**
  * Created by yauhenipatotski on 10/26/15.
@@ -97,14 +99,15 @@ public class CapabilitiesLoader {
      * Generate MutableCapabilities from external file.
      * Only "capabilities.name=value" will be added to the response.
      *
-     * @param fileName String path to the properties file with custom capabilities
-     *
-     * @return capabilities MutableCapabilities
+     * @param fileName path to the properties file with custom capabilities
+     * @return capabilities see {@link MutableCapabilities}
+     * @throws UncheckedIOException FileNotFoundException if the file is not found
+     * @throws RuntimeException     if an error occurred while loading capabilities from a file
      */
     public MutableCapabilities getCapabilities(String fileName) {
         MutableCapabilities capabilities = new MutableCapabilities();
 
-        LOGGER.info("Generating capabilities from " + fileName);
+        LOGGER.info("Generating capabilities from {}", fileName);
         Properties props = loadProperties(fileName);
 
         final String prefix = SpecialKeywords.CAPABILITIES + ".";
@@ -123,7 +126,7 @@ public class CapabilitiesLoader {
                         LOGGER.debug("Set capabilities value as boolean: true");
                         capabilities.setCapability(cap, true);
                     } else {
-                        LOGGER.debug("Set capabilities value as string: " + value);
+                        LOGGER.debug("Set capabilities value as string: {}", value);
                         capabilities.setCapability(cap, value);
                     }
                 }
@@ -134,19 +137,20 @@ public class CapabilitiesLoader {
     }
 
     private Properties loadProperties(String fileName) {
-        Properties props = new Properties();
-        URL baseResource = ClassLoader.getSystemResource(fileName);
-        try {
-            if (baseResource != null) {
-                props.load(baseResource.openStream());
-                LOGGER.info("Custom capabilities properties loaded: " + fileName);
-            } else {
-                Assert.fail("Unable to find custom capabilities file '" + fileName + "'!");
-            }
-        } catch (Exception e) {
-            Assert.fail("Unable to load custom capabilities from '" + baseResource.getPath() + "'!", e);
+        Properties properties = new Properties();
+        URL resource = ClassLoader.getSystemResource(fileName);
+        if (Objects.isNull(resource)) {
+            throw new UncheckedIOException(
+                    new FileNotFoundException(String.format("Unable to find custom capabilities file '%s'.", fileName))
+            );
         }
 
-        return props;
+        try (InputStream istream = resource.openStream()) {
+            properties.load(istream);
+            LOGGER.info("Custom capabilities properties loaded: '{}'", fileName);
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Unable to load custom capabilities from '%s'.", resource.getPath()), e);
+        }
+        return properties;
     }
 }

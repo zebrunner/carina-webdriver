@@ -15,17 +15,27 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.decorator;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Proxy;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.zebrunner.carina.crypto.Algorithm;
+import com.zebrunner.carina.crypto.CryptoTool;
+import com.zebrunner.carina.crypto.CryptoToolBuilder;
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.IWebElement;
+import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.common.CommonUtils;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.messager.Messager;
+import com.zebrunner.carina.utils.performance.ACTION_NAME;
+import com.zebrunner.carina.utils.resources.L10N;
+import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
+import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
+import com.zebrunner.carina.webdriver.listener.DriverListener;
+import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
+import com.zebrunner.carina.webdriver.locator.LocatorType;
+import com.zebrunner.carina.webdriver.locator.LocatorUtils;
+import com.zebrunner.carina.webdriver.locator.converter.FormatLocatorConverter;
+import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter;
+import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.hamcrest.BaseMatcher;
 import org.openqa.selenium.By;
@@ -56,27 +66,17 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.SkipException;
 
-import com.zebrunner.carina.crypto.Algorithm;
-import com.zebrunner.carina.crypto.CryptoTool;
-import com.zebrunner.carina.crypto.CryptoToolBuilder;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.utils.IWebElement;
-import com.zebrunner.carina.utils.R;
-import com.zebrunner.carina.utils.common.CommonUtils;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.messager.Messager;
-import com.zebrunner.carina.utils.performance.ACTION_NAME;
-import com.zebrunner.carina.utils.resources.L10N;
-import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
-import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
-import com.zebrunner.carina.webdriver.listener.DriverListener;
-import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
-import com.zebrunner.carina.webdriver.locator.LocatorType;
-import com.zebrunner.carina.webdriver.locator.LocatorUtils;
-import com.zebrunner.carina.webdriver.locator.converter.FormatLocatorConverter;
-import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter;
-import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ExtendedWebElement implements IWebElement {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -172,15 +172,10 @@ public class ExtendedWebElement implements IWebElement {
                 this.driver = ((WrapsDriver) element).getWrappedDriver();
                 this.searchContext = this.driver;
             }
-        } catch (IllegalAccessException | ClassCastException e) {
-            e.printStackTrace();
-        } catch (Throwable thr) {
-            thr.printStackTrace();
-            LOGGER.error("Unable to get Driver, searchContext and By via reflection!", thr);
-        } finally {
-            if (this.searchContext == null) {
-                throw new RuntimeException("review stacktrace to analyze why searchContext is not populated correctly via reflection!");
-            }
+
+            Objects.requireNonNull(this.searchContext, "review stacktrace to analyze why searchContext is not populated correctly via reflection!");
+        } catch (Exception e) {
+            throw new RuntimeException("Error when create instance of ExtendedWebElement.", e);
         }
     }
 

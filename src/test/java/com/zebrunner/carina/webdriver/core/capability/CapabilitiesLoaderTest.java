@@ -21,6 +21,9 @@ import org.testng.annotations.Test;
 
 import com.zebrunner.carina.utils.R;
 
+import java.io.FileNotFoundException;
+import java.io.UncheckedIOException;
+
 public class CapabilitiesLoaderTest {
 
     private final static String customCapabilities = "custom_capabilities.properties";
@@ -43,7 +46,7 @@ public class CapabilitiesLoaderTest {
      * Test that loadCapabilities() raise exception if no properties file detected on classpath
      */
     @Test(expectedExceptions = {
-            AssertionError.class }, expectedExceptionsMessageRegExp = "Unable to find custom capabilities file 'unexisting_file'!")
+            UncheckedIOException.class }, expectedExceptionsMessageRegExp = "java.io.FileNotFoundException: Unable to find custom capabilities file 'unexisting_file'.")
     public void loadCapabilitiesFromNonExistingFileTest() {
         new CapabilitiesLoader().loadCapabilities("unexisting_file");
     }
