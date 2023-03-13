@@ -66,7 +66,7 @@
         <org.json.version>20160810</org.json.version>
         <mockito-core.version>3.2.4</mockito-core.version>
         <testng.version>7.6.1</testng.version>
-
+        <guava.version>31.1-jre</guava.version>
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
@@ -130,6 +130,13 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>${commons-lang3.version}</version>
+        </dependency>
+
+        <!-- We should set correct version of guava for Selenium -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
         </dependency>
 
         <dependency>
