@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
@@ -61,7 +62,7 @@ public class CapabilitiesLoader {
      * @param currentTestOnly boolean
      */
     public void loadCapabilities(String fileName, boolean currentTestOnly) {
-        LOGGER.info("Loading capabilities to global context from " + fileName);
+        LOGGER.info("Loading capabilities to global context from {}", fileName);
         Properties props = loadProperties(fileName);
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -69,7 +70,7 @@ public class CapabilitiesLoader {
         for (Map.Entry<String, String> entry : capabilitiesMap.entrySet()) {
             String value = entry.getValue();
             String key = entry.getKey();
-            LOGGER.info("Set custom property: " + key + "; value: " + value);
+            LOGGER.info("Set custom property: {}; value: {}", key, value);
             // add each property directly into CONFIG
             R.CONFIG.put(key, value, currentTestOnly);
         }
@@ -87,11 +88,10 @@ public class CapabilitiesLoader {
             String key = cap.getKey();
             // so far only primitive String, integer and boolean are supported from Zebrunner Launcher
             String value = cap.getValue().toString();
-            LOGGER.info("Set custom property: " + key + "; value: " + value);
+            LOGGER.info("Set custom property: {}; value: {}", key, value);
             // add each property directly into CONFIG
             R.CONFIG.put(SpecialKeywords.CAPABILITIES + "." + key, value);
         }
-
         return (MutableCapabilities) caps;
     }
 
@@ -109,7 +109,6 @@ public class CapabilitiesLoader {
 
         LOGGER.info("Generating capabilities from {}", fileName);
         Properties props = loadProperties(fileName);
-
         final String prefix = SpecialKeywords.CAPABILITIES + ".";
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -132,7 +131,6 @@ public class CapabilitiesLoader {
                 }
             }
         }
-
         return capabilities;
     }
 
@@ -144,12 +142,11 @@ public class CapabilitiesLoader {
                     new FileNotFoundException(String.format("Unable to find custom capabilities file '%s'.", fileName))
             );
         }
-
         try (InputStream istream = resource.openStream()) {
             properties.load(istream);
             LOGGER.info("Custom capabilities properties loaded: '{}'", fileName);
-        } catch (Exception e) {
-            throw new RuntimeException(String.format("Unable to load custom capabilities from '%s'.", resource.getPath()), e);
+        } catch (IOException e) {
+            throw new UncheckedIOException(String.format("Unable to load custom capabilities from '%s'.", resource.getPath()), e);
         }
         return properties;
     }
