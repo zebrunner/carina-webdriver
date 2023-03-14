@@ -15,24 +15,13 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver;
 
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Proxy;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import javax.imageio.ImageIO;
-
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.webdriver.screenshot.IScreenshotRule;
+import io.appium.java_client.AppiumDriver;
+import io.appium.java_client.remote.MobileCapabilityType;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.imgscalr.Scalr;
@@ -53,15 +42,6 @@ import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.Wait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.report.ReportContext;
-import com.zebrunner.carina.webdriver.screenshot.IScreenshotRule;
-
-import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.remote.MobileCapabilityType;
 import ru.yandex.qatools.ashot.AShot;
 import ru.yandex.qatools.ashot.comparison.DiffMarkupPolicy;
 import ru.yandex.qatools.ashot.comparison.ImageDiff;
@@ -70,12 +50,30 @@ import ru.yandex.qatools.ashot.comparison.PointsMarkupPolicy;
 import ru.yandex.qatools.ashot.shooting.ShootingStrategies;
 import ru.yandex.qatools.ashot.shooting.ShootingStrategy;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 /**
  * Screenshot manager.
  *
  * @author Alex Khursevich
  */
 public class Screenshot {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final List<IScreenshotRule> RULES = new CopyOnWriteArrayList<>();
     private static final Duration DEFAULT_PAGE_LOAD_TIMEOUT = Duration.ofSeconds(300);
@@ -162,7 +160,7 @@ public class Screenshot {
     public static List<IScreenshotRule> removeScreenshotRule(IScreenshotRule rule) {
         LOGGER.debug("Following rule will be removed if it exists: {}", rule.getClass().getName());
         RULES.remove(rule);
-        LOGGER.debug("Actual range of screenshot rules: {}", RULES.toString());
+        LOGGER.debug(ACTUAL_RANGE_OF_SCREENSHOT_RULES_MESSAGE, RULES);
         return RULES;
     }
 
@@ -191,7 +189,7 @@ public class Screenshot {
             LOGGER.debug("Detected rule '{}' with event type '{}', it will be removed.", ruleByEventType.get().getClass(), screenshotType);
             RULES.remove(ruleByEventType.get());
         }
-        LOGGER.debug("Actual range of screenshot rules: {}", RULES);
+        LOGGER.debug(ACTUAL_RANGE_OF_SCREENSHOT_RULES_MESSAGE, RULES);
         return RULES;
     }
 
@@ -733,7 +731,7 @@ public class Screenshot {
 
 		if (!isContains) {
 		    // for released builds put below message to debug  
-		    LOGGER.debug("isCaptured->message: '" + message + "'");
+            LOGGER.debug("isCaptured->message: '{}'", message);
 		    // for snapshot builds use info to get more useful information
 		    //LOGGER.info("isCaptured->message: '" + message + "'");
 		}
