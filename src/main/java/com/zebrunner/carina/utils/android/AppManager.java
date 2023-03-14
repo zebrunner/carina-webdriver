@@ -15,21 +15,21 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.android;
 
+import com.zebrunner.carina.webdriver.IDriverPool;
+
 import java.util.HashMap;
 import java.util.Map;
 
-import com.zebrunner.carina.webdriver.IDriverPool;
-
 public class AppManager {
 
-    private Map<String, String> packagesByName = new HashMap<String, String>();
-
+    private final Map<String, String> packagesByName = new HashMap<>();
     private static AppManager instance;
 
     private AppManager() {
+        // hide
     }
 
-    public synchronized static AppManager getInstance() {
+    public static synchronized AppManager getInstance() {
         if (instance == null) {
             instance = new AppManager();
         }
@@ -43,5 +43,4 @@ public class AppManager {
         }
         return packagesByName.get(name);
     }
-
 }
