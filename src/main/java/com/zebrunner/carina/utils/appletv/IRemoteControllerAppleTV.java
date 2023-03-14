@@ -15,97 +15,88 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.appletv;
 
-import java.lang.invoke.MethodHandles;
-
+import com.zebrunner.carina.webdriver.IDriverPool;
 import org.openqa.selenium.JavascriptExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
-import com.zebrunner.carina.webdriver.IDriverPool;
+import java.lang.invoke.MethodHandles;
+import java.util.Map;
 
 public interface IRemoteControllerAppleTV extends IDriverPool {
 	static final Logger RC_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
 	/**
 	 * Click the button as on the remote control
-	 * 
+	 *
 	 * @param controlKeyword RemoteControlKeyword
 	 */
-	default public void remoteControlAction(RemoteControlKeyword controlKeyword) {
-		((JavascriptExecutor) getDriver()).executeScript("mobile: pressButton", ImmutableMap.of("name", controlKeyword.getControlKeyword()));
-		RC_LOGGER.info(String.format("TV OS RemoteController '%s' clicked", controlKeyword.name()));
+	default void remoteControlAction(RemoteControlKeyword controlKeyword) {
+		((JavascriptExecutor) getDriver()).executeScript("mobile: pressButton", Map.of("name", controlKeyword.getControlKeyword()));
+		String name = controlKeyword.name();
+		RC_LOGGER.info("TV OS RemoteController '{}' clicked", name);
 	}
 
 	/**
 	 * Click the 'Home' button as on the remote control
-	 *
 	 */
-	default public void clickHome() {
+	default void clickHome() {
 		remoteControlAction(RemoteControlKeyword.HOME);
 	}
 
 	/**
 	 * Click the 'Left' button as on the remote control
-	 *
 	 */
-	default public void clickLeft() {
+	default void clickLeft() {
 		remoteControlAction(RemoteControlKeyword.LEFT);
 	}
 
 	/**
 	 * Click the 'Right' button as on the remote control
-	 *
 	 */
-	default public void clickRight() {
+	default void clickRight() {
 		remoteControlAction(RemoteControlKeyword.RIGHT);
 	}
 
 	/**
 	 * Click the 'Up' button as on the remote control
-	 *
 	 */
-	default public void clickUp() {
+	default void clickUp() {
 		remoteControlAction(RemoteControlKeyword.UP);
 	}
 
 	/**
 	 * Click the 'Down' button as on the remote control
-	 *
 	 */
-	default public void clickDown() {
+	default void clickDown() {
 		remoteControlAction(RemoteControlKeyword.DOWN);
 	}
 
 	/**
 	 * Click the 'Menu' button as on the remote control
-	 *
 	 */
-	default public void clickMenu() {
+	default void clickMenu() {
 		remoteControlAction(RemoteControlKeyword.MENU);
 	}
 
 	/**
 	 * Click the 'Back' button as on the remote control
-	 *
 	 */
-	default public void clickBack() {
+	default void clickBack() {
 		clickMenu();
 	}
 
 	/**
 	 * Click the 'Select' button as on the remote control
-	 *
 	 */
-	default public void clickSelect() {
+	default void clickSelect() {
 		remoteControlAction(RemoteControlKeyword.SELECT);
 	}
 
 	/**
 	 * Click the 'Play/pause' button as on the remote control
-	 *
 	 */
-	default public void clickPlay() {
+	default void clickPlay() {
 		remoteControlAction(RemoteControlKeyword.PLAY);
 	}
 }

@@ -269,7 +269,8 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
      */
     public List<Notification> getNotifications(boolean withLogger) {
         String[] getNotificationsCmd = null;
-        String deviceName = IDriverPool.getDefaultDevice().getAdbName();
+        String deviceName = IDriverPool.getDefaultDevice()
+                .getAdbName();
         if (!deviceName.isEmpty()) {
             getNotificationsCmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "-s", deviceName, "shell", "dumpsys", "notification");
         } else {
@@ -285,29 +286,34 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
         Notification notification = new Notification();
         for (String output : notificationsOutput) {
             boolean found = false;
-
             Matcher matcher = NOTIFICATION_PATTERN.matcher(output);
             while (matcher.find()) {
                 notification.setNotificationPkg(matcher.group(1));
-                if (withLogger)
-                    LOGGER.info(matcher.group(1));
+                if (withLogger) {
+                    String text = matcher.group(1);
+                    LOGGER.info("{}", text);
+                }
             }
             Matcher matcher2 = NOTIFICATION_TEXT_PATTERN.matcher(output);
             while (matcher2.find()) {
                 notification.setNotificationText(matcher2.group(1));
-                if (withLogger)
-                    LOGGER.info(matcher2.group(1));
+                if (withLogger) {
+                    String text = matcher2.group(1);
+                    LOGGER.info("{}", text);
+                }
                 found = true;
             }
             if (found) {
                 resultList.add(notification);
-                if (withLogger)
+                if (withLogger) {
                     LOGGER.info(notification.getNotificationText());
+                }
                 notification = new Notification();
             }
         }
-        if (withLogger)
+        if (withLogger) {
             LOGGER.info("Found: {} notifications.", resultList.size());
+        }
         return resultList;
     }
 
@@ -873,7 +879,7 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
             LOGGER.error("DeviceTimeZone is not initialised.");
             dt = new DeviceTimeZone();
         }
-        LOGGER.info(dt.toString());
+        LOGGER.info("{}", dt);
 
         String autoTime = "0";
         String autoTimeZone = "0";
@@ -1008,7 +1014,7 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
             String lastActTZ = actTZ[actTZ.length - 1];
             String[] timeZoneTZ = expextedTZ.split("/");
             String lastTimeZoneTZ = timeZoneTZ[timeZoneTZ.length - 1];
-            LOGGER.debug("Comparing '" + lastActTZ + "' with '" + lastTimeZoneTZ + "'.");
+            LOGGER.debug("Comparing '{}' with '{}'.", lastActTZ, lastTimeZoneTZ);
             res = lastActTZ.equals(lastTimeZoneTZ);
         }
         return res;
@@ -1045,18 +1051,15 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
         }
         if (tzChangerPage.isOpened(3)) {
             LOGGER.info("TimeZone changer main page was open.");
-            res = true;
         } else {
             LOGGER.error("TimeZone changer main page should be open.");
             openTZChangingApk(turnOffAuto, timeFormat);
-            res = false;
         }
         if (isAppRunning(tzPackageName)) {
             LOGGER.info("On TZ changer apk page");
             res = true;
         } else {
             LOGGER.error("Not on com.futurek.android.tzc page after all tries. Please check logs.");
-            res = false;
         }
         return res;
     }
@@ -1071,7 +1074,6 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
         if (turnOffAuto) {
             switchDeviceAutoTimeAndTimeZone(false);
         }
-
         setSystemTime(timeFormat);
         openApp("com.android.settings/.Settings\\$DateTimeSettingsActivity");
     }
@@ -1086,23 +1088,18 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
         if (turnOffAuto) {
             switchDeviceAutoTimeAndTimeZone(false);
         }
-
         setSystemTime(timeFormat);
-
         openApp(TZ_CHANGE_APP_ACTIVITY);
         CommonUtils.pause(2);
     }
 
     private void setSystemTime(TimeFormat timeFormat) {
-        switch (timeFormat) {
-        case FORMAT_12:
+        if (timeFormat == TimeFormat.FORMAT_12) {
             LOGGER.info("Set 12 hours format");
             executeAdbCommand("shell settings put system time_12_24 12");
-            break;
-        case FORMAT_24:
+        } else if (timeFormat == TimeFormat.FORMAT_24) {
             LOGGER.info("Set 24 hours format");
             executeAdbCommand("shell settings put system time_12_24 24");
-            break;
         }
     }
 
@@ -1115,12 +1112,10 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
     private Date parseOutputDate(String inputDate) {
         Date result = new Date();
         try {
-            LOGGER.info("Input date: " + inputDate);
+            LOGGER.info("Input date: {}", inputDate);
             SimpleDateFormat inDateFormat = new SimpleDateFormat("EE MMM dd hh:mm:ss zz yyyy");
-
             result = inDateFormat.parse(inputDate);
-            LOGGER.info("Output date: " + result);
-
+            LOGGER.info("Output date: {}", result);
         } catch (Exception e) {
             LOGGER.error("Error while parsing output date!", e);
         }
@@ -1141,7 +1136,7 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
         } catch (Exception e) {
             LOGGER.error("Error while converting date into String!", e);
         }
-        LOGGER.info("Output date in expected format: " + res);
+        LOGGER.info("Output date in expected format: {}", res);
         return res;
     }
 

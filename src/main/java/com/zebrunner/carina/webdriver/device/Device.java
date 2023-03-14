@@ -15,25 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.device;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.invoke.MethodHandles;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.openqa.selenium.Capabilities;
-import org.openqa.selenium.MutableCapabilities;
-import org.openqa.selenium.WebDriver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
@@ -41,17 +22,33 @@ import com.zebrunner.carina.utils.android.recorder.utils.AdbExecutor;
 import com.zebrunner.carina.utils.android.recorder.utils.CmdLine;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.factory.DeviceType;
 import com.zebrunner.carina.utils.factory.DeviceType.Type;
 import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.IDriverPool;
-
 import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.remote.MobileCapabilityType;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.MutableCapabilities;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.CapabilityType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.invoke.MethodHandles;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Device implements IDriverPool {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    
     private String name;
     private String type;
     private String os;
@@ -60,15 +57,13 @@ public class Device implements IDriverPool {
     private String remoteURL;
     private String vnc;
     private String proxyPort;
-    
-    private AdbExecutor executor = new AdbExecutor();
+    private final AdbExecutor executor = new AdbExecutor();
     private Capabilities capabilities;
-
     /**
      * ENABLED only in case of availability of parameter - 'uninstall_related_apps'.
      * Store udids of devices where related apps were uninstalled
      */
-    private static List<String> clearedDeviceUdids = new ArrayList<>();
+    private static final List<String> CLEARED_DEVICE_UDIDS = new ArrayList<>();
     private boolean isAdbEnabled;
 
     public Device() {
@@ -88,7 +83,6 @@ public class Device implements IDriverPool {
     }
 
     public Device(Capabilities capabilities) {
-
         String deviceName = "";
         if (CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.DEVICE_NAME, String.class) != null){
             deviceName = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.DEVICE_NAME, String.class);
@@ -96,7 +90,6 @@ public class Device implements IDriverPool {
         if (!R.CONFIG.get(SpecialKeywords.MOBILE_DEVICE_NAME).isBlank()){
             deviceName = R.CONFIG.get(SpecialKeywords.MOBILE_DEVICE_NAME);
         }
-
         setName(deviceName);
 
         // TODO: should we register default device type as phone?
@@ -158,7 +151,7 @@ public class Device implements IDriverPool {
 
                 // That's a trusted information from Zebrunner Device Farm so we can override all values
                 setName((String) slotCap.get("deviceName"));
-                setOs((String) slotCap.get(MobileCapabilityType.PLATFORM_NAME));
+                setOs((String) slotCap.get(CapabilityType.PLATFORM_NAME));
                 setOsVersion((String) slotCap.get(MobileCapabilityType.PLATFORM_VERSION));
                 setType((String) slotCap.get("deviceType"));
                 setUdid((String) slotCap.get(MobileCapabilityType.UDID));
@@ -309,14 +302,14 @@ public class Device implements IDriverPool {
 
         if (isIOS())
             return;
-        
+
         String connectUrl = getAdbName();
         if (StringUtils.isEmpty(connectUrl)) {
             LOGGER.error("Unable to use adb as ADB remote url is not available!");
             return;
         }
-        
-        LOGGER.debug("adb connect " + connectUrl);
+
+        LOGGER.debug("adb connect {}", connectUrl);
         String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "connect", connectUrl);
         executor.execute(cmd);
         CommonUtils.pause(1);
@@ -337,27 +330,26 @@ public class Device implements IDriverPool {
 
         // [VD] No need to do adb command as stopping STF session do it correctly
         // in new STF we have huge problems with sessions disconnect
-        LOGGER.debug("adb disconnect " + getRemoteURL());
+        LOGGER.debug("adb disconnect {}", getRemoteURL());
         String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "disconnect", getRemoteURL());
         executor.execute(cmd);
-
         isAdbEnabled = false;
     }
 
     public String getFullPackageByName(final String name) {
 
         List<String> packagesList = getInstalledPackages();
-        LOGGER.debug("Found packages: ".concat(packagesList.toString()));
+        LOGGER.debug("Found packages: {}", packagesList);
         String resultPackage = null;
         for (String packageStr : packagesList) {
             if (packageStr.matches(String.format(".*%s.*", name))) {
-                LOGGER.info("Package was found: ".concat(packageStr));
+                LOGGER.info("Package was found: {}", packageStr);
                 resultPackage = packageStr;
                 break;
             }
         }
         if (null == resultPackage) {
-            LOGGER.info("Package wasn't found using following name: ".concat(name));
+            LOGGER.info("Package wasn't found using following name: {}", name);
             resultPackage = "not found";
         }
         return resultPackage;
@@ -365,11 +357,11 @@ public class Device implements IDriverPool {
 
     public List<String> getInstalledPackages() {
         String deviceUdid = getAdbName();
-        LOGGER.debug("Device udid: ".concat(deviceUdid));
+        LOGGER.debug("Device udid: {}", deviceUdid);
         String[] cmd = CmdLine.createPlatformDependentCommandLine("adb", "-s", deviceUdid, "shell", "pm", "list", "packages");
-        LOGGER.debug("Following cmd will be executed: " + Arrays.toString(cmd));
-        List<String> packagesList = executor.execute(cmd);
-        return packagesList;
+        String cmdAsString = Arrays.toString(cmd);
+        LOGGER.debug("Following cmd will be executed: {}", cmdAsString);
+        return executor.execute(cmd);
     }
 
     public boolean isAppInstall(final String packageName) {
@@ -458,62 +450,6 @@ public class Device implements IDriverPool {
         executor.execute(cmd);
     }
 
-    /*
-     * public void reinstallApp() {
-     * if (!Configuration.getPlatform().equalsIgnoreCase(SpecialKeywords.ANDROID)) {
-     * return;
-     * }
-     * 
-     * if (isNull())
-     * return;
-     * 
-     * String mobileApp = Configuration.getMobileApp();
-     * String oldMobileApp = Configuration.get(Parameter.MOBILE_APP_PREUPGRADE);
-     * 
-     * if (!oldMobileApp.isEmpty()) {
-     * //redefine strategy to do upgrade scenario
-     * R.CONFIG.put(Parameter.MOBILE_APP_UNINSTALL.getKey(), "true");
-     * R.CONFIG.put(Parameter.MOBILE_APP_INSTALL.getKey(), "true");
-     * }
-     * 
-     * if (Configuration.getBoolean(Parameter.MOBILE_APP_UNINSTALL)) {
-     * // explicit reinstall the apk
-     * String[] apkVersions = getApkVersion(mobileApp);
-     * if (apkVersions != null) {
-     * String appPackage = apkVersions[0];
-     * 
-     * String[] apkInstalledVersions = getInstalledApkVersion(appPackage);
-     * 
-     * LOGGER.info("installed app: " + apkInstalledVersions[2] + "-" + apkInstalledVersions[1]);
-     * LOGGER.info("new app: " + apkVersions[2] + "-" + apkVersions[1]);
-     * 
-     * if (apkVersions[1].equals(apkInstalledVersions[1]) && apkVersions[2].equals(apkInstalledVersions[2]) && oldMobileApp.isEmpty()) {
-     * LOGGER.info(
-     * "Skip application uninstall and cache cleanup as exactly the same version is already installed.");
-     * } else {
-     * uninstallApp(appPackage);
-     * clearAppData(appPackage);
-     * isAppInstalled = false;
-     * if (!oldMobileApp.isEmpty()) {
-     * LOGGER.info("Starting sync install operation for preupgrade app: " + oldMobileApp);
-     * installAppSync(oldMobileApp);
-     * }
-     * 
-     * if (Configuration.getBoolean(Parameter.MOBILE_APP_INSTALL)) {
-     * // install application in single thread to fix issue with gray Google maps
-     * LOGGER.info("Starting sync install operation for app: " + mobileApp);
-     * installAppSync(mobileApp);
-     * }
-     * }
-     * }
-     * } else if (Configuration.getBoolean(Parameter.MOBILE_APP_INSTALL) && !isAppInstalled) {
-     * LOGGER.info("Starting install operation for app: " + mobileApp);
-     * installApp(mobileApp);
-     * isAppInstalled = true;
-     * }
-     * }
-     */
-
     public String[] getInstalledApkVersion(String packageName) {
         // adb -s UDID shell dumpsys package PACKAGE | grep versionCode
         if (isNull())
@@ -529,7 +465,7 @@ public class Device implements IDriverPool {
             LOGGER.debug(line);
             if (line.contains("versionCode")) {
                 // versionCode=17040000 targetSdk=25
-                LOGGER.info("Line for parsing installed app: " + line);
+                LOGGER.info("Line for parsing installed app: {}", line);
                 String[] outputs = line.split("=");
                 String tmp = outputs[1]; // everything after '=' sign
                 res[1] = tmp.split(" ")[0];
@@ -537,7 +473,7 @@ public class Device implements IDriverPool {
 
             if (line.contains("versionName")) {
                 // versionName=8.5.0
-                LOGGER.info("Line for parsing installed app: " + line);
+                LOGGER.info("Line for parsing installed app: {}", line);
                 String[] outputs = line.split("=");
                 res[2] = outputs[1];
             }
@@ -573,7 +509,6 @@ public class Device implements IDriverPool {
                 res[2] = outputs[5]; // versionName
             }
         }
-
         return res;
     }
 
@@ -593,16 +528,16 @@ public class Device implements IDriverPool {
             installApp(proxySetterFileName);
         }
         String deviceUdid = getAdbName();
-        LOGGER.debug("Device udid: ".concat(deviceUdid));
+        LOGGER.debug("Device udid: {}", deviceUdid);
         String[] cmd = CmdLine.createPlatformDependentCommandLine("adb", "-s", deviceUdid, "shell", "am", "start", "-n",
                 "tk.elevenk.proxysetter/.MainActivity", "-e", "host", host, "-e", "port", port, "-e", "ssid", ssid, "-e", "key", password);
-        LOGGER.debug("Following cmd will be executed: " + Arrays.toString(cmd));
+        String cmdAsString = Arrays.toString(cmd);
+        LOGGER.debug("Following cmd will be executed: {}", cmdAsString);
         executor.execute(cmd);
     }
 
     private void downloadFileFromJar(final String path, final File targetFile) {
-        InputStream initialStream = Device.class.getClassLoader().getResourceAsStream(path);
-        try {
+        try (InputStream initialStream = Device.class.getClassLoader().getResourceAsStream(path)) {
             FileUtils.copyInputStreamToFile(initialStream, targetFile);
         } catch (IOException e) {
             LOGGER.error("Error during copying of file from the resources. ".concat(e.getMessage()));
@@ -624,9 +559,9 @@ public class Device implements IDriverPool {
      */
     public void uninstallRelatedApps() {
         if (getOs().equalsIgnoreCase(Type.ANDROID_PHONE.getFamily()) && Configuration.getBoolean(Parameter.UNINSTALL_RELATED_APPS)
-                && !clearedDeviceUdids.contains(getUdid())) {
+                && !CLEARED_DEVICE_UDIDS.contains(getUdid())) {
             String mobileApp = Configuration.getMobileApp();
-            LOGGER.debug("Current mobile app: ".concat(mobileApp));
+            LOGGER.debug("Current mobile app: {}", mobileApp);
             String tempPackage;
             try {
                 tempPackage = getApkPackageName(mobileApp);
@@ -635,20 +570,20 @@ public class Device implements IDriverPool {
                 tempPackage = R.CONFIG.get(SpecialKeywords.MOBILE_APP_PACKAGE);
             }
             final String mobilePackage = tempPackage;
-            LOGGER.debug("Current mobile package: ".concat(mobilePackage));
+            LOGGER.debug("Current mobile package: {}", mobilePackage);
             // in general it has following naming convention:
             // com.projectname.app
             // so we need to remove all apps realted to 1 project
             String projectName = mobilePackage.split("\\.")[1];
-            LOGGER.debug("Apps related to current project will be uninstalled. Extracted project: ".concat(projectName));
+            LOGGER.debug("Apps related to current project will be uninstalled. Extracted project: {}", projectName);
             List<String> installedPackages = getInstalledPackages();
             // extracted package syntax: package:com.project.app
             installedPackages.parallelStream()
                     .filter(packageName -> (packageName.matches(String.format(".*\\.%s\\..*", projectName))
                             && !packageName.equalsIgnoreCase(String.format("package:%s", mobilePackage))))
-                    .collect(Collectors.toList()).forEach((k) -> uninstallApp(k.split(":")[1]));
-            clearedDeviceUdids.add(getUdid());
-            LOGGER.debug("Udids of devices where applciation was already reinstalled: ".concat(clearedDeviceUdids.toString()));
+                    .collect(Collectors.toList()).forEach(k -> uninstallApp(k.split(":")[1]));
+            CLEARED_DEVICE_UDIDS.add(getUdid());
+            LOGGER.debug("Udids of devices where applciation was already reinstalled: {}", CLEARED_DEVICE_UDIDS);
         } else {
             LOGGER.debug("Related apps had been already uninstalled or flag uninstall_related_apps is disabled.");
         }
@@ -682,7 +617,7 @@ public class Device implements IDriverPool {
         try {
             WebDriver driver = getDriver(this);
             if (driver == null) {
-                LOGGER.debug(String.format("There is no active driver for device: %s", getName()));
+                LOGGER.debug("There is no active driver for device: {}", getName());
                 return null;
             }
             
@@ -695,16 +630,15 @@ public class Device implements IDriverPool {
             File file = null;
             try {
                 file = new File(fileName);
-                FileUtils.writeStringToFile(file, pageSource, Charset.forName("ASCII"));
+                FileUtils.writeStringToFile(file, pageSource, StandardCharsets.US_ASCII);
             } catch (IOException e) {
                 LOGGER.warn("Error has been met during attempt to extract xml tree.", e);
             }
-            LOGGER.debug("XML file path: ".concat(fileName));
+            LOGGER.debug("XML file path: {}", fileName);
             return file;
         } catch (Exception e) {
             LOGGER.error("Undefined failure during UiDump generation for Android device!", e);
         }
-        
         return null;
     }
     
@@ -713,16 +647,16 @@ public class Device implements IDriverPool {
     }
 
     private boolean isConnected() {
-    	try {
-	        if (getOs().equalsIgnoreCase(Type.ANDROID_PHONE.getFamily())) {
-	            return getConnectedDevices().stream().parallel().anyMatch((m) -> m.contains(getAdbName()));
-	        } else {
-	            return false;
-	        }
-    	} catch (Throwable thr) {
-    		//do nothing for now
-    		return false;
-    	}
+        try {
+            if (getOs().equalsIgnoreCase(Type.ANDROID_PHONE.getFamily())) {
+                return getConnectedDevices().stream().parallel().anyMatch(m -> m.contains(getAdbName()));
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            //do nothing for now
+            return false;
+        }
     }
     
     private List<String> getConnectedDevices() {
@@ -730,8 +664,8 @@ public class Device implements IDriverPool {
         String deviceUDID = "(.*)\\tdevice$";
         String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "devices");
         List<String> cmdOutput = executor.execute(cmd);
-        List<String> connectedDevices = cmdOutput.stream().parallel().filter((d) -> d.matches(deviceUDID)).collect(Collectors.toList());
-        LOGGER.debug("Connected devices: ".concat(connectedDevices.toString()));
+        List<String> connectedDevices = cmdOutput.stream().parallel().filter(d -> d.matches(deviceUDID)).collect(Collectors.toList());
+        LOGGER.debug("Connected devices: {}", connectedDevices);
         return connectedDevices;
     }
 

@@ -1,12 +1,6 @@
 package com.zebrunner.carina.utils.ios;
 
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-
 import com.zebrunner.carina.utils.mobile.IMobileUtils;
-
 import io.appium.java_client.HidesKeyboardWithKeyName;
 import io.appium.java_client.battery.HasBattery;
 import io.appium.java_client.ios.HasIOSClipboard;
@@ -14,6 +8,11 @@ import io.appium.java_client.ios.HasIOSSettings;
 import io.appium.java_client.ios.IOSBatteryInfo;
 import io.appium.java_client.ios.PerformsTouchID;
 import io.appium.java_client.ios.ShakesDevice;
+
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * Contains utility methods for working with ios
@@ -27,7 +26,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param keyName a String, representing the text displayed on the button of the keyboard you want to press. For example: "Done"
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void hideKeyboard(String keyName) {
+    default void hideKeyboard(String keyName) {
         HidesKeyboardWithKeyName driver = null;
         try {
             driver = (HidesKeyboardWithKeyName) getDriver();
@@ -43,10 +42,10 @@ public interface IOSUtils extends IMobileUtils {
      * works
      *
      * @param strategy HideKeyboardStrategy
-     * @param keyName a String, representing the text displayed on the button of the keyboard you want to press. For example: "Done"
+     * @param keyName  a String, representing the text displayed on the button of the keyboard you want to press. For example: "Done"
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void hideKeyboard(String strategy, String keyName) {
+    default void hideKeyboard(String strategy, String keyName) {
         HidesKeyboardWithKeyName driver = null;
         try {
             driver = (HidesKeyboardWithKeyName) getDriver();
@@ -58,10 +57,10 @@ public interface IOSUtils extends IMobileUtils {
 
     /**
      * Shake the device
-     * 
+     *
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void shake() {
+    default void shake() {
         ShakesDevice driver = null;
         try {
             driver = (ShakesDevice) getDriver();
@@ -77,7 +76,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param match if true, simulates a successful fingerprint scan. If false, simulates a failed fingerprint scan.
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void performTouchID(boolean match) {
+    default void performTouchID(boolean match) {
         PerformsTouchID driver = null;
         try {
             driver = (PerformsTouchID) getDriver();
@@ -98,7 +97,7 @@ public interface IOSUtils extends IMobileUtils {
      *            Multiple calls of the method with the same argument value have no effect.
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void toggleTouchIDEnrollment(boolean enabled) {
+    default void toggleTouchIDEnrollment(boolean enabled) {
         PerformsTouchID driver = null;
         try {
             driver = (PerformsTouchID) getDriver();
@@ -112,10 +111,10 @@ public interface IOSUtils extends IMobileUtils {
      * Set an image to the clipboard
      *
      * @param img the actual image to be set
-     * @throws IOException if the image cannot be decoded in PNG representation
+     * @throws IOException                   if the image cannot be decoded in PNG representation
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void setClipboardImage(BufferedImage img) throws IOException {
+    default void setClipboardImage(BufferedImage img) throws IOException {
         HasIOSClipboard driver = null;
         try {
             driver = (HasIOSClipboard) getDriver();
@@ -129,10 +128,10 @@ public interface IOSUtils extends IMobileUtils {
      * Get an image from the clipboard
      *
      * @return the actual image instance
-     * @throws IOException If the returned image cannot be decoded or if the clipboard is empty
+     * @throws IOException                   If the returned image cannot be decoded or if the clipboard is empty
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public BufferedImage getClipboardImage() throws IOException {
+    default BufferedImage getClipboardImage() throws IOException {
         HasIOSClipboard driver = null;
         try {
             driver = (HasIOSClipboard) getDriver();
@@ -148,7 +147,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param url the actual URL to set
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void setClipboardUrl(URL url) {
+    default void setClipboardUrl(URL url) {
         HasIOSClipboard driver = null;
         try {
             driver = (HasIOSClipboard) getDriver();
@@ -162,10 +161,10 @@ public interface IOSUtils extends IMobileUtils {
      * Get an URL from the clipboard
      *
      * @return the actual URL instance
-     * @throws MalformedURLException if the URL in the clipboard is not valid or if the clipboard is empty
+     * @throws MalformedURLException         if the URL in the clipboard is not valid or if the clipboard is empty
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public URL getClipboardUrl() throws MalformedURLException {
+    default URL getClipboardUrl() throws MalformedURLException {
         HasIOSClipboard driver = null;
         try {
             driver = (HasIOSClipboard) getDriver();
@@ -181,7 +180,7 @@ public interface IOSUtils extends IMobileUtils {
      * @return BatteryInfo instance, containing the battery information
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public IOSBatteryInfo getBatteryInfo() {
+    default IOSBatteryInfo getBatteryInfo() {
         HasBattery<IOSBatteryInfo> driver = null;
         try {
             driver = (HasBattery<IOSBatteryInfo>) getDriver();
@@ -198,7 +197,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param enabled turns nativeWebTap on if true, off if false.
      * @return {@link HasIOSSettings} instance for chaining.
      */
-    public default HasIOSSettings nativeWebTap(Boolean enabled) {
+    default HasIOSSettings nativeWebTap(Boolean enabled) {
         HasIOSSettings driver = null;
         try {
             driver = (HasIOSSettings) getDriver();
@@ -216,7 +215,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param enabled either true or false. The default value if true.
      * @return {@link HasIOSSettings} instance for chaining.
      */
-    public default HasIOSSettings setShouldUseCompactResponses(boolean enabled) {
+    default HasIOSSettings setShouldUseCompactResponses(boolean enabled) {
         HasIOSSettings driver = null;
         try {
             driver = (HasIOSSettings) getDriver();
@@ -233,7 +232,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param attrNames the comma-separated list of fields to return with each element.
      * @return {@link HasIOSSettings} instance for chaining.
      */
-    public default HasIOSSettings setElementResponseAttributes(String attrNames) {
+    default HasIOSSettings setElementResponseAttributes(String attrNames) {
         HasIOSSettings driver = null;
         try {
             driver = (HasIOSSettings) getDriver();
@@ -251,7 +250,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param quality an integer in range 0..100. The default value is 25.
      * @return {@link HasIOSSettings} instance for chaining.
      */
-    public default HasIOSSettings setMjpegServerScreenshotQuality(int quality) {
+    default HasIOSSettings setMjpegServerScreenshotQuality(int quality) {
         HasIOSSettings driver = null;
         try {
             driver = (HasIOSSettings) getDriver();
@@ -269,7 +268,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param framerate an integer in range 1..60. The default value is 10.
      * @return {@link HasIOSSettings} instance for chaining.
      */
-    public default HasIOSSettings setMjpegServerFramerate(int framerate) {
+    default HasIOSSettings setMjpegServerFramerate(int framerate) {
         HasIOSSettings driver = null;
         try {
             driver = (HasIOSSettings) getDriver();
@@ -287,7 +286,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param quality an integer in range 0..2. The default value is 1.
      * @return {@link HasIOSSettings} instance for chaining.
      */
-    public default HasIOSSettings setScreenshotQuality(int quality) {
+    default HasIOSSettings setScreenshotQuality(int quality) {
         HasIOSSettings driver = null;
         try {
             driver = (HasIOSSettings) getDriver();
@@ -304,7 +303,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param scale an integer in range 1..100. The default value is 100.
      * @return {@link HasIOSSettings} instance for chaining.
      */
-    public default HasIOSSettings setMjpegScalingFactor(int scale) {
+    default HasIOSSettings setMjpegScalingFactor(int scale) {
         HasIOSSettings driver = null;
         try {
             driver = (HasIOSSettings) getDriver();
@@ -320,7 +319,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param enabled Either true or false. Defaults to false when WDA starts as xctest.
      * @return {@link HasIOSSettings} instance for chaining.
      */
-    public default HasIOSSettings setKeyboardAutocorrection(boolean enabled) {
+    default HasIOSSettings setKeyboardAutocorrection(boolean enabled) {
         HasIOSSettings driver = null;
         try {
             driver = (HasIOSSettings) getDriver();
@@ -336,7 +335,7 @@ public interface IOSUtils extends IMobileUtils {
      * @param enabled either true or false. Defaults to false when WDA starts as xctest.
      * @return {@link HasIOSSettings} instance for chaining.
      */
-    public default HasIOSSettings setKeyboardPrediction(boolean enabled) {
+    default HasIOSSettings setKeyboardPrediction(boolean enabled) {
         HasIOSSettings driver = null;
         try {
             driver = (HasIOSSettings) getDriver();

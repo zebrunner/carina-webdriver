@@ -15,11 +15,16 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.factory.impl;
 
-import java.lang.invoke.MethodHandles;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.time.Duration;
-
+import com.google.common.base.Function;
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.ChromeCapabilities;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.EdgeCapabilities;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.FirefoxCapabilities;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.OperaCapabilities;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.SafariCapabilities;
+import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
+import com.zebrunner.carina.webdriver.listener.EventFiringSeleniumCommandExecutor;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.NoSuchSessionException;
@@ -34,20 +39,15 @@ import org.openqa.selenium.support.ui.Wait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.ChromeCapabilities;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.EdgeCapabilities;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.FirefoxCapabilities;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.OperaCapabilities;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.SafariCapabilities;
-import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
-import com.zebrunner.carina.webdriver.listener.EventFiringSeleniumCommandExecutor;
+import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.time.Duration;
 
 public class DesktopFactory extends AbstractFactory {
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
     private static MutableCapabilities staticCapabilities = null;
 
     @Override
@@ -78,10 +78,9 @@ public class DesktopFactory extends AbstractFactory {
             driver = new RemoteWebDriver(ce, capabilities);
 
         } catch (MalformedURLException e) {
-            throw new RuntimeException("Malformed selenium URL!", e);
+            throw new UncheckedIOException("Malformed selenium URL!", e);
         }
         resizeBrowserWindow(driver, capabilities);
-
         return driver;
     }
 
@@ -130,27 +129,23 @@ public class DesktopFactory extends AbstractFactory {
                 String resolution = (String) capabilities.getCapability("resolution");
                 int expectedWidth = Integer.parseInt(resolution.split("x")[0]);
                 int expectedHeight = Integer.parseInt(resolution.split("x")[1]);
-                wait.until(new Function<WebDriver, Boolean>(){
-                    public Boolean apply(WebDriver driver ) {
-                        driver.manage().window().setPosition(new Point(0, 0));
-                        driver.manage().window().setSize(new Dimension(expectedWidth, expectedHeight));
-                        Dimension actualSize = driver.manage().window().getSize();
-                        if (actualSize.getWidth() == expectedWidth && actualSize.getHeight() == expectedHeight) {
-                            LOGGER.debug(String.format("Browser window size set to %dx%d", actualSize.getWidth(), actualSize.getHeight()));
-                        } else {
-                            LOGGER.warn(String.format("Expected browser window %dx%d, but actual %dx%d",
-                                    expectedWidth, expectedHeight, actualSize.getWidth(), actualSize.getHeight()));
-                        }
-                        return true;
+                wait.until((Function<WebDriver, Boolean>) drv -> {
+                    drv.manage().window().setPosition(new Point(0, 0));
+                    drv.manage().window().setSize(new Dimension(expectedWidth, expectedHeight));
+                    Dimension actualSize = drv.manage().window().getSize();
+                    if (actualSize.getWidth() == expectedWidth && actualSize.getHeight() == expectedHeight) {
+                        LOGGER.debug("Browser window size set to {}x{}", actualSize.getWidth(), actualSize.getHeight());
+                    } else {
+                        LOGGER.warn("Expected browser window {}x{}, but actual {}x{}",
+                                expectedWidth, expectedHeight, actualSize.getWidth(), actualSize.getHeight());
                     }
+                    return true;
                 });
             } else {
-                wait.until(new Function<WebDriver, Boolean>(){
-                    public Boolean apply(WebDriver driver ) {
-                        driver.manage().window().maximize();
-                        LOGGER.debug("Browser window size was maximized!");
-                        return true;
-                    }
+                wait.until((Function<WebDriver, Boolean>) drv -> {
+                    drv.manage().window().maximize();
+                    LOGGER.debug("Browser window size was maximized!");
+                    return true;
                 });
             }
         } catch (Exception e) {

@@ -1,15 +1,14 @@
 package com.zebrunner.carina.webdriver.locator;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Field;
-
+import io.appium.java_client.pagefactory.DefaultElementByBuilder;
 import org.openqa.selenium.By;
 import org.openqa.selenium.support.FindAll;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.FindBys;
 
-import io.appium.java_client.pagefactory.DefaultElementByBuilder;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Field;
 
 public class ExtendedAppiumAnnotations extends DefaultElementByBuilder {
 
@@ -64,8 +63,7 @@ public class ExtendedAppiumAnnotations extends DefaultElementByBuilder {
         checkDisallowedAnnotationPairs(findAll, findAny);
     }
 
-    private static void checkDisallowedAnnotationPairs(Annotation a1, Annotation a2)
-            throws IllegalArgumentException {
+    private static void checkDisallowedAnnotationPairs(Annotation a1, Annotation a2) {
         if (a1 != null && a2 != null) {
             throw new IllegalArgumentException(
                     "If you use a '@" + a1.getClass().getSimpleName() + "' annotation, "

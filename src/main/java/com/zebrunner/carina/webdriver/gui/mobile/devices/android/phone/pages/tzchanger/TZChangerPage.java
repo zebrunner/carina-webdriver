@@ -15,28 +15,23 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.tzchanger;
 
-import java.lang.invoke.MethodHandles;
-
+import com.zebrunner.carina.webdriver.DriverHelper;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.FindBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.webdriver.DriverHelper;
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
+import java.lang.invoke.MethodHandles;
 
 public class TZChangerPage extends MobileAbstractPage {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final String TIMEZONE_TEXT_BASE = "//android.widget.TextView[contains(@text,'%s')]";
 
     @FindBy(id = "com.futurek.android.tzc:id/txt_selected")
     protected ExtendedWebElement title;
-
-    public TZChangerPage(WebDriver driver) {
-        super(driver);
-
-    }
 
     @FindBy(xpath = "//android.widget.ListView")
     protected ExtendedWebElement scrollableContainer;
@@ -47,7 +42,9 @@ public class TZChangerPage extends MobileAbstractPage {
     @FindBy(id = "com.android.settings:id/next_button")
     protected ExtendedWebElement nextButton;
 
-    protected static final String TIMEZONE_TEXT_BASE = "//android.widget.TextView[contains(@text,'%s')]";
+    public TZChangerPage(WebDriver driver) {
+        super(driver);
+    }
 
     /**
      * selectTimeZone
@@ -57,19 +54,17 @@ public class TZChangerPage extends MobileAbstractPage {
      */
     public boolean selectTimeZone(String timezone) {
         int defaultSwipeTime = 30;
-
-        // String baseTimezoneText = timezone;
         boolean selected = false;
         String tz = "";
 
         if (timezone.contains("/")) {
             tz = timezone.split("/")[0];
         } else {
-            LOGGER.error("Incorrect timezone format: " + timezone);
+            LOGGER.error("Incorrect timezone format: {}", timezone);
             return false;
         }
 
-        LOGGER.info("Searching for tz: " + tz);
+        LOGGER.info("Searching for tz: {}", tz);
         if (scrollableContainer.isElementPresent(SHORT_TIMEOUT)) {
             LOGGER.info("Scrollable container present.");
             boolean scrolled = swipe(
@@ -84,34 +79,33 @@ public class TZChangerPage extends MobileAbstractPage {
             }
             if (scrolled) {
 
-                LOGGER.info("Select timezone folder: " + tz);
+                LOGGER.info("Select timezone folder: {}", tz);
                 tzSelectionBase.format(tz).click();
 
-                LOGGER.info("Searching for " + timezone);
+                LOGGER.info("Searching for {}", timezone);
                 scrolled = swipe(
                         tzSelectionBase.format(timezone),
                         scrollableContainer, defaultSwipeTime);
                 if (scrolled) {
 
-                    LOGGER.info("Select timezone by TimeZone text: " + timezone);
+                    LOGGER.info("Select timezone by TimeZone text: {}", timezone);
                     tzSelectionBase.format(timezone).click();
                     selected = true;
                 } else {
-                    LOGGER.error("Did not find timezone by timezone text: " + timezone);
+                    LOGGER.error("Did not find timezone by timezone text: {}", timezone);
                     defaultSwipeTime = 30;
                     scrolled = swipe(
                             tzSelectionBase.format(timezone),
                             scrollableContainer, defaultSwipeTime);
                     if (scrolled) {
-                        LOGGER.info("Select timezone: " + timezone);
+                        LOGGER.info("Select timezone: {}", timezone);
                         tzSelectionBase.format(timezone).click();
                         selected = true;
                     }
                 }
             } else {
-                LOGGER.error("Didn't find timezone: " + timezone);
+                LOGGER.error("Didn't find timezone: {}", timezone);
             }
-
         }
 
         return selected;
@@ -131,5 +125,4 @@ public class TZChangerPage extends MobileAbstractPage {
     public boolean isOpened() {
         return isOpened(DriverHelper.EXPLICIT_TIMEOUT);
     }
-
 }

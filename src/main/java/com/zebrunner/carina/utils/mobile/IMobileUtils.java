@@ -15,36 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.mobile;
 
-import static org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.time.Duration;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
-import org.openqa.selenium.Capabilities;
-import org.openqa.selenium.DeviceRotation;
-import org.openqa.selenium.Dimension;
-import org.openqa.selenium.HasCapabilities;
-import org.openqa.selenium.Point;
-import org.openqa.selenium.ScreenOrientation;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebDriverException;
-import org.openqa.selenium.html5.Location;
-import org.openqa.selenium.interactions.Interactive;
-import org.openqa.selenium.interactions.Pause;
-import org.openqa.selenium.interactions.PointerInput;
-import org.openqa.selenium.interactions.Sequence;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testng.Assert;
-
 import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.android.AndroidService;
@@ -55,7 +25,6 @@ import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.webdriver.DriverHelper;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-
 import io.appium.java_client.HasAppStrings;
 import io.appium.java_client.HasDeviceTime;
 import io.appium.java_client.HasOnScreenKeyboard;
@@ -80,15 +49,60 @@ import io.appium.java_client.remote.SupportsRotation;
 import io.appium.java_client.screenrecording.BaseStartScreenRecordingOptions;
 import io.appium.java_client.screenrecording.BaseStopScreenRecordingOptions;
 import io.appium.java_client.screenrecording.CanRecordScreen;
+import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.DeviceRotation;
+import org.openqa.selenium.Dimension;
+import org.openqa.selenium.HasCapabilities;
+import org.openqa.selenium.Point;
+import org.openqa.selenium.ScreenOrientation;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.html5.Location;
+import org.openqa.selenium.interactions.Interactive;
+import org.openqa.selenium.interactions.Pause;
+import org.openqa.selenium.interactions.PointerInput;
+import org.openqa.selenium.interactions.Sequence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testng.Assert;
+
+import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.time.Duration;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT;
 
 /**
  * Contains utility methods for working with android and ios
  */
 public interface IMobileUtils extends IDriverPool {
 
-    static final Logger UTILS_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    Logger UTILS_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    // TODO: [VD] make private after migration to java 9+
+    /**
+     * @deprecated this constant is not used in IMobileUtils
+     */
+    @Deprecated(forRemoval = true, since = "8.x")
+    long EXPLICIT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT);
 
-    public enum Direction {
+    /**
+     * @deprecated this constant is not used in IMobileUtils
+     */
+    @Deprecated(forRemoval = true, since = "8.x")
+    int MINIMUM_TIMEOUT = 2;
+
+    int DEFAULT_TOUCH_ACTION_DURATION = 1000;
+    int DEFAULT_MAX_SWIPE_COUNT = 50;
+    int DEFAULT_MIN_SWIPE_COUNT = 1;
+    DriverHelper helper = new DriverHelper();
+
+    enum Direction {
         LEFT,
         RIGHT,
         UP,
@@ -99,36 +113,17 @@ public interface IMobileUtils extends IDriverPool {
         HORIZONTAL_RIGHT_FIRST
     }
 
-    public enum Zoom {
+    enum Zoom {
         IN,
         OUT
     }
-
-    // TODO: [VD] make private after migration to java 9+
-    /**
-     * @deprecated this constant is not used in IMobileUtils
-     */
-    @Deprecated(forRemoval = true, since = "8.x")
-    static final long EXPLICIT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT);
-
-    /**
-     * @deprecated this constant is not used in IMobileUtils
-     */
-    @Deprecated(forRemoval = true, since = "8.x")
-    static final int MINIMUM_TIMEOUT = 2;
-
-    static final int DEFAULT_TOUCH_ACTION_DURATION = 1000;
-    static final int DEFAULT_MAX_SWIPE_COUNT = 50;
-    static final int DEFAULT_MIN_SWIPE_COUNT = 1;
-
-    static DriverHelper helper = new DriverHelper();
 
     /**
      * Tap the center of element
      *
      * @param element Element to touch
      */
-    default public void tap(ExtendedWebElement element) {
+    default void tap(ExtendedWebElement element) {
         UTILS_LOGGER.info("tap on {}", element.getName());
         Point point = element.getLocation();
         Dimension size = element.getSize();
@@ -141,7 +136,7 @@ public interface IMobileUtils extends IDriverPool {
      * @param startx x coordinate
      * @param starty y coordinate
      */
-    default public void tap(int startx, int starty) {
+    default void tap(int startx, int starty) {
         tap(startx, starty, DEFAULT_TOUCH_ACTION_DURATION);
     }
 
@@ -150,7 +145,7 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @param elem Element to long tap
      */
-    default public void longTap(ExtendedWebElement elem) {
+    default void longTap(ExtendedWebElement elem) {
         UTILS_LOGGER.info("Long tap on {} element", elem.getName());
 
         Dimension size = elem.getSize();
@@ -175,7 +170,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return is long press successful
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean longPress(ExtendedWebElement element) {
+    default boolean longPress(ExtendedWebElement element) {
         boolean isActionSuccessful = false;
         // todo change this value to optimal or try to found constant
         final Duration longPressDuration = Duration.ofMillis(1000);
@@ -210,12 +205,12 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Tap by coordinates with custom duration
      *
-     * @param startx x coordinate
-     * @param starty y coordinate
+     * @param startx   x coordinate
+     * @param starty   y coordinate
      * @param duration touch hold time
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void tap(int startx, int starty, int duration) {
+    default void tap(int startx, int starty, int duration) {
         // TODO: add Screenshot.capture()
 
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
@@ -246,7 +241,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(final ExtendedWebElement element) {
+    default boolean swipe(final ExtendedWebElement element) {
         return swipe(element, null, Direction.UP, DEFAULT_MAX_SWIPE_COUNT, DEFAULT_TOUCH_ACTION_DURATION);
     }
 
@@ -254,50 +249,50 @@ public interface IMobileUtils extends IDriverPool {
      * Swipe till element
      *
      * @param element ExtendedWebElement
-     * @param count int
+     * @param count   int
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(final ExtendedWebElement element, int count) {
+    default boolean swipe(final ExtendedWebElement element, int count) {
         return swipe(element, null, Direction.UP, count, DEFAULT_TOUCH_ACTION_DURATION);
     }
 
     /**
      * swipe till element
      *
-     * @param element ExtendedWebElement
+     * @param element   ExtendedWebElement
      * @param direction Direction
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(final ExtendedWebElement element, Direction direction) {
+    default boolean swipe(final ExtendedWebElement element, Direction direction) {
         return swipe(element, null, direction, DEFAULT_MAX_SWIPE_COUNT, DEFAULT_TOUCH_ACTION_DURATION);
     }
 
     /**
      * swipe till element
      *
-     * @param element ExtendedWebElement
-     * @param count int
+     * @param element  ExtendedWebElement
+     * @param count    int
      * @param duration int
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(final ExtendedWebElement element, int count, int duration) {
+    default boolean swipe(final ExtendedWebElement element, int count, int duration) {
         return swipe(element, null, Direction.UP, count, duration);
     }
 
     /**
      * swipe till element
      *
-     * @param element ExtendedWebElement
+     * @param element   ExtendedWebElement
      * @param direction Direction
-     * @param count int
-     * @param duration int
+     * @param count     int
+     * @param duration  int
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(final ExtendedWebElement element, Direction direction, int count, int duration) {
+    default boolean swipe(final ExtendedWebElement element, Direction direction, int count, int duration) {
         return swipe(element, null, direction, count, duration);
     }
 
@@ -306,13 +301,13 @@ public interface IMobileUtils extends IDriverPool {
      * Number of attempts is limited by count argument
      * <p>
      *
-     * @param element ExtendedWebElement
+     * @param element   ExtendedWebElement
      * @param container ExtendedWebElement
-     * @param count int
+     * @param count     int
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(ExtendedWebElement element, ExtendedWebElement container, int count) {
+    default boolean swipe(ExtendedWebElement element, ExtendedWebElement container, int count) {
         return swipe(element, container, Direction.UP, count, DEFAULT_TOUCH_ACTION_DURATION);
     }
 
@@ -321,12 +316,12 @@ public interface IMobileUtils extends IDriverPool {
      * Number of attempts is limited by 5
      * <p>
      *
-     * @param element ExtendedWebElement
+     * @param element   ExtendedWebElement
      * @param container ExtendedWebElement
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(ExtendedWebElement element, ExtendedWebElement container) {
+    default boolean swipe(ExtendedWebElement element, ExtendedWebElement container) {
         return swipe(element, container, Direction.UP, DEFAULT_MAX_SWIPE_COUNT, DEFAULT_TOUCH_ACTION_DURATION);
     }
 
@@ -335,16 +330,13 @@ public interface IMobileUtils extends IDriverPool {
      * Number of attempts is limited by 5
      * <p>
      *
-     * @param element
-     *            ExtendedWebElement
-     * @param container
-     *            ExtendedWebElement
-     * @param direction
-     *            Direction
+     * @param element   ExtendedWebElement
+     * @param container ExtendedWebElement
+     * @param direction Direction
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(ExtendedWebElement element, ExtendedWebElement container, Direction direction) {
+    default boolean swipe(ExtendedWebElement element, ExtendedWebElement container, Direction direction) {
         return swipe(element, container, direction, DEFAULT_MAX_SWIPE_COUNT, DEFAULT_TOUCH_ACTION_DURATION);
     }
 
@@ -353,18 +345,14 @@ public interface IMobileUtils extends IDriverPool {
      * Number of attempts is limited by count argument
      * <p>
      *
-     * @param element
-     *            ExtendedWebElement
-     * @param container
-     *            ExtendedWebElement
-     * @param direction
-     *            Direction
-     * @param count
-     *            int
+     * @param element   ExtendedWebElement
+     * @param container ExtendedWebElement
+     * @param direction Direction
+     * @param count     int
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(ExtendedWebElement element, ExtendedWebElement container, Direction direction,
+    default boolean swipe(ExtendedWebElement element, ExtendedWebElement container, Direction direction,
             int count) {
         return swipe(element, container, direction, count, DEFAULT_TOUCH_ACTION_DURATION);
     }
@@ -388,19 +376,19 @@ public interface IMobileUtils extends IDriverPool {
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean swipe(ExtendedWebElement element, ExtendedWebElement container, Direction direction,
+    default boolean swipe(ExtendedWebElement element, ExtendedWebElement container, Direction direction,
             int count, int duration) {
 
         boolean isVisible = element.isVisible(1);
         if (isVisible) {
             // no sense to continue;
-            UTILS_LOGGER.info("element already present before swipe: " + element.getNameWithLocator().toString());
+            UTILS_LOGGER.info("element already present before swipe: {}", element.getNameWithLocator());
             return true;
         } else {
-            UTILS_LOGGER.info("swiping to element: " + element.getNameWithLocator().toString());
+            UTILS_LOGGER.info("swiping to element: {}", element.getNameWithLocator());
         }
 
-        Direction oppositeDirection = Direction.DOWN;
+        Direction oppositeDirection = null;
         boolean bothDirections = false;
 
         switch (direction) {
@@ -443,37 +431,37 @@ public interface IMobileUtils extends IDriverPool {
         int currentCount = count;
 
         while (!isVisible && currentCount-- > 0) {
-            UTILS_LOGGER.debug("Element not present! Swipe " + direction + " will be executed to element: " + element.getNameWithLocator().toString());
+            UTILS_LOGGER.debug("Element not present! Swipe {} will be executed to element: {}", direction, element.getNameWithLocator());
             swipeInContainer(container, direction, duration);
 
-            UTILS_LOGGER.info("Swipe was executed. Attempts remain: " + currentCount);
+            UTILS_LOGGER.info("Swipe was executed. Attempts remain: {}", currentCount);
             isVisible = element.isVisible(1);
         }
 
         currentCount = count;
         while (bothDirections && !isVisible && currentCount-- > 0) {
             UTILS_LOGGER.debug(
-                    "Element not present! Swipe " + oppositeDirection + " will be executed to element: " + element.getNameWithLocator().toString());
+                    "Element not present! Swipe {} will be executed to element: {}", oppositeDirection, element.getNameWithLocator());
             swipeInContainer(container, oppositeDirection, duration);
-            UTILS_LOGGER.info("Swipe was executed. Attempts remain: " + currentCount);
+            UTILS_LOGGER.info("Swipe was executed. Attempts remain: {}", currentCount);
             isVisible = element.isVisible(1);
         }
 
-        UTILS_LOGGER.info("Result: " + isVisible);
+        UTILS_LOGGER.info("Result: {}", isVisible);
         return isVisible;
     }
 
     /**
      * Swipe by coordinates
      *
-     * @param startx int
-     * @param starty int
-     * @param endx int
-     * @param endy int
+     * @param startx   int
+     * @param starty   int
+     * @param endx     int
+     * @param endy     int
      * @param duration int Millis
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void swipe(int startx, int starty, int endx, int endy, int duration) {
+    default void swipe(int startx, int starty, int endx, int endy, int duration) {
         UTILS_LOGGER.debug("Starting swipe...");
         WebDriver drv = getDriver();
         UTILS_LOGGER.debug("Getting driver dimension size...");
@@ -519,10 +507,10 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @param container ExtendedWebElement
      * @param direction Direction
-     * @param duration int
+     * @param duration  int
      * @return boolean
      */
-    default public boolean swipeInContainer(ExtendedWebElement container, Direction direction, int duration) {
+    default boolean swipeInContainer(ExtendedWebElement container, Direction direction, int duration) {
         return swipeInContainer(container, direction, DEFAULT_MIN_SWIPE_COUNT, duration);
     }
 
@@ -531,11 +519,11 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @param container ExtendedWebElement
      * @param direction Direction
-     * @param count int
-     * @param duration int
+     * @param count     int
+     * @param duration  int
      * @return boolean
      */
-    default public boolean swipeInContainer(ExtendedWebElement container, Direction direction, int count, int duration) {
+    default boolean swipeInContainer(ExtendedWebElement container, Direction direction, int count, int duration) {
 
         int startx = 0;
         int starty = 0;
@@ -601,7 +589,7 @@ public interface IMobileUtils extends IDriverPool {
             throw new RuntimeException("Unsupported direction: " + direction);
         }
 
-        UTILS_LOGGER.debug(String.format("Swipe from (X = %d; Y = %d) to (X = %d; Y = %d)", startx, starty, endx, endy));
+        UTILS_LOGGER.debug("Swipe from (X = {}; Y = {}) to (X = {}; Y = {})", startx, starty, endx, endy);
 
         try {
             for (int i = 0; i < count; ++i) {
@@ -617,10 +605,10 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Swipe up several times
      *
-     * @param times int
+     * @param times    int
      * @param duration int
      */
-    default public void swipeUp(final int times, final int duration) {
+    default void swipeUp(final int times, final int duration) {
         for (int i = 0; i < times; i++) {
             swipeUp(duration);
         }
@@ -631,7 +619,7 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @param duration int
      */
-    default public void swipeUp(final int duration) {
+    default void swipeUp(final int duration) {
         UTILS_LOGGER.info("Swipe up will be executed.");
         swipeInContainer(null, Direction.UP, duration);
     }
@@ -639,10 +627,10 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Swipe down several times
      *
-     * @param times int
+     * @param times    int
      * @param duration int
      */
-    default public void swipeDown(final int times, final int duration) {
+    default void swipeDown(final int times, final int duration) {
         for (int i = 0; i < times; i++) {
             swipeDown(duration);
         }
@@ -653,7 +641,7 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @param duration int
      */
-    default public void swipeDown(final int duration) {
+    default void swipeDown(final int duration) {
         UTILS_LOGGER.info("Swipe down will be executed.");
         swipeInContainer(null, Direction.DOWN, duration);
     }
@@ -661,10 +649,10 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Swipe left several times
      *
-     * @param times int
+     * @param times    int
      * @param duration int
      */
-    default public void swipeLeft(final int times, final int duration) {
+    default void swipeLeft(final int times, final int duration) {
         for (int i = 0; i < times; i++) {
             swipeLeft(duration);
         }
@@ -675,7 +663,7 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @param duration int
      */
-    default public void swipeLeft(final int duration) {
+    default void swipeLeft(final int duration) {
         UTILS_LOGGER.info("Swipe left will be executed.");
         swipeLeft(null, duration);
     }
@@ -683,12 +671,10 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Swipe left in container
      *
-     * @param container
-     *            ExtendedWebElement
-     * @param duration
-     *            int
+     * @param container ExtendedWebElement
+     * @param duration  int
      */
-    default public void swipeLeft(ExtendedWebElement container, final int duration) {
+    default void swipeLeft(ExtendedWebElement container, final int duration) {
         UTILS_LOGGER.info("Swipe left will be executed.");
         swipeInContainer(container, Direction.LEFT, duration);
     }
@@ -696,10 +682,10 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Swipe right several times
      *
-     * @param times int
+     * @param times    int
      * @param duration int
      */
-    default public void swipeRight(final int times, final int duration) {
+    default void swipeRight(final int times, final int duration) {
         for (int i = 0; i < times; i++) {
             swipeRight(duration);
         }
@@ -710,7 +696,7 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @param duration int
      */
-    default public void swipeRight(final int duration) {
+    default void swipeRight(final int duration) {
         UTILS_LOGGER.info("Swipe right will be executed.");
         swipeRight(null, duration);
     }
@@ -718,12 +704,10 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Swipe right in container
      *
-     * @param container
-     *            ExtendedWebElement
-     * @param duration
-     *            int
+     * @param container ExtendedWebElement
+     * @param duration  int
      */
-    default public void swipeRight(ExtendedWebElement container, final int duration) {
+    default void swipeRight(ExtendedWebElement container, final int duration) {
         UTILS_LOGGER.info("Swipe right will be executed.");
         swipeInContainer(container, Direction.RIGHT, duration);
     }
@@ -731,12 +715,12 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Set Android Device Default TimeZone And Language based on config or to GMT and En
      * Without restoring actual focused apk.
-     * 
+     *
      * @deprecated IMobileUtils should contains only methods for Android <b>and</b> IOS, so use
-     *             {@link IAndroidUtils#setDeviceDefaultTimeZoneLanguage()}
+     * {@link IAndroidUtils#setDeviceDefaultTimeZoneLanguage()}
      */
     @Deprecated(forRemoval = true, since = "8.x")
-    default public void setDeviceDefaultTimeZoneAndLanguage() {
+    default void setDeviceDefaultTimeZoneAndLanguage() {
         setDeviceDefaultTimeZoneAndLanguage(false);
     }
 
@@ -745,10 +729,10 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @param returnAppFocus - if true store actual Focused apk and activity, than restore after setting Timezone and Language.
      * @deprecated IMobileUtils should contains only methods for Android <b>and</b> IOS, so use
-     *             {@link IAndroidUtils#setDeviceDefaultTimeZoneLanguage(boolean)}
+     * {@link IAndroidUtils#setDeviceDefaultTimeZoneLanguage(boolean)}
      */
     @Deprecated(forRemoval = true, since = "8.x")
-    default public void setDeviceDefaultTimeZoneAndLanguage(boolean returnAppFocus) {
+    default void setDeviceDefaultTimeZoneAndLanguage(boolean returnAppFocus) {
         try {
             String baseApp = "";
             String os = IDriverPool.getDefaultDevice().getOs();
@@ -792,10 +776,10 @@ public interface IMobileUtils extends IDriverPool {
 
     /**
      * Hides the keyboard if it is showing
-     * 
+     *
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void hideKeyboard() {
+    default void hideKeyboard() {
         HidesKeyboard driver = null;
         try {
             driver = (HidesKeyboard) getDriver();
@@ -815,7 +799,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return true if keyboard is displayed. False otherwise
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean isKeyboardShown() {
+    default boolean isKeyboardShown() {
         HasOnScreenKeyboard driver = null;
         try {
             driver = (HasOnScreenKeyboard) getDriver();
@@ -825,7 +809,7 @@ public interface IMobileUtils extends IDriverPool {
         return driver.isKeyboardShown();
     }
 
-    default public void zoom(Zoom type) {
+    default void zoom(Zoom type) {
         UTILS_LOGGER.info("Zoom will be performed :{}", type);
         WebDriver driver = getDriver();
         Dimension scrSize = driver.manage().window().getSize();
@@ -852,11 +836,11 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void zoom(int startx1, int starty1, int endx1, int endy1, int startx2, int starty2, int endx2, int endy2, int duration) {
+    default void zoom(int startx1, int starty1, int endx1, int endy1, int startx2, int starty2, int endx2, int endy2, int duration) {
         UTILS_LOGGER.debug(
                 "Zoom action will be performed with parameters : startX1 : {} ;  startY1: {} ; endX1: {} ; endY1: {}; startX2 : {} ;  startY2: {} ; endX2: {} ; endY2: {}",
                 startx1, starty1, endx1, endy1, startx2, starty2, endx2, endy2);
-        
+
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
 
         Sequence zoomPartOne = new Sequence(finger, 0);
@@ -897,7 +881,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return boolean
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean isAppRunning() {
+    default boolean isAppRunning() {
         String bundleId = "";
         String os = getDevice().getOs();
 
@@ -927,7 +911,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return true, if app's status equals {@link ApplicationState#RUNNING_IN_FOREGROUND}, false otherwise
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean isAppRunning(String bundleId) {
+    default boolean isAppRunning(String bundleId) {
         InteractsWithApps driver = null;
         try {
             driver = (InteractsWithApps) getDriver();
@@ -941,10 +925,10 @@ public interface IMobileUtils extends IDriverPool {
 
     /**
      * Terminate running driver/application
-     * 
+     *
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void terminateApp() {
+    default void terminateApp() {
         String bundleId = "";
         String os = getDevice().getOs();
 
@@ -975,7 +959,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return true if the app was running before and has been successfully stopped
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean terminateApp(String bundleId) {
+    default boolean terminateApp(String bundleId) {
         return terminateApp(bundleId, null);
     }
 
@@ -983,11 +967,11 @@ public interface IMobileUtils extends IDriverPool {
      * Terminate the particular application if it is running
      *
      * @param bundleId the bundle identifier (or app id) of the app to be terminated.
-     * @param options the set of termination options supported by the particular platform.
+     * @param options  the set of termination options supported by the particular platform.
      * @return true if the app was running before and has been successfully stopped
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean terminateApp(String bundleId, @Nullable BaseTerminateApplicationOptions<?> options) {
+    default boolean terminateApp(String bundleId, @Nullable BaseTerminateApplicationOptions<?> options) {
         InteractsWithApps driver = null;
         try {
             driver = (InteractsWithApps) getDriver();
@@ -1001,12 +985,12 @@ public interface IMobileUtils extends IDriverPool {
      * The application that has its package name set to current driver's
      * capabilities will be closed to background IN CASE IT IS CURRENTLY IN
      * FOREGROUND. Will be in recent app's list;
-     * 
-     * @deprecated https://github.com/appium/appium/issues/1580
+     *
      * @throws UnsupportedOperationException if driver does not support this feature
+     * @deprecated https://github.com/appium/appium/issues/1580
      */
     @Deprecated(since = "8.x")
-    default public void closeApp() {
+    default void closeApp() {
         UTILS_LOGGER.info("Application will be closed to background");
         SupportsLegacyAppManagement driver = null;
         try {
@@ -1019,15 +1003,16 @@ public interface IMobileUtils extends IDriverPool {
     }
 
     // TODO Update this method using findByImage strategy
+
     /**
      * Pressing bottom right button on the keyboard by coordinates: "search", "ok",
      * "next", etc. - various keys appear at this position. Tested at Nexus 6P
      * Android 8.0.0 standard keyboard. Coefficients of coordinates for other
      * devices and custom keyboards could be different.
-     * 
+     *
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void pressBottomRightKey() {
+    default void pressBottomRightKey() {
         WebDriver driver = getDriver();
         Dimension size = helper.performIgnoreException(() -> driver.manage().window().getSize());
         int height = size.getHeight();
@@ -1053,7 +1038,7 @@ public interface IMobileUtils extends IDriverPool {
         }
     }
 
-    default public boolean isChecked(final ExtendedWebElement element) {
+    default boolean isChecked(final ExtendedWebElement element) {
         // TODO: SZ migrate to FluentWaits
         return element.isElementPresent(5)
                 && (element.getElement().isSelected() || element.getAttribute("checked").equals("true"));
@@ -1066,7 +1051,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return true if app is installed
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean isApplicationInstalled(String packageName) {
+    default boolean isApplicationInstalled(String packageName) {
         InteractsWithApps driver = null;
         try {
             driver = (InteractsWithApps) getDriver();
@@ -1086,7 +1071,7 @@ public interface IMobileUtils extends IDriverPool {
      * @param packageName bundleId – the bundle identifier (or app id) of the app to activate
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void startApp(String packageName) {
+    default void startApp(String packageName) {
         startApp(packageName, null);
     }
 
@@ -1094,10 +1079,10 @@ public interface IMobileUtils extends IDriverPool {
      * Activates the given app if it installed, but not running or if it is running in the background<br>
      *
      * @param packageName bundleId – the bundle identifier (or app id) of the app to activate
-     * @param options the set of activation options supported by the particular platform
+     * @param options     the set of activation options supported by the particular platform
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void startApp(String packageName, @Nullable BaseActivateApplicationOptions<?> options) {
+    default void startApp(String packageName, @Nullable BaseActivateApplicationOptions<?> options) {
         UTILS_LOGGER.info("Starting {}", packageName);
         InteractsWithApps driver = null;
         try {
@@ -1114,18 +1099,18 @@ public interface IMobileUtils extends IDriverPool {
      * @param apkPath path to app to install or a remote URL
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void installApp(String apkPath) {
+    default void installApp(String apkPath) {
         installApp(apkPath, null);
     }
 
     /**
      * Install an app on the mobile device
      *
-     * @param appPath  path to app to install or a remote URL
+     * @param appPath path to app to install or a remote URL
      * @param options Set of the corresponding installation options for the particular platform
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void installApp(String appPath, @Nullable BaseInstallApplicationOptions<?> options) {
+    default void installApp(String appPath, @Nullable BaseInstallApplicationOptions<?> options) {
         UTILS_LOGGER.info("Will install application with apk-file from {}", appPath);
         InteractsWithApps driver = null;
         try {
@@ -1143,7 +1128,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return true if the uninstall was successful
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean removeApp(String packageName) {
+    default boolean removeApp(String packageName) {
         return removeApp(packageName, null);
     }
 
@@ -1151,11 +1136,11 @@ public interface IMobileUtils extends IDriverPool {
      * Remove the specified app from the device (uninstall)
      *
      * @param packageName bundleId – the bundle identifier (or app id) of the app to remove
-     * @param options the set of uninstall options supported by the particular platform
+     * @param options     the set of uninstall options supported by the particular platform
      * @return true if the uninstall was successful
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean removeApp(String packageName, @Nullable BaseRemoveApplicationOptions<?> options) {
+    default boolean removeApp(String packageName, @Nullable BaseRemoveApplicationOptions<?> options) {
         InteractsWithApps driver = null;
         try {
             driver = (InteractsWithApps) getDriver();
@@ -1190,11 +1175,11 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Method to reset test application.<br>
      * App's settings will be reset. User will be logged out. Application will be closed to background.
-     * 
+     *
      * @deprecated https://github.com/appium/appium/issues/15807
      */
     @Deprecated(since = "8.x")
-    default public void clearAppCache() {
+    default void clearAppCache() {
         UTILS_LOGGER.info("Initiation application reset...");
         SupportsLegacyAppManagement driver = null;
         try {
@@ -1211,7 +1196,7 @@ public interface IMobileUtils extends IDriverPool {
      * @param name the name of the context to switch to
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void switchContext(String name) {
+    default void switchContext(String name) {
         SupportsContextSwitching driver = null;
         try {
             driver = (SupportsContextSwitching) getDriver();
@@ -1227,7 +1212,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return list of available context names
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public Set<String> getAvailableContexts() {
+    default Set<String> getAvailableContexts() {
         SupportsContextSwitching driver = null;
         try {
             driver = (SupportsContextSwitching) getDriver();
@@ -1243,7 +1228,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return context name or null if it cannot be determined
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public String getContext() {
+    default String getContext() {
         SupportsContextSwitching driver = null;
         try {
             driver = (SupportsContextSwitching) getDriver();
@@ -1255,11 +1240,11 @@ public interface IMobileUtils extends IDriverPool {
 
     /**
      * Get device rotation
-     * 
+     *
      * @return rotation, see {@link DeviceRotation}
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public DeviceRotation getRotation() {
+    default DeviceRotation getRotation() {
         SupportsRotation driver = null;
         try {
             driver = (SupportsRotation) getDriver();
@@ -1271,11 +1256,11 @@ public interface IMobileUtils extends IDriverPool {
 
     /**
      * Change the rotation of the device
-     * 
+     *
      * @param rotation rotation, see {@link DeviceRotation}
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void rotate(DeviceRotation rotation) {
+    default void rotate(DeviceRotation rotation) {
         SupportsRotation driver = null;
         try {
             driver = (SupportsRotation) getDriver();
@@ -1291,7 +1276,7 @@ public interface IMobileUtils extends IDriverPool {
      * @param rotation – rotation, see {@link ScreenOrientation}
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void rotate(ScreenOrientation rotation) {
+    default void rotate(ScreenOrientation rotation) {
         SupportsRotation driver = null;
         try {
             driver = (SupportsRotation) getDriver();
@@ -1303,11 +1288,11 @@ public interface IMobileUtils extends IDriverPool {
 
     /**
      * Get device orientation
-     * 
+     *
      * @return orientation, see {@link ScreenOrientation}
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public ScreenOrientation getOrientation() {
+    default ScreenOrientation getOrientation() {
         SupportsRotation driver = null;
         try {
             driver = (SupportsRotation) getDriver();
@@ -1321,10 +1306,10 @@ public interface IMobileUtils extends IDriverPool {
      * Gets the physical location
      *
      * @return a {@link Location} containing the location information. Returns null if the location is
-     *         not available
+     * not available
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public Location getLocation() {
+    default Location getLocation() {
         SupportsLocation driver = null;
         try {
             driver = (SupportsLocation) getDriver();
@@ -1336,11 +1321,11 @@ public interface IMobileUtils extends IDriverPool {
 
     /**
      * Set the physical location
-     * 
+     *
      * @param location a {@link Location} containing the location information
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void setLocation(Location location) {
+    default void setLocation(Location location) {
         SupportsLocation driver = null;
         try {
             driver = (SupportsLocation) getDriver();
@@ -1357,7 +1342,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return device time as string
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public String getDeviceTime() {
+    default String getDeviceTime() {
         HasDeviceTime driver = null;
         try {
             driver = (HasDeviceTime) getDriver();
@@ -1371,13 +1356,13 @@ public interface IMobileUtils extends IDriverPool {
      * Gets device date and time for both iOS(host time is returned for simulators) and Android devices<br>
      *
      * @param format The set of format specifiers. Read
-     *            https://momentjs.com/docs/ to get the full list of supported
-     *            datetime format specifiers. The default format is
-     *            `YYYY-MM-DDTHH:mm:ssZ`, which complies to ISO-8601
+     *               https://momentjs.com/docs/ to get the full list of supported
+     *               datetime format specifiers. The default format is
+     *               `YYYY-MM-DDTHH:mm:ssZ`, which complies to ISO-8601
      * @return device time as string
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public String getDeviceTime(String format) {
+    default String getDeviceTime(String format) {
         HasDeviceTime driver = null;
         try {
             driver = (HasDeviceTime) getDriver();
@@ -1399,7 +1384,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return A byte array of Base64 encoded data
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public byte[] pullFile(String remotePath) {
+    default byte[] pullFile(String remotePath) {
         PullsFiles driver = null;
         try {
             driver = (PullsFiles) getDriver();
@@ -1421,7 +1406,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return A byte array of Base64 encoded zip archive data.
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public byte[] pullFolder(String remotePath) {
+    default byte[] pullFolder(String remotePath) {
         PullsFiles driver = null;
         try {
             driver = (PullsFiles) getDriver();
@@ -1438,7 +1423,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return state of app, one of {@link ApplicationState} value
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public ApplicationState getAppState(String bundleId) {
+    default ApplicationState getAppState(String bundleId) {
         InteractsWithApps driver = null;
         try {
             driver = (InteractsWithApps) getDriver();
@@ -1454,7 +1439,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return a map with localized strings defined in the app
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public Map<String, String> getAppStringMap() {
+    default Map<String, String> getAppStringMap() {
         HasAppStrings driver = null;
         try {
             driver = (HasAppStrings) getDriver();
@@ -1471,7 +1456,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return a map with localized strings defined in the app
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public Map<String, String> getAppStringMap(String language) {
+    default Map<String, String> getAppStringMap(String language) {
         HasAppStrings driver = null;
         try {
             driver = (HasAppStrings) getDriver();
@@ -1484,12 +1469,12 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Get all defined Strings from an app for the specified language and strings filename
      *
-     * @param language strings language code
+     * @param language   strings language code
      * @param stringFile strings filename
      * @return a map with localized strings defined in the app
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public Map<String, String> getAppStringMap(String language, String stringFile) {
+    default Map<String, String> getAppStringMap(String language, String stringFile) {
         HasAppStrings driver = null;
         try {
             driver = (HasAppStrings) getDriver();
@@ -1502,9 +1487,10 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * This method locks a device<br>
      * It will return silently if the device is already locked
+     *
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void lockDevice() {
+    default void lockDevice() {
         LocksDevice driver = null;
         try {
             driver = (LocksDevice) getDriver();
@@ -1520,10 +1506,10 @@ public interface IMobileUtils extends IDriverPool {
      * The call is ignored if the device has been already locked.
      *
      * @param duration for how long to lock the screen. Minimum time resolution is one second.
-     *            A negative/zero value will lock the device and return immediately.
+     *                 A negative/zero value will lock the device and return immediately.
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void lockDevice(Duration duration) {
+    default void lockDevice(Duration duration) {
         LocksDevice driver = null;
         try {
             driver = (LocksDevice) getDriver();
@@ -1536,10 +1522,10 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Unlock the device if it is locked<br>
      * This method will return silently if the device is not locked
-     * 
+     *
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void unlockDevice() {
+    default void unlockDevice() {
         LocksDevice driver = null;
         try {
             driver = (LocksDevice) getDriver();
@@ -1555,7 +1541,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return true if the device is locked or false otherwise.
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public boolean isDeviceLocked() {
+    default boolean isDeviceLocked() {
         LocksDevice driver = null;
         try {
             driver = (LocksDevice) getDriver();
@@ -1579,7 +1565,7 @@ public interface IMobileUtils extends IDriverPool {
      * @param base64Data Base64 encoded byte array of media file data to write to remote device
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void pushFile(String remotePath, byte[] base64Data) {
+    default void pushFile(String remotePath, byte[] base64Data) {
         PushesFiles driver = null;
         try {
             driver = (PushesFiles) getDriver();
@@ -1593,11 +1579,11 @@ public interface IMobileUtils extends IDriverPool {
      * Saves base64 encoded data as a media file on the remote system
      *
      * @param remotePath See the documentation on {@link #pushFile(String, byte[])}
-     * @param file Is an existing local file to be written to the remote device
-     * @throws IOException when there are problems with a file or current file system
+     * @param file       Is an existing local file to be written to the remote device
+     * @throws IOException                   when there are problems with a file or current file system
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public void pushFile(String remotePath, File file) throws IOException {
+    default void pushFile(String remotePath, File file) throws IOException {
         PushesFiles driver = null;
         try {
             driver = (PushesFiles) getDriver();
@@ -1610,14 +1596,14 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Start asynchronous screen recording process
      *
-     * @param <T> The platform-specific {@link BaseStartScreenRecordingOptions}
+     * @param <T>     The platform-specific {@link BaseStartScreenRecordingOptions}
      * @param options see the documentation on the {@link BaseStartScreenRecordingOptions}
-     *            descendant for the particular platform
+     *                descendant for the particular platform
      * @return `not used`
      * @throws UnsupportedOperationException if driver does not support this feature
      */
     @SuppressWarnings("rawtypes")
-    default public <T extends BaseStartScreenRecordingOptions> String startRecordingScreen(T options) {
+    default <T extends BaseStartScreenRecordingOptions> String startRecordingScreen(T options) {
         CanRecordScreen driver = null;
         try {
             driver = (CanRecordScreen) getDriver();
@@ -1633,7 +1619,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return `not used`
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public String startRecordingScreen() {
+    default String startRecordingScreen() {
         CanRecordScreen driver = null;
         try {
             driver = (CanRecordScreen) getDriver();
@@ -1646,15 +1632,15 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Gather the output from the previously started screen recording to a media file
      *
-     * @param <T> The platform-specific {@link BaseStopScreenRecordingOptions}
+     * @param <T>     The platform-specific {@link BaseStopScreenRecordingOptions}
      * @param options see the documentation on the {@link BaseStopScreenRecordingOptions}
-     *            descendant for the particular platform
+     *                descendant for the particular platform
      * @return Base-64 encoded content of the recorded media file or an empty string
-     *         if the file has been successfully uploaded to a remote location (depends on the actual options)
+     * if the file has been successfully uploaded to a remote location (depends on the actual options)
      * @throws UnsupportedOperationException if driver does not support this feature
      */
     @SuppressWarnings("rawtypes")
-    default public <T extends BaseStopScreenRecordingOptions> String stopRecordingScreen(T options) {
+    default <T extends BaseStopScreenRecordingOptions> String stopRecordingScreen(T options) {
         CanRecordScreen driver = null;
         try {
             driver = (CanRecordScreen) getDriver();
@@ -1671,7 +1657,7 @@ public interface IMobileUtils extends IDriverPool {
      * @return Base-64 encoded content of the recorded media file
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default public String stopRecordingScreen() {
+    default String stopRecordingScreen() {
         CanRecordScreen driver = null;
         try {
             driver = (CanRecordScreen) getDriver();
@@ -1684,10 +1670,10 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Set the content of device's clipboard.
      *
-     * @param contentType one of supported content types.
+     * @param contentType   one of supported content types.
      * @param base64Content base64-encoded content to be set.
      */
-    public default void setClipboard(ClipboardContentType contentType, byte[] base64Content) {
+    default void setClipboard(ClipboardContentType contentType, byte[] base64Content) {
         HasClipboard driver = null;
         try {
             driver = (HasClipboard) getDriver();
@@ -1703,7 +1689,7 @@ public interface IMobileUtils extends IDriverPool {
      * @param contentType one of supported content types.
      * @return the actual content of the clipboard as base64-encoded string or an empty string if the clipboard is empty.
      */
-    public default String getClipboard(ClipboardContentType contentType) {
+    default String getClipboard(ClipboardContentType contentType) {
         HasClipboard driver = null;
         try {
             driver = (HasClipboard) getDriver();
@@ -1718,7 +1704,7 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @param text the actual text to be set.
      */
-    public default void setTextToClipboard(String text) {
+    default void setTextToClipboard(String text) {
         HasClipboard driver = null;
         try {
             driver = (HasClipboard) getDriver();
@@ -1733,7 +1719,7 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @return either the text, which is stored in the clipboard or an empty string if the clipboard is empty.
      */
-    public default String getTextFromClipboard() {
+    default String getTextFromClipboard() {
         HasClipboard driver = null;
         try {
             driver = (HasClipboard) getDriver();
@@ -1747,10 +1733,10 @@ public interface IMobileUtils extends IDriverPool {
      * Set a setting for this test session.
      *
      * @param setting setting you wish to set.
-     * @param value value of the setting.
+     * @param value   value of the setting.
      * @return {@link HasSettings} instance for chaining.
      */
-    public default HasSettings setSetting(Setting setting, Object value) {
+    default HasSettings setSetting(Setting setting, Object value) {
         HasSettings driver = null;
         try {
             driver = (HasSettings) getDriver();
@@ -1764,10 +1750,10 @@ public interface IMobileUtils extends IDriverPool {
      * Set a setting for this test session.
      *
      * @param settingName setting name you wish to set.
-     * @param value value of the setting.
+     * @param value       value of the setting.
      * @return {@link HasSettings} instance for chaining.
      */
-    public default HasSettings setSetting(String settingName, Object value) {
+    default HasSettings setSetting(String settingName, Object value) {
         HasSettings driver = null;
         try {
             driver = (HasSettings) getDriver();
@@ -1781,10 +1767,10 @@ public interface IMobileUtils extends IDriverPool {
      * Sets settings for this test session.
      *
      * @param settings a map with settings, where key is the setting name you wish to set and value is the value of
-     *            the setting.
+     *                 the setting.
      * @return {@link HasSettings} {@link HasSettings} instance for chaining.
      */
-    public default HasSettings setSettings(EnumMap<Setting, Object> settings) {
+    default HasSettings setSettings(EnumMap<Setting, Object> settings) {
         HasSettings driver = null;
         try {
             driver = (HasSettings) getDriver();
@@ -1798,10 +1784,10 @@ public interface IMobileUtils extends IDriverPool {
      * Sets settings for this test session.
      *
      * @param settings a map with settings, where key is the setting name you wish to set and value is the value of
-     *            the setting.
+     *                 the setting.
      * @return {@link HasSettings} instance for chaining.
      */
-    public default HasSettings setSettings(Map<String, Object> settings) {
+    default HasSettings setSettings(Map<String, Object> settings) {
         HasSettings driver = null;
         try {
             driver = (HasSettings) getDriver();
@@ -1816,7 +1802,7 @@ public interface IMobileUtils extends IDriverPool {
      *
      * @return JsonObject, a straight-up hash of settings.
      */
-    public default Map<String, Object> getSettings() {
+    default Map<String, Object> getSettings() {
         HasSettings driver = null;
         try {
             driver = (HasSettings) getDriver();
@@ -1828,10 +1814,10 @@ public interface IMobileUtils extends IDriverPool {
 
     /**
      * Get capabilities of the current driver
-     * 
+     *
      * @return see {@link Capabilities}
      */
-    public default Capabilities getCapabilities() {
+    default Capabilities getCapabilities() {
         HasCapabilities driver = null;
         try {
             driver = (HasCapabilities) getDriver();
@@ -1844,22 +1830,22 @@ public interface IMobileUtils extends IDriverPool {
     /**
      * Drag and drop
      *
-     * @param dragMeElement element to drag
+     * @param dragMeElement   element to drag
      * @param dropZoneElement drop zone element
      */
-    public default void dragAndDrop(ExtendedWebElement dragMeElement, ExtendedWebElement dropZoneElement) {
+    default void dragAndDrop(ExtendedWebElement dragMeElement, ExtendedWebElement dropZoneElement) {
         dragAndDrop(dragMeElement, dropZoneElement, Duration.ofMillis(1000), Duration.ofMillis(1000));
     }
 
     /**
      * Drag and drop
      *
-     * @param dragMeElement element to drag
+     * @param dragMeElement   element to drag
      * @param dropZoneElement drop zone element
-     * @param pressingTime time of clicking on the element to be dragged
-     * @param dragTime time to drag an element to the drop zone
+     * @param pressingTime    time of clicking on the element to be dragged
+     * @param dragTime        time to drag an element to the drop zone
      */
-    public default void dragAndDrop(ExtendedWebElement dragMeElement, ExtendedWebElement dropZoneElement, Duration pressingTime,Duration dragTime){
+    default void dragAndDrop(ExtendedWebElement dragMeElement, ExtendedWebElement dropZoneElement, Duration pressingTime, Duration dragTime) {
 
         Dimension dragMeElementSize = dragMeElement.getSize();
         Point dragMeElementLocation = dragMeElement.getLocation();
@@ -1877,15 +1863,15 @@ public interface IMobileUtils extends IDriverPool {
 
     /**
      * Drag and drop
-     * 
-     * @param fromX x point of the drag and drop element
-     * @param fromY y point of the drag and drop element
-     * @param toX x point of the drop zone
-     * @param toY y point of the drop zone
+     *
+     * @param fromX        x point of the drag and drop element
+     * @param fromY        y point of the drag and drop element
+     * @param toX          x point of the drop zone
+     * @param toY          y point of the drop zone
      * @param pressingTime time of clicking on the element to be dragged
-     * @param dragTime time to drag an element to the drop zone
+     * @param dragTime     time to drag an element to the drop zone
      */
-    public default void dragAndDrop(int fromX, int fromY, int toX, int toY, Duration pressingTime, Duration dragTime) {
+    default void dragAndDrop(int fromX, int fromY, int toX, int toY, Duration pressingTime, Duration dragTime) {
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
         Sequence sequence = new Sequence(finger, 1);
         sequence.addAction(finger.createPointerMove(Duration.ofMillis(0), PointerInput.Origin.viewport(), fromX, fromY));
@@ -1902,5 +1888,4 @@ public interface IMobileUtils extends IDriverPool {
             throw new UnsupportedOperationException("Driver is not support dragAndDrop method", e);
         }
     }
-
 }

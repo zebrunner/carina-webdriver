@@ -15,15 +15,10 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.locator.internal;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
+import com.zebrunner.carina.webdriver.locator.LocatorType;
+import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -33,14 +28,18 @@ import org.openqa.selenium.WrapsElement;
 import org.openqa.selenium.interactions.Locatable;
 import org.openqa.selenium.support.pagefactory.ElementLocator;
 
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
-import com.zebrunner.carina.webdriver.locator.LocatorType;
-import com.zebrunner.carina.webdriver.locator.LocatorUtils;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class LocatingListHandler implements InvocationHandler {
     private final ElementLocator locator;
-    private String name;
+    private final String name;
     private final ClassLoader loader;
 
     public LocatingListHandler(ClassLoader loader, ElementLocator locator, Field field){
@@ -76,7 +75,7 @@ public class LocatingListHandler implements InvocationHandler {
         List<ExtendedWebElement> extendedWebElements = null;
         int i = 0;
         if (elements != null) {
-            extendedWebElements = new ArrayList<ExtendedWebElement>();
+            extendedWebElements = new ArrayList<>();
             for (WebElement element : elements) {
                 InvocationHandler handler = new LocatingListsElementHandler(element, locator);
                 WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,

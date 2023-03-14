@@ -15,11 +15,11 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.listener;
 
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.net.URL;
-import java.time.Duration;
-
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.common.CommonUtils;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.remote.Command;
 import org.openqa.selenium.remote.DriverCommand;
@@ -29,16 +29,16 @@ import org.openqa.selenium.remote.http.ClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.utils.R;
-import com.zebrunner.carina.utils.common.CommonUtils;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.net.URL;
+import java.time.Duration;
 
 /**
  * EventFiringSeleniumCommandExecutor triggers event listener before/after execution of the command.
  */
 public class EventFiringSeleniumCommandExecutor extends HttpCommandExecutor {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     public EventFiringSeleniumCommandExecutor(URL addressOfRemoteServer) {
@@ -56,18 +56,17 @@ public class EventFiringSeleniumCommandExecutor extends HttpCommandExecutor {
         while (retry >= 0) {
             response = super.execute(command);
             if (response.getValue() instanceof WebDriverException) {
-                LOGGER.debug("CarinaCommandExecutor catched: " + response.getValue().toString());
-                
+                LOGGER.debug("CarinaCommandExecutor catched: {}", response.getValue());
                 if (DriverCommand.QUIT.equals(command.getName())) {
                     // do not retry on quit command (grid will close it forcibly anyway)
                     break;
                 }
 
                 String msg = response.getValue().toString();
-                if (msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED)
-                        || msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED2)
-                        || msg.contains(SpecialKeywords.DRIVER_TARGET_FRAME_DETACHED)) {
-                    LOGGER.warn("Enabled command executor retries: " + msg);
+                if (msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED) ||
+                        msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED2) ||
+                        msg.contains(SpecialKeywords.DRIVER_TARGET_FRAME_DETACHED)) {
+                    LOGGER.warn("Enabled command executor retries: {}", msg);
                     CommonUtils.pause(pause);
                 } else {
                     // do not retry for non "driver connection refused" errors!
