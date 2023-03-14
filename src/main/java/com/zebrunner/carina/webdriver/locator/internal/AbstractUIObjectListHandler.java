@@ -15,16 +15,10 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.locator.internal;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
+import com.zebrunner.carina.webdriver.locator.LocatorType;
+import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -37,21 +31,26 @@ import org.openqa.selenium.support.pagefactory.ElementLocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
-import com.zebrunner.carina.webdriver.locator.LocatorType;
-import com.zebrunner.carina.webdriver.locator.LocatorUtils;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements InvocationHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final ClassLoader loader;
-    private Class<?> clazz;
-    private WebDriver webDriver;
+    private final Class<?> clazz;
+    private final WebDriver webDriver;
     private final ElementLocator locator;
-    private String name;
+    private final String name;
 
-    private By locatorBy;
+    private final By locatorBy;
 
     public AbstractUIObjectListHandler(ClassLoader loader, Class<?> clazz, WebDriver webDriver, ElementLocator locator, String name) {
         this.loader = loader;
@@ -127,28 +126,16 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
     }
     
     private By getLocatorBy(ElementLocator locator) {
-    	By rootBy = null;
-    	
         //TODO: get root by annotation from ElementLocator to be able to append by for those elements and reuse fluent waits
-		try {
-			Field byContextField = null;
-
-			byContextField = locator.getClass().getDeclaredField("by");
-			byContextField.setAccessible(true);
-			rootBy = (By) byContextField.get(locator);
-
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (ClassCastException e) {
-			e.printStackTrace();
-		} catch (Throwable thr) {
-			thr.printStackTrace();
-			LOGGER.error("Unable to get rootBy via reflection!", thr);
-		}
-    	
-    	return rootBy;
+        By rootBy = null;
+        try {
+            Field byContextField = null;
+            byContextField = locator.getClass().getDeclaredField("by");
+            byContextField.setAccessible(true);
+            rootBy = (By) byContextField.get(locator);
+        } catch (Exception e) {
+            LOGGER.error("Error when trying to get By from locator.", e);
+        }
+        return rootBy;
     }
-    
 }
