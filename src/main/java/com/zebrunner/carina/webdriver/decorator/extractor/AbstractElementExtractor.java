@@ -15,9 +15,7 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.decorator.extractor;
 
-import java.lang.invoke.MethodHandles;
-import java.util.List;
-
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebDriver;
@@ -25,7 +23,8 @@ import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import java.lang.invoke.MethodHandles;
+import java.util.List;
 
 public abstract class AbstractElementExtractor {
 
@@ -55,7 +54,7 @@ public abstract class AbstractElementExtractor {
      * @return int
      */
     public int isLower(Rectangle rect, int y) {
-        LOGGER.debug(String.format("isLower(): Rectangle: x - %d. y - %d. Width: %d, height: %d", rect.x, rect.y, rect.width, rect.height));
+        LOGGER.debug("isLower(): Rectangle: x - {}. y - {}. Width: {}, height: {}", rect.x, rect.y, rect.width, rect.height);
         if (y > rect.y + rect.height) {
             return 1;
         } else if (y < rect.y) {
@@ -83,5 +82,4 @@ public abstract class AbstractElementExtractor {
         }
         return new ExtendedWebElement(elements.get(0), name);
     }
-
 }

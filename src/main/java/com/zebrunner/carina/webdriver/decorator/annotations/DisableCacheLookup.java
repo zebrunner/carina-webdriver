@@ -20,8 +20,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * @deprecated not used
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.FIELD, ElementType.TYPE })
-@Deprecated
+@Deprecated(forRemoval = true, since = "1.0.0")
 public @interface DisableCacheLookup {
 }
