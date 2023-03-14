@@ -17,20 +17,17 @@ package com.zebrunner.carina.webdriver;
 
 //TODO: move into better module/package
 public class TestPhase {
-    public enum Phase {
-    	BEFORE_SUITE, BEFORE_TEST, BEFORE_CLASS, BEFORE_METHOD, METHOD, AFTER_METHOD, AFTER_CLASS, AFTER_TEST, AFTER_SUITE, ALL;
-    }
+	private static final ThreadLocal<Phase> ACTIVE_PHASE = new ThreadLocal<>();
 
-    private static ThreadLocal<Phase> activePhase = new ThreadLocal<Phase>();
+	public enum Phase {
+		BEFORE_SUITE, BEFORE_TEST, BEFORE_CLASS, BEFORE_METHOD, METHOD, AFTER_METHOD, AFTER_CLASS, AFTER_TEST, AFTER_SUITE, ALL;
+	}
 
 	public static Phase getActivePhase() {
-	    return activePhase.get();
+		return ACTIVE_PHASE.get();
 	}
 
 	public static void setActivePhase(Phase phase) {
-		activePhase.set(phase);
+		ACTIVE_PHASE.set(phase);
 	}
-    
-
 }
-
