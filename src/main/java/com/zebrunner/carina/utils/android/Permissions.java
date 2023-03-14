@@ -31,14 +31,14 @@ public class Permissions {
         ACCESS_LOCATION_EXTRA_COMMANDS(
                 "android.permission.ACCESS_LOCATION_EXTRA_COMMANDS");
 
-        private final String permission;
+        private final String name;
 
-        private Permission(String permission) {
-            this.permission = permission;
+        Permission(String permission) {
+            this.name = permission;
         }
 
         public String getPermission() {
-            return this.permission;
+            return this.name;
         }
     }
 
@@ -62,7 +62,7 @@ public class Permissions {
         GRANT("grant"),
         REVOKE("revoke");
 
-        private String action;
+        private final String action;
 
         private PermissionAction(String action) {
             this.action = action;
