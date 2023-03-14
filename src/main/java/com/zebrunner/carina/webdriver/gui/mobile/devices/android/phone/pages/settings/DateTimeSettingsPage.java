@@ -54,7 +54,7 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
     private ExtendedWebElement scrollableContainer;
 
     @FindBy(id = "com.android.settings:id/recycler_view")
-    private ExtendedWebElement scrollableContainerInVersion8_1;
+    private ExtendedWebElement scrollableContainerInVersion81;
 
     @FindBy(className = "android.widget.ListView")
     private ExtendedWebElement scrollableContainerByClassName;
@@ -85,7 +85,7 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
                 throw new RuntimeException("Desired Time Zone Menu item not found.. ");
             }
         }
-        LOGGER.info("Select Time Zone Menu item was clicked: " + found);
+        LOGGER.info("Select Time Zone Menu item was clicked: {}", found);
     }
 
     /**
@@ -103,9 +103,9 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
 
         //Adding extra step required to get to TimeZone screen on devices running versions > 8
         if (deviceOsFullVersion.contains(".")) {
-            deviceOsVersion = Integer.valueOf(deviceOsFullVersion.split("\\.")[0]);
+            deviceOsVersion = Integer.parseInt(deviceOsFullVersion.split("\\.")[0]);
         } else {
-            deviceOsVersion = Integer.valueOf(deviceOsFullVersion);
+            deviceOsVersion = Integer.parseInt(deviceOsFullVersion);
         }
 
         //if device OS version >= 9, we have to set Country Region and obtain city from timeZone
@@ -155,7 +155,7 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
 
         try {
             if (deviceOsVersion > 8) {
-                result = scroll(tzGMT, scrollableContainerInVersion8_1,
+                result = scroll(tzGMT, scrollableContainerInVersion81,
                         SelectorType.ID, SelectorType.TEXT_CONTAINS).isElementPresent();
             } else {
                 result = scroll(tzGMT, scrollableContainerByClassName,
@@ -181,7 +181,7 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
 
         if (deviceOsVersion > 8) {
             try {
-                result = scroll(tz, scrollableContainerInVersion8_1,
+                result = scroll(tz, scrollableContainerInVersion81,
                         SelectorType.ID, SelectorType.TEXT_CONTAINS).isElementPresent();
             } catch (NoSuchElementException e){
                 LOGGER.debug("Element is not found.", e);
@@ -205,7 +205,7 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
      */
     public boolean clickNextButton() {
         boolean res = nextButton.clickIfPresent(SHORT_TIMEOUT);
-        LOGGER.info("Next button was clicked: " + res);
+        LOGGER.info("Next button was clicked: {}", res);
         return res;
     }
 
