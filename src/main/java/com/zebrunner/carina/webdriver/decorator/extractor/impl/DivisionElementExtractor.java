@@ -15,19 +15,18 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.decorator.extractor.impl;
 
-import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
-import java.util.List;
-
+import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.decorator.extractor.AbstractElementExtractor;
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.webdriver.IDriverPool;
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.decorator.extractor.AbstractElementExtractor;
+import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DivisionElementExtractor extends AbstractElementExtractor implements IDriverPool {
 
@@ -43,11 +42,11 @@ public class DivisionElementExtractor extends AbstractElementExtractor implement
         int isLower;
         Rectangle tempRect;
         while (elements.size() != 1) {
-            index = (int) (Math.round(elements.size() / 2f));
+            index = Math.round(elements.size() / 2f);
             tempElement = elements.get(index);
             tempRect = getRect(tempElement);
             isLower = isLower(tempRect, y);
-            LOGGER.debug("Is Lower: " + isLower);
+            LOGGER.debug("Is Lower: {}", isLower);
             if (isInside(tempRect, x, y) || isLower == 0) {
                 break;
             }
@@ -57,7 +56,7 @@ public class DivisionElementExtractor extends AbstractElementExtractor implement
                 elements = elements.subList(0, index);
             }
         }
-        LOGGER.debug("Index: " + index);
+        LOGGER.debug("Index: {}", index);
 
         if (elements.size() == 1) {
             return generateExtenedElement(elements, elementName);
@@ -77,10 +76,10 @@ public class DivisionElementExtractor extends AbstractElementExtractor implement
      * @return List&lt;WebElement&gt;
      */
     private List<WebElement> checkBoundaryElements(List<WebElement> elements, int x, int y, int index) {
-        LOGGER.debug(String.format("Index: %d.", index));
+        LOGGER.debug("Index: {}.", index);
         List<WebElement> elementsFirstPart = elements.subList(0, index);
         List<WebElement> elementsSecondPart = elements.subList(index, elements.size());
-        List<WebElement> elementsInside = new ArrayList<WebElement>();
+        List<WebElement> elementsInside = new ArrayList<>();
         WebElement element;
         Rectangle tempRect;
         for (int i = elementsFirstPart.size() - 1; i >= 0; i--) {
@@ -95,8 +94,8 @@ public class DivisionElementExtractor extends AbstractElementExtractor implement
             }
         }
 
-        for (int i = 0; i < elementsSecondPart.size(); i++) {
-            element = elementsSecondPart.get(i);
+        for (WebElement webElement : elementsSecondPart) {
+            element = webElement;
             tempRect = getRect(element);
 
             if (isInside(tempRect, x, y)) {
@@ -109,5 +108,4 @@ public class DivisionElementExtractor extends AbstractElementExtractor implement
         }
         return elementsInside;
     }
-
 }
