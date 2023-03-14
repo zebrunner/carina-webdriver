@@ -15,15 +15,17 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.screenshot;
 
-import java.nio.file.Path;
-import java.time.Duration;
-
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.openqa.selenium.Beta;
-
 import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.ScreenshotType;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.openqa.selenium.Beta;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 
 public interface IScreenshotRule {
 
@@ -89,11 +91,18 @@ public interface IScreenshotRule {
     /**
      * Is need to check rules when capture screenshot<br>
      * Method that validate rules: com.qaprosoft.carina.core.foundation.webdriver.Screenshot#validateRule(IScreenshotRule)
-     * 
+     *
      * @return true if needed, false otherwise
      */
     @Beta
     public default boolean isEnableValidation() {
         return "DEBUG".equalsIgnoreCase(Configuration.get(Configuration.Parameter.CORE_LOG_LEVEL));
     }
+
+    @Beta
+    public default void after(Path pathToTheScreenshot) throws IOException {
+        // upload screenshot to the Zebrunner Reporting
+        com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(pathToTheScreenshot), Instant.now().toEpochMilli());
+    }
+
 }
