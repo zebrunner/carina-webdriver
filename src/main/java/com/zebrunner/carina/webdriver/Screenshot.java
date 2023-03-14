@@ -412,8 +412,7 @@ public class Screenshot {
                 // add screenshot comment to collector
                 ReportContext.addScreenshotComment(screenshotFileName, comment);
             }
-            // upload screenshot to Zebrunner Reporting
-            com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(file), Instant.now().toEpochMilli());
+            rule.after(file);
         } catch (NoSuchWindowException e) {
             LOGGER.warn("Unable to capture screenshot due to NoSuchWindowException!");
             LOGGER.debug(ERROR_STACKTRACE, e);
