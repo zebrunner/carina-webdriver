@@ -48,6 +48,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Device implements IDriverPool {
+    // TODO Review grid capabilities functionality (for example, slotCapabilities)
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private String name;
     private String type;

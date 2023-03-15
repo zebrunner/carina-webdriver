@@ -33,7 +33,6 @@ import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.webdriver.IDriverPool;
 
 import io.appium.java_client.remote.options.SupportsLanguageOption;
 import io.appium.java_client.remote.options.SupportsLocaleOption;
@@ -50,12 +49,13 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
 
     protected T initBaseCapabilities(T capabilities, String testName) {
 
-        if (!IDriverPool.DEFAULT.equalsIgnoreCase(testName)) {
-            // #1573: remove "default" driver name capability registration
-            // capabilities.setCapability("name", testName);
-            // todo investigate is in work, if not, think about another path
-            R.CONFIG.put(SpecialKeywords.CAPABILITIES + ".name", testName, true);
-        }
+        // [AS] PR #34
+        //        if (!IDriverPool.DEFAULT.equalsIgnoreCase(testName)) {
+        //            // #1573: remove "default" driver name capability registration
+        //            // capabilities.setCapability("name", testName);
+        //            // todo investigate is in work, if not, think about another path
+        //            R.CONFIG.put(SpecialKeywords.CAPABILITIES + ".name", testName, true);
+        //        }
 
         ProxyUtils.getSeleniumProxy()
                 .ifPresent(proxy -> capabilities.setCapability(CapabilityType.PROXY, proxy));
