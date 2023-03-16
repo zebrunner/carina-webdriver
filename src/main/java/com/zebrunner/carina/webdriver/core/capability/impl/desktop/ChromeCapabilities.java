@@ -39,7 +39,8 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
     @Override
     public ChromeOptions getCapability(String testName) {
         ChromeOptions options = new ChromeOptions();
-        initBaseCapabilities(options, testName);
+        addProxy(options);
+        addConfigurationCapabilities(options);
         addChromeOptions(options);
         options.addArguments("--start-maximized", "--ignore-ssl-errors");
         options.setAcceptInsecureCerts(true);
@@ -145,6 +146,10 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
         if (Configuration.getBoolean(Configuration.Parameter.HEADLESS)
                 && driverType.equals(SpecialKeywords.DESKTOP)) {
             options.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
+            // todo refactor with w3c rules or remove
+            LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
+            options.setCapability("enableVNC", false);
+            options.setCapability("enableVideo", false);
         }
     }
 }

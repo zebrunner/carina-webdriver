@@ -37,7 +37,8 @@ public class EdgeCapabilities extends AbstractCapabilities<ChromiumOptions<?>> {
     @Override
     public ChromiumOptions<?> getCapability(String testName) {
         ChromiumOptions<?> capabilities = new ChromiumOptions<>(CapabilityType.BROWSER_NAME, Browser.EDGE.browserName(), "ms:edgeOptions");
-        initBaseCapabilities(capabilities, testName);
+        addProxy(capabilities);
+        addConfigurationCapabilities(capabilities);
         addEdgeOptions(capabilities);
         capabilities.addArguments("--start-maximized", "--ignore-ssl-errors");
         capabilities.setAcceptInsecureCerts(true);
@@ -76,6 +77,10 @@ public class EdgeCapabilities extends AbstractCapabilities<ChromiumOptions<?>> {
         if (Configuration.getBoolean(Configuration.Parameter.HEADLESS)
                 && driverType.equals(SpecialKeywords.DESKTOP)) {
             caps.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
+            // todo refactor with w3c rules or remove
+            LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
+            caps.setCapability("enableVNC", false);
+            caps.setCapability("enableVideo", false);
         }
     }
 }

@@ -16,14 +16,17 @@
 package com.zebrunner.carina.webdriver.core.capability;
 
 import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.openqa.selenium.MutableCapabilities;
-import org.openqa.selenium.remote.Browser;
 import org.openqa.selenium.remote.CapabilityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,143 +36,168 @@ import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
 
 import io.appium.java_client.remote.options.SupportsLanguageOption;
 import io.appium.java_client.remote.options.SupportsLocaleOption;
 
 public abstract class AbstractCapabilities<T extends MutableCapabilities> {
+    // TODO: [VD] reorganize in the same way Firefox profiles args/options if any and review other browsers
+    // support customization for Chrome args and options
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final ArrayList<String> numericCaps = new ArrayList<>(Arrays.asList("waitForIdleTimeout"));
-    private static final List<String> STRING_CAPABILITIES = List.of("idleTimeout");
+    private static final Pattern CAPABILITY_WITH_TYPE_PATTERN = Pattern.compile("^(?<name>.+)(?<type>\\[.+\\])$");
 
     /**
      * Generate Capabilities according to configuration file
      */
     public abstract T getCapability(String testName);
 
-    protected T initBaseCapabilities(T capabilities, String testName) {
-
-        // [AS] PR #34
-        //        if (!IDriverPool.DEFAULT.equalsIgnoreCase(testName)) {
-        //            // #1573: remove "default" driver name capability registration
-        //            // capabilities.setCapability("name", testName);
-        //            // todo investigate is in work, if not, think about another path
-        //            R.CONFIG.put(SpecialKeywords.CAPABILITIES + ".name", testName, true);
-        //        }
-
+    /**
+     * Add proxy capability. Should only be used for Selenium session only.
+     *
+     * @param capabilities see {@link T}
+     */
+    protected void addProxy(T capabilities) {
         ProxyUtils.getSeleniumProxy()
                 .ifPresent(proxy -> capabilities.setCapability(CapabilityType.PROXY, proxy));
-
-        // add capabilities based on dynamic _config.properties variables
-        return initCapabilities(capabilities);
     }
 
     /**
-     * Add capabilities from configuration file to capabilities param
-     * 
-     * @param capabilities capabilities to which will be added the capabilities from the configuration file
-     * @return upgraded capabilities
+     * Add capabilities from configuration {@link R#CONFIG}.
+     *
+     * @param options see {@link T}
      */
-    protected T initCapabilities(T capabilities) {
-        // read all properties which starts from "capabilities.*" prefix and add them into desired capabilities.
-        final String prefix = SpecialKeywords.CAPABILITIES + ".";
-        boolean isW3C = Configuration.getBoolean(Parameter.W3C);
-        String provider = R.CONFIG.get(SpecialKeywords.PROVIDER);
-        String providerOptions = R.CONFIG.get(SpecialKeywords.PROVIDER_OPTIONS);
-
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        Map<String, String> capabilitiesMap = new HashMap(R.CONFIG.getProperties());
-        Map<String, Object> customCapabilities = new HashMap<>();
-
-        for (Map.Entry<String, String> entry : capabilitiesMap.entrySet()) {
-
-            // ignore non-capabilities
-            if (!entry.getKey().toLowerCase().startsWith(prefix)) {
-                continue;
-            }
-
-            // provider and providerType is not w3c-compatible capability, so we ignore it
-            if (SpecialKeywords.PROVIDER.equalsIgnoreCase(entry.getKey()) ||
-                    SpecialKeywords.PROVIDER_OPTIONS.equalsIgnoreCase(entry.getKey())) {
-                continue;
-            }
-
-            // ignore empty capabilities
-            if (R.CONFIG.get(entry.getKey()).isEmpty()) {
-                continue;
-            }
-
-            String capabilityName = entry.getKey().replaceAll(prefix, "");
-            Object value = R.CONFIG.get(entry.getKey());
-
-            if (STRING_CAPABILITIES.contains(capabilityName)) {
-                value = String.valueOf(entry.getValue());
-            } else if (numericCaps.contains(capabilityName) && isNumber(entry.getValue())) {
-                LOGGER.debug("Adding {} to capabilities as integer", entry.getValue());
-                value = Integer.parseInt(entry.getValue());
-            } else if ("false".equalsIgnoreCase(entry.getValue())) {
-                value = false;
-            } else if ("true".equalsIgnoreCase(entry.getValue())) {
-                value = true;
-            }
-
-            if (isW3C) {
-                if (W3CCapabilityCommonKeys.INSTANCE.test(capabilityName)) {
-                    capabilities.setCapability(capabilityName, value);
-                } else {
-                    if (provider.isEmpty()) {
-                        throw new RuntimeException(
-                                "W3C enabled, but provider capability is empty. Please, provide 'provider' capability. Detected w3c-incompatible capability: "
-                                        + capabilityName);
-                    }
-                    customCapabilities.put(capabilityName, value);
-                }
-            } else {
-                capabilities.setCapability(capabilityName, value);
-            }
-        }
-
-        //TODO: [VD] reorganize in the same way Firefox profiles args/options if any and review other browsers
-        // support customization for Chrome args and options
-
-        // for pc we may set browserName through Desired capabilities in our Test with a help of a method initBaseCapabilities,
-        // so we don't want to override with value from config
-        String browser = capabilities.getBrowserName() != null && capabilities.getBrowserName().length() > 0 ? capabilities.getBrowserName()
-                : Configuration.getBrowser();
-
-        if (Configuration.getBoolean(Parameter.HEADLESS)) {
-            if (Browser.FIREFOX.browserName().equalsIgnoreCase(browser)
-                    || Browser.CHROME.browserName().equalsIgnoreCase(browser)
-                    && Configuration.getDriverType().equalsIgnoreCase(SpecialKeywords.DESKTOP)) {
-                LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
-                customCapabilities.put("enableVNC", false);
-                customCapabilities.put("enableVideo", false);
-            } else {
-                LOGGER.error("Headless mode isn't supported by {} browser / platform.", browser);
-            }
-        }
-
-        if (isW3C && !customCapabilities.isEmpty()) {
-            capabilities.setCapability(provider + ":" + providerOptions, customCapabilities);
-        } else {
-            for (String capabilityName : customCapabilities.keySet()) {
-                capabilities.setCapability(capabilityName, customCapabilities.get(capabilityName));
-            }
-        }
-        return capabilities;
+    protected void addConfigurationCapabilities(T options) {
+        addPropertiesCapabilities(options, R.CONFIG.getProperties());
     }
 
-    protected boolean isNumber(String value) {
-        if (value == null || value.isEmpty()){
+    /**
+     * Add capabilities from properties
+     *
+     * @param options see {@link C}
+     * @param props see {@link Properties}
+     */
+    static <C extends MutableCapabilities> void addPropertiesCapabilities(C options, Properties props) {
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        Map<String, String> properties = new HashMap(props);
+        Map<String, Object> capabilities = properties.entrySet()
+                .stream()
+                .filter(entry -> entry.getKey().startsWith("capabilities."))
+                .filter(entry -> entry.getValue() != null)
+                .map(entry -> {
+                    MutablePair<String, String> pair = new MutablePair<>();
+                    pair.setLeft(entry.getKey().replaceFirst("capabilities.", ""));
+                    pair.setRight(entry.getValue());
+                    return pair;
+                })
+                .map(p -> parseCapabilityType(p.getLeft(), p.getRight()))
+                .collect(Collectors.toMap(MutablePair::getLeft, MutablePair::getRight));
+
+        for (Map.Entry<String, Object> entry : capabilities.entrySet()) {
+            List<String> names = Arrays.asList(entry.getKey().split("\\."));
+
+            // TODO add support of any nesting
+            if (names.isEmpty()) {
+                // should never happens
+                throw new RuntimeException("Something went wrong when try to create capabilities from configuration.");
+            } else if (names.size() == 1) {
+                options.setCapability(names.get(0), entry.getValue());
+            } else if (names.size() == 2) {
+                HashMap<String, Object> nestCapability = new HashMap<>();
+                if (options.getCapability(names.get(0)) != null) {
+                    // If we already have inner capability, we think that it is HashMap<String, Object> (custom capabilities)
+                    nestCapability = (HashMap<String, Object>) options.getCapability(names.get(0));
+                }
+
+                nestCapability.put(names.get(1), entry.getValue());
+                options.setCapability(names.get(0), nestCapability);
+            } else if (names.size() == 3) {
+                HashMap<String, Object> nestCapability = new HashMap<>();
+                HashMap<String, Object> secondNestCapability = new HashMap<>();
+
+                if (options.getCapability(names.get(0)) != null) {
+                    // If we already have inner capability, we think that it is HashMap<String, Object>
+                    nestCapability = (HashMap<String, Object>) options.getCapability(names.get(0));
+                    if (nestCapability.containsKey(names.get(1))) {
+                        secondNestCapability = (HashMap<String, Object>) nestCapability.get(names.get(1));
+                    }
+                }
+                secondNestCapability.put(names.get(2), entry.getValue());
+                nestCapability.put(names.get(1), secondNestCapability);
+                options.setCapability(names.get(0), nestCapability);
+            } else {
+                // Let's hope it won't be needed.
+                throw new UnsupportedOperationException("At the moment nesting of more than 3 capabilities is not supported. "
+                        + "If you come across a situation in which this is necessary, please notify the Carina Support team.");
+            }
+        }
+    }
+
+    /**
+     * Parse capability type.<br>
+     * Result type depends on:
+     * 1. If name of the capability ends with [string], [boolean] or [integer], then the capability value will be cast to it.
+     * 2. If we have no information about type in capability name, result value depends on value.
+     *
+     * @param capabilityName name of the capability, for example {@code platformName} or {zebrunner:options.enableVideo[boolean]}
+     * @param capabilityValue capability value. Since we take it from the configuration file, it is immediately of type String
+     * @return {@link MutablePair}, where left is the capability name and right is the value
+     */
+    static MutablePair<String, Object> parseCapabilityType(String capabilityName, String capabilityValue) {
+        MutablePair<String, Object> pair = new MutablePair<>();
+        Matcher matcher = CAPABILITY_WITH_TYPE_PATTERN.matcher(capabilityName);
+        if (matcher.find()) {
+            String name = matcher.group("name");
+            String type = matcher.group("type");
+            Object value = null;
+            if ("[string]".equalsIgnoreCase(type)) {
+                value = capabilityValue;
+            } else if ("[boolean]".equalsIgnoreCase(type)) {
+                if ("true".equalsIgnoreCase(capabilityValue)) {
+                    value = true;
+                } else if ("false".equalsIgnoreCase(capabilityValue)) {
+                    value = false;
+                } else {
+                    throw new InvalidConfigurationException(
+                            String.format("Provided boolean type for '%s' capability, but it is not contains true or false value.", name));
+                }
+            } else if ("[integer]".equalsIgnoreCase(type)) {
+                try {
+                    value = Integer.parseInt(type);
+                } catch (NumberFormatException e) {
+                    throw new InvalidConfigurationException(
+                            String.format("Provided integer type for '%s' capability, but it is not contains integer value.", name));
+                }
+            } else {
+                throw new InvalidConfigurationException(String.format("Unsupported '%s' type of '%s' capability.", type, name));
+            }
+            pair.setLeft(name);
+            pair.setRight(value);
+        } else {
+            pair.setLeft(capabilityName);
+            if (isNumber(capabilityValue)) {
+                pair.setRight(Integer.parseInt(capabilityValue));
+            } else if ("true".equalsIgnoreCase(capabilityValue)) {
+                pair.setRight(true);
+            } else if ("false".equalsIgnoreCase(capabilityValue)) {
+                pair.setRight(false);
+            } else {
+                pair.setRight(capabilityValue);
+            }
+        }
+        return pair;
+    }
+
+    protected static boolean isNumber(String value) {
+        if (value == null || value.isEmpty()) {
             return false;
         }
-
         try {
             Integer.parseInt(value);
-        } catch (NumberFormatException ex){
+        } catch (NumberFormatException ex) {
             return false;
         }
-
         return true;
     }
 

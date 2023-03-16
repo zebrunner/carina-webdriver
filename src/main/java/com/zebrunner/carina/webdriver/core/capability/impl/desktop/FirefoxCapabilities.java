@@ -42,7 +42,8 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
     @Override
     public FirefoxOptions getCapability(String testName) {
         FirefoxOptions capabilities = new FirefoxOptions();
-        initBaseCapabilities(capabilities, testName);
+        addProxy(capabilities);
+        addConfigurationCapabilities(capabilities);
         addFirefoxOptions(capabilities);
         FirefoxProfile profile = new FirefoxProfile();
         profile.setPreference("media.eme.enabled", true);
@@ -61,7 +62,8 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
      */
     public FirefoxOptions getCapability(String testName, FirefoxProfile profile) {
         FirefoxOptions capabilities = new FirefoxOptions();
-        initBaseCapabilities(capabilities, testName);
+        addProxy(capabilities);
+        addConfigurationCapabilities(capabilities);
         addFirefoxOptions(capabilities);
         capabilities.setProfile(profile);
         return capabilities;
@@ -99,6 +101,10 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
         if (Configuration.getBoolean(Configuration.Parameter.HEADLESS)
                 && driverType.equals(SpecialKeywords.DESKTOP)) {
             options.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
+            // todo refactor with w3c rules or remove
+            LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
+            options.setCapability("enableVNC", false);
+            options.setCapability("enableVideo", false);
         }
 
     }
