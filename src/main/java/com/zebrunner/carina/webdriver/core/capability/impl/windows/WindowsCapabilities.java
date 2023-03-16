@@ -23,8 +23,8 @@ public class WindowsCapabilities extends AbstractCapabilities<WindowsOptions> {
 
     @Override
     public WindowsOptions getCapability(String testName) {
-        WindowsOptions capabilities = new WindowsOptions();
-        addConfigurationCapabilities(capabilities);
-        return capabilities;
+        WindowsOptions options = new WindowsOptions();
+        addConfigurationCapabilities(options);
+        return options;
     }    
 }
