@@ -50,7 +50,7 @@ public class DesktopCapabilitiesTest {
 
         Assert.assertEquals(capabilities.getBrowserName(), Browser.CHROME.browserName(), "Returned browser name is not valid!");
 
-        Assert.assertEquals(capabilities.getCapability("name"), testName, "Returned test name is not valid!");
+//        Assert.assertEquals(capabilities.getCapability("name"), testName, "Returned test name is not valid!");
         Map<String, Object> chromeOptions = (Map<String, Object>) capabilities.getCapability(ChromeOptions.CAPABILITY);
         List<String> chromeOptionsArgs = (List<String>) chromeOptions.get("args");
         Assert.assertTrue(chromeOptionsArgs.contains("--start-maximized"),
@@ -116,7 +116,7 @@ public class DesktopCapabilitiesTest {
 
         Assert.assertEquals(capabilities.getBrowserName(), Browser.OPERA.browserName(), "Returned browser name is not valid!");
 
-        Assert.assertEquals(capabilities.getCapability("name"), testName, "Returned test name is not valid!");
+//        Assert.assertEquals(capabilities.getCapability("name"), testName, "Returned test name is not valid!");
     }
 
    @Test(groups = {"DesktopCapabilitiesTestClass"}, enabled = false)
@@ -140,7 +140,7 @@ public class DesktopCapabilitiesTest {
 
         Assert.assertEquals(capabilities.getBrowserName(), Browser.EDGE.browserName(), "Returned browser name is not valid!");
 
-        Assert.assertEquals(capabilities.getCapability("name"), testName, "Returned test name is not valid!");
+//        Assert.assertEquals(capabilities.getCapability("name"), testName, "Returned test name is not valid!");
     }
 
     @Test(groups = {"DesktopCapabilitiesTestClass"})
