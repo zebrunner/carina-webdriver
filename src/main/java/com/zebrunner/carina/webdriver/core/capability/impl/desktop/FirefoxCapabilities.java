@@ -41,16 +41,15 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
      */
     @Override
     public FirefoxOptions getCapability(String testName) {
-        FirefoxOptions capabilities = new FirefoxOptions();
-        addProxy(capabilities);
-        addConfigurationCapabilities(capabilities);
-        addFirefoxOptions(capabilities);
+        FirefoxOptions options = new FirefoxOptions();
+        addProxy(options);
+        addConfigurationCapabilities(options);
+        addFirefoxOptions(options);
         FirefoxProfile profile = new FirefoxProfile();
         profile.setPreference("media.eme.enabled", true);
         profile.setPreference("media.gmp-manager.updateEnabled", true);
-
-        capabilities.setProfile(profile);
-        return capabilities;
+        options.setProfile(profile);
+        return options;
     }
 
     /**
@@ -61,12 +60,12 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
      * @return FirefoxOptions
      */
     public FirefoxOptions getCapability(String testName, FirefoxProfile profile) {
-        FirefoxOptions capabilities = new FirefoxOptions();
-        addProxy(capabilities);
-        addConfigurationCapabilities(capabilities);
-        addFirefoxOptions(capabilities);
-        capabilities.setProfile(profile);
-        return capabilities;
+        FirefoxOptions options = new FirefoxOptions();
+        addProxy(options);
+        addConfigurationCapabilities(options);
+        addFirefoxOptions(options);
+        options.setProfile(profile);
+        return options;
     }
 
     private void addFirefoxOptions(FirefoxOptions options) {
