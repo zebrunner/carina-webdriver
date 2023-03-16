@@ -166,7 +166,7 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
                 }
             } else if ("[integer]".equalsIgnoreCase(type)) {
                 try {
-                    value = Integer.parseInt(type);
+                    value = Integer.parseInt(capabilityValue);
                 } catch (NumberFormatException e) {
                     throw new InvalidConfigurationException(
                             String.format("Provided integer type for '%s' capability, but it is not contains integer value.", name));
