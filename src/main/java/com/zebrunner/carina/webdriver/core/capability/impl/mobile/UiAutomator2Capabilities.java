@@ -23,11 +23,10 @@ public class UiAutomator2Capabilities extends AbstractCapabilities<UiAutomator2O
 
     @Override
     public UiAutomator2Options getCapability(String testName) {
-        UiAutomator2Options capabilities = new UiAutomator2Options();
+        UiAutomator2Options options = new UiAutomator2Options();
         // this step should be executed before initCapabilities() to be able to override this capabilities by default appium approach.
-        setLocaleAndLanguage(capabilities);
-        // add capabilities based on dynamic _config.properties variables
-        addConfigurationCapabilities(capabilities);
-        return capabilities;
+        setLocaleAndLanguage(options);
+        addConfigurationCapabilities(options);
+        return options;
     }
 }
