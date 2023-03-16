@@ -30,6 +30,7 @@ import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
 public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     /**

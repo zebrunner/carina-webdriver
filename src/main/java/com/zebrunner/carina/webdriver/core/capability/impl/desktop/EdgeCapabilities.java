@@ -32,17 +32,18 @@ import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
 public class EdgeCapabilities extends AbstractCapabilities<ChromiumOptions<?>> {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @Override
     public ChromiumOptions<?> getCapability(String testName) {
-        ChromiumOptions<?> capabilities = new ChromiumOptions<>(CapabilityType.BROWSER_NAME, Browser.EDGE.browserName(), "ms:edgeOptions");
-        addProxy(capabilities);
-        addConfigurationCapabilities(capabilities);
-        addEdgeOptions(capabilities);
-        capabilities.addArguments("--start-maximized", "--ignore-ssl-errors");
-        capabilities.setAcceptInsecureCerts(true);
-        return capabilities;
+        ChromiumOptions<?> options = new ChromiumOptions<>(CapabilityType.BROWSER_NAME, Browser.EDGE.browserName(), "ms:edgeOptions");
+        addProxy(options);
+        addConfigurationCapabilities(options);
+        addEdgeOptions(options);
+        options.addArguments("--start-maximized", "--ignore-ssl-errors");
+        options.setAcceptInsecureCerts(true);
+        return options;
     }
 
     private void addEdgeOptions(ChromiumOptions<?> caps) {
