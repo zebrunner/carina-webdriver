@@ -35,7 +35,7 @@ public class AppleTVTest {
 
 	@Test(groups = {"AppleTVTestClass"}, dependsOnGroups = {"DesktopCapabilitiesTestClass"})
 	public void getTvOSCapabilityTest() {
-		R.CONFIG.put(MOBILE_DEVICE_PLATFORM, TVOS);
+		R.CONFIG.put(MOBILE_DEVICE_PLATFORM, TVOS, true);
 		Assert.assertEquals(R.CONFIG.get(MOBILE_DEVICE_PLATFORM), TVOS);
 	}
 
@@ -55,13 +55,13 @@ public class AppleTVTest {
 
 	@Test(groups = {"AppleTVTestClass"}, dependsOnGroups = {"DesktopCapabilitiesTestClass"})
 	public void getTvOSPlatformTest() {
-		R.CONFIG.put(SpecialKeywords.PLATFORM_NAME, TVOS);
+		R.CONFIG.put(SpecialKeywords.PLATFORM_NAME, TVOS, true);
 		Assert.assertEquals(Configuration.getDriverType(), MOBILE);
 	}
 
 	@Test(groups = {"AppleTVTestClass"}, dependsOnGroups = {"DesktopCapabilitiesTestClass"})
 	public void negativeTvOSPlatformTest() {
-		R.CONFIG.put(SpecialKeywords.PLATFORM_NAME, TVOS);
+		R.CONFIG.put(SpecialKeywords.PLATFORM_NAME, TVOS, true);
 		Assert.assertNotEquals(Configuration.getDriverType(), DESKTOP);
 	}
 
