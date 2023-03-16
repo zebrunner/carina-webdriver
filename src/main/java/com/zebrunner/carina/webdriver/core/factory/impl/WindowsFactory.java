@@ -15,20 +15,22 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.factory.impl;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.webdriver.core.capability.impl.windows.WindowsCapabilities;
-import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
-import io.appium.java_client.windows.WindowsDriver;
+import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UncheckedIOException;
-import java.lang.invoke.MethodHandles;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Objects;
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.webdriver.core.capability.impl.windows.WindowsCapabilities;
+import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
+import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
+
+import io.appium.java_client.windows.WindowsDriver;
 
 /**
  * WindowsFactory creates instance {@link WebDriver} for Windows native application testing.
@@ -44,24 +46,18 @@ public class WindowsFactory extends AbstractFactory {
         if (seleniumHost == null) {
             seleniumHost = Configuration.getSeleniumUrl();
         }
-        LOGGER.debug("selenium: {}", seleniumHost);
+        LOGGER.debug("Selenium URL: {}", seleniumHost);
 
         if (isCapabilitiesEmpty(capabilities)) {
             capabilities = new WindowsCapabilities().getCapability(name);
         }
+        LOGGER.debug("Capabilities: {}", capabilities);
 
-        if (Objects.equals(Configuration.get(Configuration.Parameter.W3C), "false")) {
-            capabilities = removeAppiumPrefix(capabilities);
-        }
-
-        LOGGER.debug("capabilities: {}", capabilities);
-
-        URL url;
         try {
-            url = new URL(seleniumHost);
+            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
+            return new WindowsDriver(ce, capabilities);
         } catch (MalformedURLException e) {
             throw new UncheckedIOException("Malformed appium URL!", e);
         }
-        return new WindowsDriver(url, capabilities);
     }
 }
