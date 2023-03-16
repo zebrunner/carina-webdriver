@@ -15,24 +15,25 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.factory.impl;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.webdriver.core.capability.impl.mac.Mac2Capabilities;
-import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
-import io.appium.java_client.mac.Mac2Driver;
+import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UncheckedIOException;
-import java.lang.invoke.MethodHandles;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Objects;
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.webdriver.core.capability.impl.mac.Mac2Capabilities;
+import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
+import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
+
+import io.appium.java_client.mac.Mac2Driver;
 
 /**
- * WindowsFactory creates instance {@link WebDriver} for Windows native application testing.
+ * MacFactory creates instance {@link WebDriver} for Mac native application testing.
  * 
  * @author Sergei Zagriychuk (sergeizagriychuk@gmail.com)
  */
@@ -42,34 +43,22 @@ public class MacFactory extends AbstractFactory {
 
     @Override
     public WebDriver create(String name, MutableCapabilities capabilities, String seleniumHost) {
-
         if (seleniumHost == null) {
             seleniumHost = Configuration.getSeleniumUrl();
         }
-        LOGGER.debug("selenium: {}", seleniumHost);
-
-        String driverType = Configuration.getDriverType(capabilities);
-        if (!SpecialKeywords.MAC.equals(driverType)) {
-            throw new RuntimeException(String.format("Driver type %s is not applicable for Windows driver", driverType));
-        }
+        LOGGER.debug("Selenium URL: {}", seleniumHost);
 
         if (isCapabilitiesEmpty(capabilities)) {
             capabilities = new Mac2Capabilities().getCapability(name);
-            ;
         }
 
-        if (Objects.equals(Configuration.get(Configuration.Parameter.W3C), "false")) {
-            capabilities = removeAppiumPrefix(capabilities);
-        }
+        LOGGER.debug("Capabilities: {}", capabilities);
 
-        LOGGER.debug("capabilities: {}", capabilities);
-
-        URL url;
         try {
-            url = new URL(seleniumHost);
+            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
+            return new Mac2Driver(ce, capabilities);
         } catch (MalformedURLException e) {
             throw new UncheckedIOException("Malformed appium URL!", e);
         }
-        return new Mac2Driver(url, capabilities);
     }
 }

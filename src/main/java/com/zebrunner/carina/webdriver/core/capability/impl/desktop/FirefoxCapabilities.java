@@ -41,15 +41,15 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
      */
     @Override
     public FirefoxOptions getCapability(String testName) {
-        FirefoxOptions capabilities = new FirefoxOptions();
-        initBaseCapabilities(capabilities, testName);
-        addFirefoxOptions(capabilities);
+        FirefoxOptions options = new FirefoxOptions();
+        addProxy(options);
+        addConfigurationCapabilities(options);
+        addFirefoxOptions(options);
         FirefoxProfile profile = new FirefoxProfile();
         profile.setPreference("media.eme.enabled", true);
         profile.setPreference("media.gmp-manager.updateEnabled", true);
-
-        capabilities.setProfile(profile);
-        return capabilities;
+        options.setProfile(profile);
+        return options;
     }
 
     /**
@@ -60,11 +60,12 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
      * @return FirefoxOptions
      */
     public FirefoxOptions getCapability(String testName, FirefoxProfile profile) {
-        FirefoxOptions capabilities = new FirefoxOptions();
-        initBaseCapabilities(capabilities, testName);
-        addFirefoxOptions(capabilities);
-        capabilities.setProfile(profile);
-        return capabilities;
+        FirefoxOptions options = new FirefoxOptions();
+        addProxy(options);
+        addConfigurationCapabilities(options);
+        addFirefoxOptions(options);
+        options.setProfile(profile);
+        return options;
     }
 
     private void addFirefoxOptions(FirefoxOptions options) {
@@ -99,6 +100,10 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
         if (Configuration.getBoolean(Configuration.Parameter.HEADLESS)
                 && driverType.equals(SpecialKeywords.DESKTOP)) {
             options.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
+            // todo refactor with w3c rules or remove
+            LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
+            options.setCapability("enableVNC", false);
+            options.setCapability("enableVideo", false);
         }
 
     }

@@ -15,16 +15,12 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.factory.impl;
 
-import com.google.common.base.Function;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.ChromeCapabilities;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.EdgeCapabilities;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.FirefoxCapabilities;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.OperaCapabilities;
-import com.zebrunner.carina.webdriver.core.capability.impl.desktop.SafariCapabilities;
-import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
-import com.zebrunner.carina.webdriver.listener.EventFiringSeleniumCommandExecutor;
+import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.time.Duration;
+
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.NoSuchSessionException;
@@ -39,11 +35,21 @@ import org.openqa.selenium.support.ui.Wait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UncheckedIOException;
-import java.lang.invoke.MethodHandles;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.time.Duration;
+import com.google.common.base.Function;
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
+import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.ChromeCapabilities;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.EdgeCapabilities;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.FirefoxCapabilities;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.OperaCapabilities;
+import com.zebrunner.carina.webdriver.core.capability.impl.desktop.SafariCapabilities;
+import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
+import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
+import com.zebrunner.carina.webdriver.listener.EventFiringSeleniumCommandExecutor;
+
+import io.appium.java_client.safari.SafariDriver;
 
 public class DesktopFactory extends AbstractFactory {
     
@@ -66,17 +72,16 @@ public class DesktopFactory extends AbstractFactory {
             capabilities.merge(staticCapabilities);
         }
 
-        if (Browser.SAFARI.browserName().equalsIgnoreCase(capabilities.getBrowserName()) &&
-                "false".equalsIgnoreCase(Configuration.get(Parameter.W3C))) {
-            capabilities = removeAppiumPrefix(capabilities);
-        }
-
-        LOGGER.debug("capabilities: {}", capabilities);
+        LOGGER.debug("Capabilities: {}", capabilities);
 
         try {
-            EventFiringSeleniumCommandExecutor ce = new EventFiringSeleniumCommandExecutor(new URL(seleniumHost));
-            driver = new RemoteWebDriver(ce, capabilities);
-
+            if (Browser.SAFARI.browserName().equalsIgnoreCase(capabilities.getBrowserName())) {
+                EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
+                driver = new SafariDriver(ce, capabilities);
+            } else {
+                EventFiringSeleniumCommandExecutor ce = new EventFiringSeleniumCommandExecutor(new URL(seleniumHost));
+                driver = new RemoteWebDriver(ce, capabilities);
+            }
         } catch (MalformedURLException e) {
             throw new UncheckedIOException("Malformed selenium URL!", e);
         }
@@ -87,20 +92,22 @@ public class DesktopFactory extends AbstractFactory {
     @SuppressWarnings("deprecation")
     public MutableCapabilities getCapabilities(String name) {
         String browser = Configuration.getBrowser();
-        
+        AbstractCapabilities<?> capabilities = null;
         if (Browser.FIREFOX.browserName().equalsIgnoreCase(browser)) {
-            return new FirefoxCapabilities().getCapability(name);
+            capabilities = new FirefoxCapabilities();
         } else if (Browser.SAFARI.browserName().equalsIgnoreCase(browser)) {
-            return new SafariCapabilities().getCapability(name);
+            capabilities = new SafariCapabilities();
         } else if (Browser.CHROME.browserName().equalsIgnoreCase(browser)) {
-            return new ChromeCapabilities().getCapability(name);
+            capabilities = new ChromeCapabilities();
         } else if (Browser.OPERA.browserName().equalsIgnoreCase(browser)) {
-            return new OperaCapabilities().getCapability(name);
-        } else if (Browser.EDGE.browserName().equalsIgnoreCase(browser) || "edge".equalsIgnoreCase(browser)) {
-            return new EdgeCapabilities().getCapability(name);
+            capabilities = new OperaCapabilities();
+        } else if (Browser.EDGE.browserName().equalsIgnoreCase(browser) ||
+                "edge".equalsIgnoreCase(browser)) {
+            capabilities = new EdgeCapabilities();
         } else {
-            throw new RuntimeException("Unsupported browser: " + browser);
+            throw new InvalidConfigurationException("Unsupported browser: " + browser);
         }
+        return capabilities.getCapability(name);
     }
 
     public static void addStaticCapability(String name, Object value) {

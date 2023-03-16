@@ -15,13 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.capability;
 
-import com.zebrunner.carina.utils.R;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import org.openqa.selenium.Capabilities;
-import org.openqa.selenium.MutableCapabilities;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +25,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+
+import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.MutableCapabilities;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
 
 /**
  * Created by yauhenipatotski on 10/26/15.
@@ -57,8 +58,7 @@ public class CapabilitiesLoader {
      * {@code capabilities.<name>=<value> will be attached to each WebDriver capabilities
      * <name>=<value> will override appropriate configuration parameter by new <value>}
      *
-     * @param fileName
-     *            String path to the properties file with custom capabilities and properties
+     * @param fileName path to the properties file with custom capabilities and properties
      * @param currentTestOnly boolean
      */
     public void loadCapabilities(String fileName, boolean currentTestOnly) {
@@ -105,33 +105,11 @@ public class CapabilitiesLoader {
      * @throws RuntimeException     if an error occurred while loading capabilities from a file
      */
     public MutableCapabilities getCapabilities(String fileName) {
-        MutableCapabilities capabilities = new MutableCapabilities();
-
-        LOGGER.info("Generating capabilities from {}", fileName);
+        MutableCapabilities options = new MutableCapabilities();
+        LOGGER.info("Generating capabilities from '{}'", fileName);
         Properties props = loadProperties(fileName);
-        final String prefix = SpecialKeywords.CAPABILITIES + ".";
-
-        @SuppressWarnings({ "rawtypes", "unchecked" })
-        Map<String, String> capabilitiesMap = new HashMap(props);
-        for (Map.Entry<String, String> entry : capabilitiesMap.entrySet()) {
-            if (entry.getKey().toLowerCase().startsWith(prefix)) {
-                String value = entry.getValue();
-                if (!value.isEmpty()) {
-                    String cap = entry.getKey().replaceAll(prefix, "");
-                    if ("false".equalsIgnoreCase(value)) {
-                        LOGGER.debug("Set capabilities value as boolean: false");
-                        capabilities.setCapability(cap, false);
-                    } else if ("true".equalsIgnoreCase(value)) {
-                        LOGGER.debug("Set capabilities value as boolean: true");
-                        capabilities.setCapability(cap, true);
-                    } else {
-                        LOGGER.debug("Set capabilities value as string: {}", value);
-                        capabilities.setCapability(cap, value);
-                    }
-                }
-            }
-        }
-        return capabilities;
+        AbstractCapabilities.addPropertiesCapabilities(options, props);
+        return options;
     }
 
     private Properties loadProperties(String fileName) {
