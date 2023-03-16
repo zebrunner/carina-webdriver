@@ -38,8 +38,7 @@ import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
 
-import io.appium.java_client.remote.options.SupportsLanguageOption;
-import io.appium.java_client.remote.options.SupportsLocaleOption;
+import io.appium.java_client.remote.MobileCapabilityType;
 
 public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     // TODO: [VD] reorganize in the same way Firefox profiles args/options if any and review other browsers
@@ -49,7 +48,10 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     private static final Pattern CAPABILITY_WITH_TYPE_PATTERN = Pattern.compile("^(?<name>.+)(?<type>\\[.+\\])$");
 
     /**
-     * Generate Capabilities according to configuration file
+     * Get capabilities from the configuration ({@link R#CONFIG}).
+     * Additional capabilities can also be added (depends on implementation).
+     *
+     * @return see {@link T}
      */
     public abstract T getCapability(String testName);
 
@@ -99,7 +101,7 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
 
             // TODO add support of any nesting
             if (names.isEmpty()) {
-                // should never happens
+                // should never happen
                 throw new RuntimeException("Something went wrong when try to create capabilities from configuration.");
             } else if (names.size() == 1) {
                 options.setCapability(names.get(0), entry.getValue());
@@ -210,31 +212,28 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
          * Locale to set for iOS (XCUITest driver only) and Android.
          * fr_CA format for iOS. CA format (country name abbreviation) for Android
          */
-
         // parse locale param as it has language and country by default like en_US
         String localeValue = Configuration.get(Parameter.LOCALE);
         LOGGER.debug("Default locale value is : {}", localeValue);
         String[] values = localeValue.split("_");
         if (values.length == 1) {
             // only locale is present!
-            caps.setCapability(SupportsLocaleOption.LOCALE_OPTION, localeValue);
-
+            caps.setCapability(MobileCapabilityType.LOCALE, localeValue);
             String langValue = Configuration.get(Parameter.LANGUAGE);
             if (!langValue.isEmpty()) {
                 LOGGER.debug("Default language value is : {}", langValue);
                 // provide extra capability language only if it exists among config parameters...
-                caps.setCapability(SupportsLanguageOption.LANGUAGE_OPTION, langValue);
+                caps.setCapability(MobileCapabilityType.LANGUAGE, langValue);
             }
-
         } else if (values.length == 2) {
-            if (Configuration.getPlatform(caps).equalsIgnoreCase(SpecialKeywords.ANDROID)) {
+            if (Configuration.getPlatform().equalsIgnoreCase(SpecialKeywords.ANDROID)) {
                 LOGGER.debug("Put language and locale to android capabilities. language: {}; locale: {}", values[0], values[1]);
-                caps.setCapability(SupportsLanguageOption.LANGUAGE_OPTION, values[0]);
-                caps.setCapability(SupportsLocaleOption.LOCALE_OPTION, values[1]);
+                caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
+                caps.setCapability(MobileCapabilityType.LOCALE, values[1]);
             } else if (Configuration.getPlatform().equalsIgnoreCase(SpecialKeywords.IOS)) {
                 LOGGER.debug("Put language and locale to iOS capabilities. language: {}; locale: {}", values[0], localeValue);
-                caps.setCapability(SupportsLanguageOption.LANGUAGE_OPTION, values[0]);
-                caps.setCapability(SupportsLocaleOption.LOCALE_OPTION, localeValue);
+                caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
+                caps.setCapability(MobileCapabilityType.LOCALE, localeValue);
             }
         } else {
             LOGGER.error("Undefined locale provided (ignoring for mobile capabilitites): {}", localeValue);
