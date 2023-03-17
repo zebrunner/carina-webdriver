@@ -1267,7 +1267,7 @@ public class DriverHelper {
 
     private String getUrl() {
         String url = "";
-        if (Configuration.getEnvArg(Parameter.URL.getKey()).isEmpty()) {
+        if (Configuration.isNull(Parameter.ENV) || Configuration.getEnvArg(Parameter.URL.getKey()).isEmpty()) {
             url = Configuration.get(Parameter.URL);
         } else {
             url = Configuration.getEnvArg(Parameter.URL.getKey());
