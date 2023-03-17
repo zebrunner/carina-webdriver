@@ -46,10 +46,7 @@ import com.zebrunner.carina.webdriver.core.capability.impl.desktop.FirefoxCapabi
 import com.zebrunner.carina.webdriver.core.capability.impl.desktop.OperaCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.desktop.SafariCapabilities;
 import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
-import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 import com.zebrunner.carina.webdriver.listener.EventFiringSeleniumCommandExecutor;
-
-import io.appium.java_client.safari.SafariDriver;
 
 public class DesktopFactory extends AbstractFactory {
     
@@ -75,13 +72,8 @@ public class DesktopFactory extends AbstractFactory {
         LOGGER.debug("Capabilities: {}", capabilities);
 
         try {
-            if (Browser.SAFARI.browserName().equalsIgnoreCase(capabilities.getBrowserName())) {
-                EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
-                driver = new SafariDriver(ce, capabilities);
-            } else {
-                EventFiringSeleniumCommandExecutor ce = new EventFiringSeleniumCommandExecutor(new URL(seleniumHost));
-                driver = new RemoteWebDriver(ce, capabilities);
-            }
+            EventFiringSeleniumCommandExecutor ce = new EventFiringSeleniumCommandExecutor(new URL(seleniumHost));
+            driver = new RemoteWebDriver(ce, capabilities);
         } catch (MalformedURLException e) {
             throw new UncheckedIOException("Malformed selenium URL!", e);
         }

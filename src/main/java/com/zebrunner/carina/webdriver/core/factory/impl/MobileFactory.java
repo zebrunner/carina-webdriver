@@ -30,14 +30,12 @@ import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.Browser;
 import org.openqa.selenium.remote.CapabilityType;
-import org.openqa.selenium.remote.RemoteWebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.agent.core.registrar.Artifact;
 import com.zebrunner.carina.commons.artifact.IArtifactManager;
 import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
@@ -95,24 +93,6 @@ public class MobileFactory extends AbstractFactory {
             seleniumHost = Configuration.getSeleniumUrl();
         }
         LOGGER.debug("Selenium URL: {}", seleniumHost);
-        String mobilePlatformName = Configuration.getPlatform();
-
-        // TODO: refactor to be able to remove SpecialKeywords.CUSTOM property completely
-
-        // use comparison for custom_capabilities here to localize as possible usage of CUSTOM attribute
-        String customCapabilities = Configuration.get(Parameter.CUSTOM_CAPABILITIES);
-        if (!customCapabilities.isEmpty()
-                && (customCapabilities.toLowerCase().contains("localhost") || customCapabilities.toLowerCase().contains("browserstack") || customCapabilities.toLowerCase().contains("saucelabs"))) {
-            mobilePlatformName = SpecialKeywords.CUSTOM;
-        }
-        
-        if (seleniumHost.contains("hub.browserstack.com") ||
-                seleniumHost.contains("hub-cloud.browserstack.com")) {
-            //#1786 mobile drivers on browserstack should be started via CUSTOM - RemoteWebDriver driver
-            mobilePlatformName = SpecialKeywords.CUSTOM;
-        }
-
-        LOGGER.debug("selenium: {}", seleniumHost);
 
         WebDriver driver = null;
         // if inside capabilities only singly "udid" capability then generate default one and append udid
@@ -125,15 +105,6 @@ public class MobileFactory extends AbstractFactory {
             LOGGER.debug("Appended udid to capabilities: {}", capabilities);
         }
 
-        if (capabilities.getBrowserName() != null &&
-                (mobilePlatformName.equalsIgnoreCase(SpecialKeywords.ANDROID) ||
-                        mobilePlatformName.equalsIgnoreCase(SpecialKeywords.IOS)) &&
-                (seleniumHost.contains("hub.browserstack.com") ||
-                        seleniumHost.contains("hub-cloud.browserstack.com"))) {
-            // when browser tests browserstack is not understand android platformName
-            capabilities.setCapability("platformName", "ANY");
-        }
-
         Object mobileAppCapability = capabilities.getCapability(MobileCapabilityType.APP);
         if (mobileAppCapability != null) {
             capabilities.setCapability(MobileCapabilityType.APP, getCachedAppLink(String.valueOf(mobileAppCapability)));
@@ -143,6 +114,7 @@ public class MobileFactory extends AbstractFactory {
 
         try {
             String browserName = CapabilityHelpers.getCapability(capabilities, CapabilityType.BROWSER_NAME, String.class);
+            String mobilePlatformName = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
             EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
 
             if (SpecialKeywords.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
@@ -156,9 +128,6 @@ public class MobileFactory extends AbstractFactory {
                 } else {
                     throw new InvalidConfigurationException("Unsupported browser for IOS: " + browserName);
                 }
-            } else if (mobilePlatformName.equalsIgnoreCase(SpecialKeywords.CUSTOM)) {
-                // that's a case for custom mobile capabilities like browserstack or saucelabs
-                driver =new RemoteWebDriver(new URL(seleniumHost), capabilities);
             } else {
                 throw new InvalidConfigurationException("Unsupported mobile platform: " + mobilePlatformName);
             }
