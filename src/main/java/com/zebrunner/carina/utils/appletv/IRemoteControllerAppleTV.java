@@ -15,13 +15,14 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.appletv;
 
-import com.zebrunner.carina.webdriver.IDriverPool;
+import java.lang.invoke.MethodHandles;
+import java.util.Map;
+
 import org.openqa.selenium.JavascriptExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
-import java.util.Map;
+import com.zebrunner.carina.webdriver.IDriverPool;
 
 public interface IRemoteControllerAppleTV extends IDriverPool {
 	static final Logger RC_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());

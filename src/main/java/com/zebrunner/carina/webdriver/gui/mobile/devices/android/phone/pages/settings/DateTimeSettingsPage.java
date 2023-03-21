@@ -15,18 +15,19 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.settings;
 
-import com.zebrunner.carina.utils.android.IAndroidUtils;
-import com.zebrunner.carina.webdriver.DriverHelper;
-import com.zebrunner.carina.webdriver.IDriverPool;
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
+import java.lang.invoke.MethodHandles;
+
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.FindBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
+import com.zebrunner.carina.utils.android.IAndroidUtils;
+import com.zebrunner.carina.webdriver.DriverHelper;
+import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
 
 public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroidUtils {
 

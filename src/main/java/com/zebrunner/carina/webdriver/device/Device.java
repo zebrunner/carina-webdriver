@@ -15,27 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.device;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.utils.R;
-import com.zebrunner.carina.utils.android.recorder.utils.AdbExecutor;
-import com.zebrunner.carina.utils.android.recorder.utils.CmdLine;
-import com.zebrunner.carina.utils.common.CommonUtils;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.factory.DeviceType.Type;
-import com.zebrunner.carina.utils.report.ReportContext;
-import com.zebrunner.carina.webdriver.IDriverPool;
-import io.appium.java_client.internal.CapabilityHelpers;
-import io.appium.java_client.remote.MobileCapabilityType;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.openqa.selenium.Capabilities;
-import org.openqa.selenium.MutableCapabilities;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.remote.CapabilityType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,6 +25,29 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.MutableCapabilities;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.CapabilityType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.android.recorder.utils.AdbExecutor;
+import com.zebrunner.carina.utils.android.recorder.utils.CmdLine;
+import com.zebrunner.carina.utils.common.CommonUtils;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.factory.DeviceType.Type;
+import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.webdriver.IDriverPool;
+
+import io.appium.java_client.internal.CapabilityHelpers;
+import io.appium.java_client.remote.MobileCapabilityType;
 
 public class Device implements IDriverPool {
     // TODO Review grid capabilities functionality (for example, slotCapabilities)

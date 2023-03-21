@@ -1,6 +1,12 @@
 package com.zebrunner.carina.utils.ios;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import com.zebrunner.carina.utils.mobile.IMobileUtils;
+
 import io.appium.java_client.HidesKeyboardWithKeyName;
 import io.appium.java_client.battery.HasBattery;
 import io.appium.java_client.ios.HasIOSClipboard;
@@ -8,11 +14,6 @@ import io.appium.java_client.ios.HasIOSSettings;
 import io.appium.java_client.ios.IOSBatteryInfo;
 import io.appium.java_client.ios.PerformsTouchID;
 import io.appium.java_client.ios.ShakesDevice;
-
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 /**
  * Contains utility methods for working with ios

@@ -15,25 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver;
 
-import com.zebrunner.agent.core.registrar.Label;
-import com.zebrunner.carina.proxy.browserup.ProxyPool;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.utils.R;
-import com.zebrunner.carina.utils.common.CommonUtils;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.exception.DriverPoolException;
-import com.zebrunner.carina.webdriver.core.factory.DriverFactory;
-import com.zebrunner.carina.webdriver.device.Device;
-import org.openqa.selenium.MutableCapabilities;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebDriverException;
-import org.openqa.selenium.remote.RemoteWebDriver;
-import org.openqa.selenium.remote.SessionId;
-import org.openqa.selenium.support.decorators.Decorated;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -45,6 +26,26 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
+import org.openqa.selenium.MutableCapabilities;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.SessionId;
+import org.openqa.selenium.support.decorators.Decorated;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.zebrunner.agent.core.registrar.Label;
+import com.zebrunner.carina.proxy.browserup.ProxyPool;
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.common.CommonUtils;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.exception.DriverPoolException;
+import com.zebrunner.carina.webdriver.core.factory.DriverFactory;
+import com.zebrunner.carina.webdriver.device.Device;
 
 public interface IDriverPool {
 

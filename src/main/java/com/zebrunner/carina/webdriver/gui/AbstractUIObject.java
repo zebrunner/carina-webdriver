@@ -15,6 +15,14 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.gui;
 
+import org.openqa.selenium.By;
+import org.openqa.selenium.SearchContext;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
+import org.testng.Assert;
+
 import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.messager.Messager;
@@ -23,13 +31,6 @@ import com.zebrunner.carina.webdriver.decorator.ElementLoadingStrategy;
 import com.zebrunner.carina.webdriver.decorator.ExtendedFieldDecorator;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocatorFactory;
-import org.openqa.selenium.By;
-import org.openqa.selenium.SearchContext;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.FindBy;
-import org.openqa.selenium.support.PageFactory;
-import org.testng.Assert;
 
 public abstract class AbstractUIObject extends DriverHelper {
 

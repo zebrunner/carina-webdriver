@@ -15,14 +15,14 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.locator;
 
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
-import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
-import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter;
-import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
-import com.zebrunner.carina.webdriver.locator.converter.caseinsensitive.CaseInsensitiveConverter;
-import io.appium.java_client.pagefactory.bys.ContentMappedBy;
-import io.appium.java_client.pagefactory.bys.ContentType;
+import static io.appium.java_client.pagefactory.utils.WebDriverUnpackUtility.getCurrentContentType;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.SearchContext;
@@ -33,13 +33,15 @@ import org.openqa.selenium.support.pagefactory.ElementLocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
+import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
+import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter;
+import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
+import com.zebrunner.carina.webdriver.locator.converter.caseinsensitive.CaseInsensitiveConverter;
 
-import static io.appium.java_client.pagefactory.utils.WebDriverUnpackUtility.getCurrentContentType;
+import io.appium.java_client.pagefactory.bys.ContentMappedBy;
+import io.appium.java_client.pagefactory.bys.ContentType;
 
 /**
  * The default element locator, which will lazily locate an element or an

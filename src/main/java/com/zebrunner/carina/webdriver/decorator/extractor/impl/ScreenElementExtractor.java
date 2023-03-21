@@ -15,15 +15,16 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.decorator.extractor.impl;
 
-import com.zebrunner.carina.webdriver.IDriverPool;
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.decorator.extractor.AbstractElementExtractor;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.decorator.extractor.AbstractElementExtractor;
 
 public class ScreenElementExtractor extends AbstractElementExtractor implements IDriverPool {
 

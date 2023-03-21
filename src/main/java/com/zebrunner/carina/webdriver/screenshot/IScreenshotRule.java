@@ -15,17 +15,18 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.screenshot;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.report.ReportContext;
-import com.zebrunner.carina.webdriver.ScreenshotType;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.openqa.selenium.Beta;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.openqa.selenium.Beta;
+
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.webdriver.ScreenshotType;
 
 public interface IScreenshotRule {
 

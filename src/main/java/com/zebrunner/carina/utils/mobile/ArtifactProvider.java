@@ -1,16 +1,5 @@
 package com.zebrunner.carina.utils.mobile;
 
-import com.zebrunner.carina.commons.artifact.ArtifactManagerFactory;
-import com.zebrunner.carina.commons.artifact.IArtifactManager;
-import com.zebrunner.carina.commons.artifact.IArtifactManagerFactory;
-import org.apache.commons.lang3.reflect.ConstructorUtils;
-import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileNotFoundException;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
@@ -23,6 +12,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import org.apache.commons.lang3.reflect.ConstructorUtils;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.zebrunner.carina.commons.artifact.ArtifactManagerFactory;
+import com.zebrunner.carina.commons.artifact.IArtifactManager;
+import com.zebrunner.carina.commons.artifact.IArtifactManagerFactory;
 
 public final class ArtifactProvider implements IArtifactManager {
     

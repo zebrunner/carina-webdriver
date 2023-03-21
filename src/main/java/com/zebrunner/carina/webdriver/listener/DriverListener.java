@@ -15,12 +15,13 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.listener;
 
-import com.zebrunner.agent.core.registrar.Artifact;
-import com.zebrunner.carina.utils.FileManager;
-import com.zebrunner.carina.utils.report.ReportContext;
-import com.zebrunner.carina.webdriver.IDriverPool;
-import com.zebrunner.carina.webdriver.Screenshot;
-import com.zebrunner.carina.webdriver.ScreenshotType;
+import java.io.File;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Objects;
+
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.WebDriver;
@@ -30,12 +31,12 @@ import org.openqa.selenium.support.events.WebDriverListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Objects;
+import com.zebrunner.agent.core.registrar.Artifact;
+import com.zebrunner.carina.utils.FileManager;
+import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.Screenshot;
+import com.zebrunner.carina.webdriver.ScreenshotType;
 
 /**
  * Default driver listener<br>

@@ -15,10 +15,10 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.android;
 
-import com.zebrunner.carina.webdriver.IDriverPool;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import com.zebrunner.carina.webdriver.IDriverPool;
 
 public class AppManager {
 

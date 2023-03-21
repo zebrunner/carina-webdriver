@@ -15,16 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.factory;
 
-import com.zebrunner.carina.utils.exception.RequiredCtorNotFoundException;
-import com.zebrunner.carina.utils.factory.DeviceType.Type;
-import com.zebrunner.carina.webdriver.IDriverPool;
-import com.zebrunner.carina.webdriver.device.Device;
-import com.zebrunner.carina.webdriver.gui.AbstractPage;
-import org.openqa.selenium.WebDriver;
-import org.reflections.Reflections;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -33,6 +23,17 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import org.openqa.selenium.WebDriver;
+import org.reflections.Reflections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.zebrunner.carina.utils.exception.RequiredCtorNotFoundException;
+import com.zebrunner.carina.utils.factory.DeviceType.Type;
+import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.device.Device;
+import com.zebrunner.carina.webdriver.gui.AbstractPage;
 
 public interface ICustomTypePageFactory extends IDriverPool {
 

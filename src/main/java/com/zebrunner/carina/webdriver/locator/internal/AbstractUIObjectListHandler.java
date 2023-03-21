@@ -15,10 +15,16 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.locator.internal;
 
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
-import com.zebrunner.carina.webdriver.locator.LocatorType;
-import com.zebrunner.carina.webdriver.locator.LocatorUtils;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -31,15 +37,10 @@ import org.openqa.selenium.support.pagefactory.ElementLocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
+import com.zebrunner.carina.webdriver.locator.LocatorType;
+import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 
 public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements InvocationHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());

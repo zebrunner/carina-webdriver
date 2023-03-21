@@ -15,15 +15,16 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.tzchanger;
 
-import com.zebrunner.carina.webdriver.DriverHelper;
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
+import java.lang.invoke.MethodHandles;
+
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.FindBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
+import com.zebrunner.carina.webdriver.DriverHelper;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
 
 public class TZChangerPage extends MobileAbstractPage {
 

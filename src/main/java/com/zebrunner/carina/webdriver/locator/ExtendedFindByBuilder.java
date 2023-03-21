@@ -15,13 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.locator;
 
-import com.sun.jersey.core.util.Base64;
-import io.appium.java_client.AppiumBy;
-import org.openqa.selenium.By;
-import org.openqa.selenium.support.AbstractFindByBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -31,6 +24,15 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.support.AbstractFindByBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.sun.jersey.core.util.Base64;
+
+import io.appium.java_client.AppiumBy;
 
 public abstract class ExtendedFindByBuilder extends AbstractFindByBuilder {
     

@@ -15,6 +15,13 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.fakegps;
 
+import java.lang.invoke.MethodHandles;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.FindBy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.android.IAndroidUtils;
@@ -22,13 +29,8 @@ import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
-import io.appium.java_client.android.nativekey.AndroidKey;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.support.FindBy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
+import io.appium.java_client.android.nativekey.AndroidKey;
 
 
 /**

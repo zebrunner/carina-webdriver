@@ -15,11 +15,11 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.listener;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.utils.R;
-import com.zebrunner.carina.utils.common.CommonUtils;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.net.URL;
+import java.time.Duration;
+
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.remote.Command;
 import org.openqa.selenium.remote.DriverCommand;
@@ -29,10 +29,11 @@ import org.openqa.selenium.remote.http.ClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.net.URL;
-import java.time.Duration;
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.common.CommonUtils;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
 
 /**
  * EventFiringSeleniumCommandExecutor triggers event listener before/after execution of the command.

@@ -15,13 +15,19 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.listener;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Throwables;
-import com.zebrunner.carina.utils.R;
-import io.appium.java_client.MobileCommand;
-import io.appium.java_client.remote.AppiumCommandExecutor;
-import io.appium.java_client.remote.AppiumProtocolHandshake;
-import io.appium.java_client.remote.AppiumW3CHttpCommandCodec;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Optional.ofNullable;
+import static org.openqa.selenium.remote.DriverCommand.NEW_SESSION;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.ConnectException;
+import java.net.URL;
+import java.time.Duration;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.openqa.selenium.SessionNotCreatedException;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.internal.Require;
@@ -42,18 +48,14 @@ import org.openqa.selenium.remote.http.HttpRequest;
 import org.openqa.selenium.remote.http.HttpResponse;
 import org.openqa.selenium.remote.service.DriverService;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.ConnectException;
-import java.net.URL;
-import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
+import com.zebrunner.carina.utils.R;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Optional.ofNullable;
-import static org.openqa.selenium.remote.DriverCommand.NEW_SESSION;
+import io.appium.java_client.MobileCommand;
+import io.appium.java_client.remote.AppiumCommandExecutor;
+import io.appium.java_client.remote.AppiumProtocolHandshake;
+import io.appium.java_client.remote.AppiumW3CHttpCommandCodec;
 
 /**
  * EventFiringAppiumCommandExecutor triggers event listener before/after execution of the command.

@@ -15,6 +15,36 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.mobile;
 
+import static org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.time.Duration;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.DeviceRotation;
+import org.openqa.selenium.Dimension;
+import org.openqa.selenium.HasCapabilities;
+import org.openqa.selenium.Point;
+import org.openqa.selenium.ScreenOrientation;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.html5.Location;
+import org.openqa.selenium.interactions.Interactive;
+import org.openqa.selenium.interactions.Pause;
+import org.openqa.selenium.interactions.PointerInput;
+import org.openqa.selenium.interactions.Sequence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testng.Assert;
+
 import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.android.AndroidService;
@@ -25,6 +55,7 @@ import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.webdriver.DriverHelper;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+
 import io.appium.java_client.HasAppStrings;
 import io.appium.java_client.HasDeviceTime;
 import io.appium.java_client.HasOnScreenKeyboard;
@@ -49,34 +80,6 @@ import io.appium.java_client.remote.SupportsRotation;
 import io.appium.java_client.screenrecording.BaseStartScreenRecordingOptions;
 import io.appium.java_client.screenrecording.BaseStopScreenRecordingOptions;
 import io.appium.java_client.screenrecording.CanRecordScreen;
-import org.openqa.selenium.Capabilities;
-import org.openqa.selenium.DeviceRotation;
-import org.openqa.selenium.Dimension;
-import org.openqa.selenium.HasCapabilities;
-import org.openqa.selenium.Point;
-import org.openqa.selenium.ScreenOrientation;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebDriverException;
-import org.openqa.selenium.html5.Location;
-import org.openqa.selenium.interactions.Interactive;
-import org.openqa.selenium.interactions.Pause;
-import org.openqa.selenium.interactions.PointerInput;
-import org.openqa.selenium.interactions.Sequence;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testng.Assert;
-
-import javax.annotation.Nullable;
-import java.io.File;
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.time.Duration;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.openqa.selenium.interactions.PointerInput.MouseButton.LEFT;
 
 /**
  * Contains utility methods for working with android and ios

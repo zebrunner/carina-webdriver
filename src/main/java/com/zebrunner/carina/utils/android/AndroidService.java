@@ -15,6 +15,22 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.android;
 
+import java.lang.invoke.MethodHandles;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.decorators.Decorated;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.zebrunner.carina.utils.android.DeviceTimeZone.TimeFormat;
 import com.zebrunner.carina.utils.android.recorder.utils.CmdLine;
 import com.zebrunner.carina.utils.common.CommonUtils;
@@ -28,22 +44,9 @@ import com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.fak
 import com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.notifications.NotificationPage;
 import com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.settings.DateTimeSettingsPage;
 import com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.tzchanger.TZChangerPage;
+
 import io.appium.java_client.android.Activity;
 import io.appium.java_client.android.AndroidDriver;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.support.decorators.Decorated;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import java.lang.invoke.MethodHandles;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class AndroidService implements IDriverPool, IAndroidUtils {
 

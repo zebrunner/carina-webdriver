@@ -15,8 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.factory;
 
-import com.zebrunner.carina.utils.R;
-import io.appium.java_client.internal.CapabilityHelpers;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -25,6 +23,10 @@ import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.events.EventFiringDecorator;
 import org.openqa.selenium.support.events.WebDriverListener;
+
+import com.zebrunner.carina.utils.R;
+
+import io.appium.java_client.internal.CapabilityHelpers;
 
 /**
  * Base implementation of WebDriver factory.

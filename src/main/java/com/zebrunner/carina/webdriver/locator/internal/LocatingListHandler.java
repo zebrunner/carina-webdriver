@@ -15,10 +15,15 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.locator.internal;
 
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
-import com.zebrunner.carina.webdriver.locator.LocatorType;
-import com.zebrunner.carina.webdriver.locator.LocatorUtils;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -28,14 +33,10 @@ import org.openqa.selenium.WrapsElement;
 import org.openqa.selenium.interactions.Locatable;
 import org.openqa.selenium.support.pagefactory.ElementLocator;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
+import com.zebrunner.carina.webdriver.locator.LocatorType;
+import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 
 public class LocatingListHandler implements InvocationHandler {
     private final ElementLocator locator;

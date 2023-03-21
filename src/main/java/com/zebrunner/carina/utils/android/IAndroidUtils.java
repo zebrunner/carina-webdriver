@@ -15,6 +15,37 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.android;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandles;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.remote.DriverCommand;
+import org.openqa.selenium.remote.RemoteWebElement;
+import org.openqa.selenium.remote.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableMap;
 import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.android.Permissions.Permission;
@@ -28,6 +59,7 @@ import com.zebrunner.carina.utils.mobile.IMobileUtils;
 import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.ExecutesMethod;
 import io.appium.java_client.android.Activity;
@@ -55,36 +87,6 @@ import io.appium.java_client.android.nativekey.KeyEventFlag;
 import io.appium.java_client.android.nativekey.PressesKey;
 import io.appium.java_client.battery.HasBattery;
 import io.appium.java_client.clipboard.ClipboardContentType;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebDriverException;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.remote.DriverCommand;
-import org.openqa.selenium.remote.RemoteWebElement;
-import org.openqa.selenium.remote.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.lang.invoke.MethodHandles;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Contains utility methods for working with android devices

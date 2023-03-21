@@ -15,7 +15,9 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.decorator.extractor;
 
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import java.lang.invoke.MethodHandles;
+import java.util.List;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebDriver;
@@ -23,8 +25,7 @@ import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
-import java.util.List;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 
 public abstract class AbstractElementExtractor {
 

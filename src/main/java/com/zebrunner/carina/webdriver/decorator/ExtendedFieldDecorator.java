@@ -15,10 +15,14 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.decorator;
 
-import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
-import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
-import com.zebrunner.carina.webdriver.locator.internal.AbstractUIObjectListHandler;
-import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
+import java.util.List;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -34,13 +38,10 @@ import org.openqa.selenium.support.pagefactory.internal.LocatingElementHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Proxy;
-import java.lang.reflect.Type;
-import java.util.List;
+import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
+import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
+import com.zebrunner.carina.webdriver.locator.internal.AbstractUIObjectListHandler;
+import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
 
 public class ExtendedFieldDecorator implements FieldDecorator {
 

@@ -15,6 +15,16 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.notifications;
 
+import java.lang.invoke.MethodHandles;
+import java.util.List;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.FindAll;
+import org.openqa.selenium.support.FindBy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.zebrunner.carina.utils.android.AndroidService;
 import com.zebrunner.carina.utils.android.IAndroidUtils;
 import com.zebrunner.carina.utils.factory.DeviceType;
@@ -23,16 +33,8 @@ import com.zebrunner.carina.webdriver.DriverHelper;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
-import io.appium.java_client.AppiumBy;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.support.FindAll;
-import org.openqa.selenium.support.FindBy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
-import java.util.List;
+import io.appium.java_client.AppiumBy;
 
 public class NotificationPage extends MobileAbstractPage implements IAndroidUtils {
 

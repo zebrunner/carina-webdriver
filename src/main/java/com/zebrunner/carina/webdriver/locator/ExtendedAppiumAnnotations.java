@@ -1,14 +1,15 @@
 package com.zebrunner.carina.webdriver.locator;
 
-import io.appium.java_client.pagefactory.DefaultElementByBuilder;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Field;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.support.FindAll;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.FindBys;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Field;
+import io.appium.java_client.pagefactory.DefaultElementByBuilder;
 
 public class ExtendedAppiumAnnotations extends DefaultElementByBuilder {
 
