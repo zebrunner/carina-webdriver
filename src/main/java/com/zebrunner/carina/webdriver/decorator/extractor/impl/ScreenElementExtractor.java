@@ -33,7 +33,7 @@ public class ScreenElementExtractor extends AbstractElementExtractor implements 
         String elementName = String.format("Element founded by x:%d - y:%d", x, y);
         WebDriver driver = getDriver();
         List<WebElement> elements = getEndLevelElements(driver);
-        List<WebElement> result = new ArrayList<WebElement>();
+        List<WebElement> result = new ArrayList<>();
         Rectangle rect;
         for (WebElement webElement : elements) {
             try {

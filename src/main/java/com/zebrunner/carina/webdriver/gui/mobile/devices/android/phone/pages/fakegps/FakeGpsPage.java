@@ -38,6 +38,7 @@ import io.appium.java_client.android.nativekey.AndroidKey;
  */
 
 public class FakeGpsPage extends MobileAbstractPage implements IAndroidUtils {
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @FindBy(id = "com.lexa.fakegps:id/buttonStart")
@@ -150,18 +151,17 @@ public class FakeGpsPage extends MobileAbstractPage implements IAndroidUtils {
             openSettingsButton.clickIfPresent(DELAY);
 
             String currentAndroidVersion = IDriverPool.getDefaultDevice().getOsVersion();
-            LOGGER.info("currentAndroidVersion=" + currentAndroidVersion);
+            LOGGER.info("currentAndroidVersion={}", currentAndroidVersion);
             if (currentAndroidVersion.contains("7.")) {
                 swipe(allowMock7, devSettingsContainer);
                 allowMock7.clickIfPresent(MINIMAL_TIMEOUT);
                 fakeGpsPackage.clickIfPresent(DELAY);
             } else {
                 swipe(allowMock, devSettingsContainer);
-                LOGGER.info("Allow Mock config is present:" + allowMock.isElementPresent(SHORT_TIMEOUT));
+                LOGGER.info("Allow Mock config is present: {}", allowMock.isElementPresent(SHORT_TIMEOUT));
                 allowMock.clickIfPresent(MINIMAL_TIMEOUT);
                 fakeGpsPackage.clickIfPresent(DELAY / 3);
             }
-
             getDriver().navigate().back();
         }
     }
@@ -174,5 +174,4 @@ public class FakeGpsPage extends MobileAbstractPage implements IAndroidUtils {
     public boolean isOpened() {
         return isOpened(Configuration.getLong(Parameter.EXPLICIT_TIMEOUT) / 2);
     }
-
 }

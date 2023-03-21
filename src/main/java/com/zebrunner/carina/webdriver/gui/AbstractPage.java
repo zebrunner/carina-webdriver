@@ -44,17 +44,17 @@ import com.zebrunner.carina.webdriver.screenshot.ExplicitFullSizeScreenshotRule;
 
 /**
  * All page POJO objects should extend this abstract page to get extra logic.
- * 
+ *
  * @author Alex Khursevich
  */
 public abstract class AbstractPage extends AbstractUIObject implements ICustomTypePageFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private PageOpeningStrategy pageOpeningStrategy = PageOpeningStrategy.valueOf(Configuration.get(Parameter.PAGE_OPENING_STRATEGY));
-    
-	public AbstractPage(WebDriver driver) {
-		super(driver);
-	}
+
+    protected AbstractPage(WebDriver driver) {
+        super(driver);
+    }
 
     public PageOpeningStrategy getPageOpeningStrategy() {
         return pageOpeningStrategy;
@@ -88,9 +88,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
             }
 
             if (!isOpened) {
-                LOGGER.warn(String.format(
-                        "Loaded page url is as expected but page loading marker element is not visible: %s",
-                        uiLoadedMarker.getBy().toString()));
+                LOGGER.warn("Loaded page url is as expected but page loading marker element is not visible: {}", uiLoadedMarker.getBy());
             }
             return isOpened;
         default:
@@ -150,11 +148,6 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
      */
     public String savePageAsPdf(boolean scaled, String fileName) throws IOException, DocumentException {
         String pdfName = "";
-
-        // Define test screenshot root
-        // use fileName instead
-        // String test = TestNamingService.getTestName();
-
         File artifactsFolder = ReportContext.getArtifactsFolder();
 
 
@@ -209,25 +202,17 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
     public void waitForJSToLoad(long timeout) {
         // wait for jQuery to load
         JavascriptExecutor executor = (JavascriptExecutor) driver;
-        ExpectedCondition<Boolean> jQueryLoad = new ExpectedCondition<Boolean>() {
-            @Override
-            public Boolean apply(WebDriver driver) {
-                try {
-                    return ((Long) executor.executeScript("return jQuery.active") == 0);
-                } catch (Exception e) {
-                    return true;
-                }
+        ExpectedCondition<Boolean> jQueryLoad = driver -> {
+            try {
+                return ((Long) executor.executeScript("return jQuery.active") == 0);
+            } catch (Exception e) {
+                return true;
             }
         };
         // wait for Javascript to load
-        ExpectedCondition<Boolean> jsLoad = new ExpectedCondition<Boolean>() {
-            @Override
-            public Boolean apply(WebDriver driver) {
-                return executor.executeScript("return document.readyState").toString().equals("complete");
-            }
-        };
+        ExpectedCondition<Boolean> jsLoad = driver -> executor.executeScript("return document.readyState").toString().equals("complete");
         String errMsg = "JS was not loaded on page during expected time";
-        if ((Boolean) executor.executeScript("return window.jQuery != undefined")) {
+        if ((boolean) executor.executeScript("return window.jQuery != undefined")) {
             Assert.assertTrue(waitUntil(jQueryLoad, timeout) && waitUntil(jsLoad, timeout), errMsg);
         } else {
             Assert.assertTrue(waitUntil(jsLoad, timeout), errMsg);

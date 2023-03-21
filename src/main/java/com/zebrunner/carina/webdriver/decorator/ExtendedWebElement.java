@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -79,32 +80,24 @@ import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter
 import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
 
 public class ExtendedWebElement implements IWebElement {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
     private static final long EXPLICIT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT);
-
     private static final long RETRY_TIME = Configuration.getLong(Parameter.RETRY_INTERVAL);
-
+    private static final String CRYPTO_PATTERN = Configuration.get(Parameter.CRYPTO_PATTERN);
+    private final ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy.valueOf(Configuration.get(Parameter.ELEMENT_LOADING_STRATEGY));
     // we should keep both properties: driver and searchContext obligatory
     // driver is used for actions, javascripts execution etc
     // searchContext is used for searching element by default
     private WebDriver driver;
     private SearchContext searchContext;
-
     private CryptoTool cryptoTool = null;
-
-    private static String CRYPTO_PATTERN = Configuration.get(Parameter.CRYPTO_PATTERN);
-
     private WebElement element = null;
     private String name;
     private By by;
-
-    private ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy.valueOf(Configuration.get(Parameter.ELEMENT_LOADING_STRATEGY));
-
     private boolean isLocalized = false;
     private boolean isSingleElement = true;
     private boolean isRefreshSupport = true;
-
     // Converted array of objects to String for dynamic element locators
     private String formatValues = "";
 
@@ -172,24 +165,16 @@ public class ExtendedWebElement implements IWebElement {
                 this.driver = ((WrapsDriver) element).getWrappedDriver();
                 this.searchContext = this.driver;
             }
-        } catch (IllegalAccessException | ClassCastException e) {
-            e.printStackTrace();
-        } catch (Throwable thr) {
-            thr.printStackTrace();
-            LOGGER.error("Unable to get Driver, searchContext and By via reflection!", thr);
-        } finally {
-            if (this.searchContext == null) {
-                throw new RuntimeException("review stacktrace to analyze why searchContext is not populated correctly via reflection!");
-            }
+            Objects.requireNonNull(this.searchContext, "review stacktrace to analyze why searchContext is not populated correctly via reflection!");
+        } catch (Exception e) {
+            throw new RuntimeException("Error when create instance of ExtendedWebElement.", e);
         }
     }
-
 
     public WebElement getElement() {
         if (this.element == null) {
             this.element = this.findElement();
         }
-        
         return this.element;
     }
 
@@ -224,27 +209,25 @@ public class ExtendedWebElement implements IWebElement {
     public boolean isPresent() {
     	return isPresent(EXPLICIT_TIMEOUT);
     }
-    
+
     /**
      * Check that element present or visible within specified timeout.
      *
-     * @param timeout - timeout.
+     * @param timeout timeout.
      * @return element existence status.
      */
     public boolean isPresent(long timeout) {
-    	return isPresent(getBy(), timeout);
+        return isPresent(getBy(), timeout);
     }
-    
-	/**
-	 * Check that element with By present within specified timeout.
-	 *
-	 * @param by
-	 *            - By.
-	 * @param timeout
-	 *            - timeout.
-	 * @return element existence status.
-	 */
-	public boolean isPresent(By by, long timeout) {
+
+    /**
+     * Check that element with By present within specified timeout.
+     *
+     * @param by      By.
+     * @param timeout timeout.
+     * @return element existence status.
+     */
+    public boolean isPresent(By by, long timeout) {
         boolean res = false;
         try {
             res = waitUntil(getDefaultCondition(by), timeout);
@@ -253,14 +236,13 @@ public class ExtendedWebElement implements IWebElement {
             LOGGER.debug("waitUntil: StaleElementReferenceException", e);
         }
         return res;
-	}
-	
-	
+    }
+
     /**
      * Wait until any condition happens.
      *
-     * @param condition - ExpectedCondition.
-     * @param timeout - timeout.
+     * @param condition ExpectedCondition.
+     * @param timeout   timeout.
      * @return true if condition happen.
      */
     private boolean waitUntil(ExpectedCondition<?> condition, long timeout) {
@@ -289,7 +271,7 @@ public class ExtendedWebElement implements IWebElement {
         // removed ".ignoring(NoSuchElementException.class);" as NotFoundException ignored by waiter itself
         // added explicit .withTimeout(Duration.ofSeconds(timeout));
 
-        LOGGER.debug("waitUntil: starting... timeout: " + timeout);
+        LOGGER.debug("waitUntil: starting... timeout: {}", timeout);
         boolean res = false;
         try {
             wait.until(condition);
@@ -297,10 +279,9 @@ public class ExtendedWebElement implements IWebElement {
         } catch (TimeoutException e) {
             LOGGER.debug("waitUntil: org.openqa.selenium.TimeoutException", e);
         } finally {
-            LOGGER.debug("waiter is finished. conditions: " + condition);
+            LOGGER.debug("waiter is finished. conditions: {}", condition);
         }
         return res;
-        
     }
 
     private WebElement findElement() {
@@ -310,10 +291,9 @@ public class ExtendedWebElement implements IWebElement {
         }
         if (elements.size() > 1) {
             // TODO: think about moving into the debug or info level
-            LOGGER.warn(String.format("returned first but found %d elements by xpath: %s", elements.size(), getBy()));
+            LOGGER.warn("returned first but found {} elements by xpath: {}", elements.size(), getBy());
         }
         this.element = elements.get(0);
-
         return element;
     }
     
@@ -377,7 +357,6 @@ public class ExtendedWebElement implements IWebElement {
         return name;
     }
 
-
     /**
      * Get element text.
      *
@@ -430,18 +409,17 @@ public class ExtendedWebElement implements IWebElement {
     public void click(long timeout) {
         click(timeout, getDefaultCondition(getBy()));
     }
-    
-	/**
-	 * Click on element.
-	 *
-	 * @param timeout to wait
-	 * @param waitCondition
-	 *            to check element conditions before action
-	 */
+
+    /**
+     * Click on element.
+     *
+     * @param timeout       to wait
+     * @param waitCondition to check element conditions before action
+     */
     public void click(long timeout, ExpectedCondition<?> waitCondition) {
         doAction(ACTION_NAME.CLICK, timeout, waitCondition);
     }
-    
+
     /**
      * Click on element by javascript.
      */
@@ -457,13 +435,12 @@ public class ExtendedWebElement implements IWebElement {
     public void clickByJs(long timeout) {
         clickByJs(timeout, getDefaultCondition(getBy()));
     }
-    
+
     /**
      * Click on element by javascript.
      *
-     * @param timeout to wait
-     * @param waitCondition
-     *            to check element conditions before action
+     * @param timeout       to wait
+     * @param waitCondition to check element conditions before action
      */
     public void clickByJs(long timeout, ExpectedCondition<?> waitCondition) {
         doAction(ACTION_NAME.CLICK_BY_JS, timeout, waitCondition);
@@ -484,13 +461,12 @@ public class ExtendedWebElement implements IWebElement {
     public void clickByActions(long timeout) {
         clickByActions(timeout, getDefaultCondition(getBy()));
     }
-    
+
     /**
      * Click on element by Actions.
      *
-     * @param timeout to wait
-     * @param waitCondition
-     *            to check element conditions before action
+     * @param timeout       to wait
+     * @param waitCondition to check element conditions before action
      */
     public void clickByActions(long timeout, ExpectedCondition<?> waitCondition) {
         doAction(ACTION_NAME.CLICK_BY_ACTIONS, timeout, waitCondition);
@@ -538,18 +514,16 @@ public class ExtendedWebElement implements IWebElement {
     public void rightClick(long timeout) {
         rightClick(timeout, getDefaultCondition(getBy()));
     }
-    
+
     /**
      * Mouse RightClick on element.
      *
-     * @param timeout to wait
-	 * @param waitCondition
-	 *            to check element conditions before action
+     * @param timeout       to wait
+     * @param waitCondition to check element conditions before action
      */
     public void rightClick(long timeout, ExpectedCondition<?> waitCondition) {
     	doAction(ACTION_NAME.RIGHT_CLICK, timeout, waitCondition);
     }
-    
 
     /**
      * MouseOver (Hover) an element.
@@ -579,7 +553,7 @@ public class ExtendedWebElement implements IWebElement {
     /**
      * Click onto element if present.
      *
-     * @param timeout - timeout
+     * @param timeout timeout
      * @return boolean return true if clicked
      */
     public boolean clickIfPresent(long timeout) {
@@ -587,11 +561,9 @@ public class ExtendedWebElement implements IWebElement {
         if (present) {
             click();
         }
-
         return present;
     }
 
-    
     /**
      * Send Keys to element.
      * 
@@ -604,30 +576,28 @@ public class ExtendedWebElement implements IWebElement {
     /**
      * Send Keys to element.
      *
-	 * @param keys Keys
+     * @param keys    Keys
      * @param timeout to wait
      */
     public void sendKeys(Keys keys, long timeout) {
         sendKeys(keys, timeout, getDefaultCondition(getBy()));
     }
-    
-	/**
-	 * Send Keys to element.
-	 *
-	 * @param keys Keys
-	 * @param timeout to wait
-	 * @param waitCondition
-	 *            to check element conditions before action
-	 */
+
+    /**
+     * Send Keys to element.
+     *
+     * @param keys          Keys
+     * @param timeout       to wait
+     * @param waitCondition to check element conditions before action
+     */
     public void sendKeys(Keys keys, long timeout, ExpectedCondition<?> waitCondition) {
-    	doAction(ACTION_NAME.SEND_KEYS, timeout, waitCondition, keys);
+        doAction(ACTION_NAME.SEND_KEYS, timeout, waitCondition, keys);
     }
-    
-    
+
     /**
      * Type text to element.
-     * 
-	 * @param text String
+     *
+     * @param text String
      */
     public void type(String text) {
     	type(text, EXPLICIT_TIMEOUT);
@@ -636,29 +606,27 @@ public class ExtendedWebElement implements IWebElement {
     /**
      * Type text to element.
      *
-	 * @param text String
+     * @param text    String
      * @param timeout to wait
      */
     public void type(String text, long timeout) {
         type(text, timeout, getDefaultCondition(getBy()));
     }
-    
-	/**
-	 * Type text to element.
-	 *
-	 * @param text String
-	 * @param timeout to wait
-	 * @param waitCondition
-	 *            to check element conditions before action
-	 */
-    public void type(String text, long timeout, ExpectedCondition<?> waitCondition) {
-    	doAction(ACTION_NAME.TYPE, timeout, waitCondition, text);
-    }
-    
+
     /**
+     * Type text to element.
+     *
+     * @param text          String
+     * @param timeout       to wait
+     * @param waitCondition to check element conditions before action
+     */
+    public void type(String text, long timeout, ExpectedCondition<?> waitCondition) {
+        doAction(ACTION_NAME.TYPE, timeout, waitCondition, text);
+    }
+
     /**
      * Scroll to element (applied only for desktop).
-     * Useful for desktop with React 
+     * Useful for desktop with React
      */
     public void scrollTo() {
         if (Configuration.getDriverType().equals(SpecialKeywords.MOBILE)) {
@@ -870,7 +838,7 @@ public class ExtendedWebElement implements IWebElement {
     /**
      * Checks that element clickable.
      *
-     * @return element clickability status.
+     * @return element click-ability status.
      */
     public boolean isClickable() {
         return isClickable(EXPLICIT_TIMEOUT);
@@ -880,7 +848,7 @@ public class ExtendedWebElement implements IWebElement {
      * Check that element clickable within specified timeout.
      *
      * @param timeout - timeout.
-     * @return element clickability status.
+     * @return element click-ability status.
      */
     public boolean isClickable(long timeout) {
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
@@ -1093,12 +1061,12 @@ public class ExtendedWebElement implements IWebElement {
      * @return ExtendedWebElement if exists otherwise null.
      */
     public ExtendedWebElement findExtendedWebElement(final By by, String name, long timeout) {
-        ExtendedWebElement element = new ExtendedWebElement(by, name, this.driver, getElement());
-        if (!element.isPresent(timeout)) {
+        ExtendedWebElement el = new ExtendedWebElement(by, name, this.driver, getElement());
+        if (!el.isPresent(timeout)) {
             throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + by.toString());
         }
-        element.refresh();
-        return element;
+        el.refresh();
+        return el;
     }
 
     public List<ExtendedWebElement> findExtendedWebElements(By by) {
@@ -1125,10 +1093,9 @@ public class ExtendedWebElement implements IWebElement {
         String locatorAsString = by.toString();
         List<WebElement> webElements = getElement().findElements(by);
         int i = 0;
-        for (WebElement element : webElements) {
-            String name = String.format("ExtendedWebElement - [%d]", i);
-            ExtendedWebElement tempElement = new ExtendedWebElement(by, name, getDriver(), getElement());
-            tempElement.setElement(element);
+        for (WebElement el : webElements) {
+            ExtendedWebElement tempElement = new ExtendedWebElement(by, String.format("ExtendedWebElement - [%d]", i), getDriver(), getElement());
+            tempElement.setElement(el);
             tempElement.setIsSingle(false);
             if (isByForListSupported) {
                 tempElement.setIsRefreshSupport(true);
@@ -1155,7 +1122,6 @@ public class ExtendedWebElement implements IWebElement {
                 // if element not found it will cause NoSuchElementException
                 findElement();
             }
-
             // if element is stale, it will cause StaleElementReferenceException
             if (this.element.isDisplayed()) {
                 LOGGER.info("Element {} detected. Waiting until disappear...", this.element.getTagName());
@@ -1164,19 +1130,15 @@ public class ExtendedWebElement implements IWebElement {
                 // no sense to continue as element is not displayed so return asap
                 return true;
             }
-
             res = waitUntil(ExpectedConditions.or(ExpectedConditions.stalenessOf(this.element),
                     ExpectedConditions.invisibilityOf(this.element)),
                     timeout);
-
         } catch (NoSuchElementException | StaleElementReferenceException e) {
             // element not present so means disappear
             LOGGER.debug("Element disappeared as exception catched: {}", e.getMessage());
             res = true;
         }
-
         return res;
-
     }
 
     /**
@@ -1372,7 +1334,6 @@ public class ExtendedWebElement implements IWebElement {
      * 
      * @param timeout in seconds.
      */
-
     public void pause(long timeout) {
         CommonUtils.pause(timeout);
     }
@@ -1380,7 +1341,6 @@ public class ExtendedWebElement implements IWebElement {
     public void pause(double timeout) {
         CommonUtils.pause(timeout);
     }
-
     
 	public interface ActionSteps {
 		void doClick();
@@ -1568,283 +1528,269 @@ public class ExtendedWebElement implements IWebElement {
 
 	// single place for all supported UI actions in carina core
 	private Object overrideAction(ACTION_NAME actionName, Object...inputArgs) {
-		Object output = executeAction(actionName, new ActionSteps() {
-			@Override
-			public void doClick() {
+        return executeAction(actionName, new ActionSteps() {
+            @Override
+            public void doClick() {
                 DriverListener.setMessages(Messager.ELEMENT_CLICKED.getMessage(getName()),
                         Messager.ELEMENT_NOT_CLICKED.getMessage(getNameWithLocator()));
 
                 element.click();
-			}
-			
+            }
+
             @Override
             public void doClickByJs() {
                 DriverListener.setMessages(Messager.ELEMENT_CLICKED.getMessage(getName()),
                         Messager.ELEMENT_NOT_CLICKED.getMessage(getNameWithLocator()));
 
-                LOGGER.info("Do click by JavascriptExecutor for element: " + getNameWithLocator());
+                LOGGER.info("Do click by JavascriptExecutor for element: {}", getNameWithLocator());
                 JavascriptExecutor executor = (JavascriptExecutor) getDriver();
                 executor.executeScript("arguments[0].click();", element);
             }
-            
+
             @Override
             public void doClickByActions() {
                 DriverListener.setMessages(Messager.ELEMENT_CLICKED.getMessage(getName()),
                         Messager.ELEMENT_NOT_CLICKED.getMessage(getNameWithLocator()));
 
-                LOGGER.info("Do click by Actions for element: " + getNameWithLocator());
+                LOGGER.info("Do click by Actions for element: {}", getNameWithLocator());
                 Actions actions = new Actions(getDriver());
                 actions.moveToElement(element).click().perform();
-            }     
-			
-			@Override
-			public void doDoubleClick() {
-				DriverListener.setMessages(Messager.ELEMENT_DOUBLE_CLICKED.getMessage(getName()),
-						Messager.ELEMENT_NOT_DOUBLE_CLICKED.getMessage(getNameWithLocator()));
-				
-				WebDriver drv = getDriver();
-				Actions action = new Actions(drv);
-				action.moveToElement(element).doubleClick(element).build().perform();
-			}
-			
-			@Override
-			public void doHover(Integer xOffset, Integer yOffset) {
-				DriverListener.setMessages(Messager.ELEMENT_HOVERED.getMessage(getName()),
-						Messager.ELEMENT_NOT_HOVERED.getMessage(getNameWithLocator()));
-				
-				WebDriver drv = getDriver();
-				Actions action = new Actions(drv);
-				if (xOffset != null && yOffset!= null) {
-					action.moveToElement(element, xOffset, yOffset).build().perform();
-				} else {
-					action.moveToElement(element).build().perform();
-				}
-			}
-			
-			@Override
-			public void doSendKeys(Keys keys) {
-				DriverListener.setMessages(Messager.KEYS_SEND_TO_ELEMENT.getMessage(keys.toString(), getName()),
-						Messager.KEYS_NOT_SEND_TO_ELEMENT.getMessage(keys.toString(), getNameWithLocator()));
-				element.sendKeys(keys);
-			}
+            }
 
-			@Override
-			public void doType(String text) {
-				final String decryptedText = decryptIfEncrypted(text);
+            @Override
+            public void doDoubleClick() {
+                DriverListener.setMessages(Messager.ELEMENT_DOUBLE_CLICKED.getMessage(getName()),
+                        Messager.ELEMENT_NOT_DOUBLE_CLICKED.getMessage(getNameWithLocator()));
 
-/*				if (!element.getText().isEmpty()) {
-    				DriverListener.setMessages(Messager.KEYS_CLEARED_IN_ELEMENT.getMessage(getName()),
-    						Messager.KEYS_NOT_CLEARED_IN_ELEMENT.getMessage(getNameWithLocator()));
-    				element.clear();
-				}
-*/
+                WebDriver drv = getDriver();
+                Actions action = new Actions(drv);
+                action.moveToElement(element).doubleClick(element).build().perform();
+            }
+
+            @Override
+            public void doHover(Integer xOffset, Integer yOffset) {
+                DriverListener.setMessages(Messager.ELEMENT_HOVERED.getMessage(getName()),
+                        Messager.ELEMENT_NOT_HOVERED.getMessage(getNameWithLocator()));
+
+                WebDriver drv = getDriver();
+                Actions action = new Actions(drv);
+                if (xOffset != null && yOffset != null) {
+                    action.moveToElement(element, xOffset, yOffset).build().perform();
+                } else {
+                    action.moveToElement(element).build().perform();
+                }
+            }
+
+            @Override
+            public void doSendKeys(Keys keys) {
+                DriverListener.setMessages(Messager.KEYS_SEND_TO_ELEMENT.getMessage(keys.toString(), getName()),
+                        Messager.KEYS_NOT_SEND_TO_ELEMENT.getMessage(keys.toString(), getNameWithLocator()));
+                element.sendKeys(keys);
+            }
+
+            @Override
+            public void doType(String text) {
+                final String decryptedText = decryptIfEncrypted(text);
                 DriverListener.setMessages(Messager.KEYS_CLEARED_IN_ELEMENT.getMessage(getName()),
                         Messager.KEYS_NOT_CLEARED_IN_ELEMENT.getMessage(getNameWithLocator()));
                 element.clear();
 
-				String textLog = (!decryptedText.equals(text) ? "********" : text);
+                String textLog = (!decryptedText.equals(text) ? "********" : text);
 
-				DriverListener.setMessages(Messager.KEYS_SEND_TO_ELEMENT.getMessage(textLog, getName()),
-						Messager.KEYS_NOT_SEND_TO_ELEMENT.getMessage(textLog, getNameWithLocator()));
+                DriverListener.setMessages(Messager.KEYS_SEND_TO_ELEMENT.getMessage(textLog, getName()),
+                        Messager.KEYS_NOT_SEND_TO_ELEMENT.getMessage(textLog, getNameWithLocator()));
+                element.sendKeys(decryptedText);
+            }
 
-				element.sendKeys(decryptedText);
-			}
+            @Override
+            public void doAttachFile(String filePath) {
+                final String decryptedText = decryptIfEncrypted(filePath);
 
+                String textLog = (!decryptedText.equals(filePath) ? "********" : filePath);
 
-			@Override
-			public void doAttachFile(String filePath) {
-				final String decryptedText = decryptIfEncrypted(filePath);
+                DriverListener.setMessages(Messager.FILE_ATTACHED.getMessage(textLog, getName()),
+                        Messager.FILE_NOT_ATTACHED.getMessage(textLog, getNameWithLocator()));
 
-				String textLog = (!decryptedText.equals(filePath) ? "********" : filePath);
-
-				DriverListener.setMessages(Messager.FILE_ATTACHED.getMessage(textLog, getName()),
-						Messager.FILE_NOT_ATTACHED.getMessage(textLog, getNameWithLocator()));
-
-				((JavascriptExecutor) getDriver()).executeScript("arguments[0].style.display = 'block';", element);
+                ((JavascriptExecutor) getDriver()).executeScript("arguments[0].style.display = 'block';", element);
                 DriverListener.castDriver(getDriver(), RemoteWebDriver.class).setFileDetector(new LocalFileDetector());
-				element.sendKeys(decryptedText);
-			}
+                element.sendKeys(decryptedText);
+            }
 
-			@Override
-			public String doGetText() {
-				String text = element.getText();
-				LOGGER.debug(Messager.ELEMENT_ATTRIBUTE_FOUND.getMessage("Text", text, getName()));
-				return text;
-			}
+            @Override
+            public String doGetText() {
+                String text = element.getText();
+                LOGGER.debug(Messager.ELEMENT_ATTRIBUTE_FOUND.getMessage("Text", text, getName()));
+                return text;
+            }
 
-			@Override
-			public Point doGetLocation() {
-				Point point = element.getLocation();
-				LOGGER.debug(Messager.ELEMENT_ATTRIBUTE_FOUND.getMessage("Location", point.toString(), getName()));
-				return point;
-			}
+            @Override
+            public Point doGetLocation() {
+                Point point = element.getLocation();
+                LOGGER.debug(Messager.ELEMENT_ATTRIBUTE_FOUND.getMessage("Location", point.toString(), getName()));
+                return point;
+            }
 
-			@Override
-			public Dimension doGetSize() {
-				Dimension dim = element.getSize();
-				LOGGER.debug(Messager.ELEMENT_ATTRIBUTE_FOUND.getMessage("Size", dim.toString(), getName()));
-				return dim;
-			}
+            @Override
+            public Dimension doGetSize() {
+                Dimension dim = element.getSize();
+                LOGGER.debug(Messager.ELEMENT_ATTRIBUTE_FOUND.getMessage("Size", dim.toString(), getName()));
+                return dim;
+            }
 
-			@Override
-			public String doGetAttribute(String name) {
-				String attribute = element.getAttribute(name);
-				LOGGER.debug(Messager.ELEMENT_ATTRIBUTE_FOUND.getMessage(name, attribute, getName()));
-				return attribute;
-			}
+            @Override
+            public String doGetAttribute(String name1) {
+                String attribute = element.getAttribute(name1);
+                LOGGER.debug(Messager.ELEMENT_ATTRIBUTE_FOUND.getMessage(name1, attribute, getName()));
+                return attribute;
+            }
 
-			@Override
-			public void doRightClick() {
-				DriverListener.setMessages(Messager.ELEMENT_RIGHT_CLICKED.getMessage(getName()),
-						Messager.ELEMENT_NOT_RIGHT_CLICKED.getMessage(getNameWithLocator()));
-				
-				WebDriver drv = getDriver();
-				Actions action = new Actions(drv);
-				action.moveToElement(element).contextClick(element).build().perform();
-			}
+            @Override
+            public void doRightClick() {
+                DriverListener.setMessages(Messager.ELEMENT_RIGHT_CLICKED.getMessage(getName()),
+                        Messager.ELEMENT_NOT_RIGHT_CLICKED.getMessage(getNameWithLocator()));
 
-			@Override
-			public void doCheck() {
-				DriverListener.setMessages(Messager.CHECKBOX_CHECKED.getMessage(getName()), null);
-				
+                WebDriver drv = getDriver();
+                Actions action = new Actions(drv);
+                action.moveToElement(element).contextClick(element).build().perform();
+            }
+
+            @Override
+            public void doCheck() {
+                DriverListener.setMessages(Messager.CHECKBOX_CHECKED.getMessage(getName()), null);
+
                 boolean isSelected = element.isSelected();
                 if (element.getAttribute("checked") != null) {
                     isSelected |= element.getAttribute("checked").equalsIgnoreCase("true");
                 }
-                
-				if (!isSelected) {
-					click();
-				}
-			}
 
-			@Override
-			public void doUncheck() {
-				DriverListener.setMessages(Messager.CHECKBOX_UNCHECKED.getMessage(getName()), null);
-				
+                if (!isSelected) {
+                    click();
+                }
+            }
+
+            @Override
+            public void doUncheck() {
+                DriverListener.setMessages(Messager.CHECKBOX_UNCHECKED.getMessage(getName()), null);
+
                 boolean isSelected = element.isSelected();
                 if (element.getAttribute("checked") != null) {
                     isSelected |= element.getAttribute("checked").equalsIgnoreCase("true");
                 }
-                
-				if (isSelected) {
-					click();
-				}
-			}
-			
-			@Override
-			public boolean doIsChecked() {
-				
-		        boolean res = element.isSelected();
-		        if (element.getAttribute("checked") != null) {
-		            res |= element.getAttribute("checked").equalsIgnoreCase("true");
-		        }
-		        
-		        return res;
-			}
-			
-			@Override
-			public boolean doSelect(String text) {
-				final String decryptedSelectText = decryptIfEncrypted(text);
-				
-				String textLog = (!decryptedSelectText.equals(text) ? "********" : text);
-				
-				DriverListener.setMessages(Messager.SELECT_BY_TEXT_PERFORMED.getMessage(textLog, getName()),
-						Messager.SELECT_BY_TEXT_NOT_PERFORMED.getMessage(textLog, getNameWithLocator()));
 
-				
-				final Select s = new Select(getElement());
-				// [VD] do not use selectByValue as modern controls could have only visible value without value
-				s.selectByVisibleText(decryptedSelectText);
-				return true;
-			}
+                if (isSelected) {
+                    click();
+                }
+            }
 
-			@Override
-			public boolean doSelectValues(String[] values) {
-				boolean result = true;
-				for (String value : values) {
-					if (!select(value)) {
-						result = false;
-					}
-				}
-				return result;
-			}
+            @Override
+            public boolean doIsChecked() {
 
-			@Override
-			public boolean doSelectByMatcher(BaseMatcher<String> matcher) {
-				
-				DriverListener.setMessages(Messager.SELECT_BY_MATCHER_TEXT_PERFORMED.getMessage(matcher.toString(), getName()),
-						Messager.SELECT_BY_MATCHER_TEXT_NOT_PERFORMED.getMessage(matcher.toString(), getNameWithLocator()));
+                boolean res = element.isSelected();
+                if (element.getAttribute("checked") != null) {
+                    res |= element.getAttribute("checked").equalsIgnoreCase("true");
+                }
+                return res;
+            }
 
-				
-				final Select s = new Select(getElement());
-				String fullTextValue = null;
-				for (WebElement option : s.getOptions()) {
-					if (matcher.matches(option.getText())) {
-						fullTextValue = option.getText();
-						break;
-					}
-				}
-				s.selectByVisibleText(fullTextValue);
-				return true;
-			}
+            @Override
+            public boolean doSelect(String text) {
+                final String decryptedSelectText = decryptIfEncrypted(text);
 
-			@Override
-			public boolean doSelectByPartialText(String partialSelectText) {
-				
-				DriverListener.setMessages(
-						Messager.SELECT_BY_TEXT_PERFORMED.getMessage(partialSelectText, getName()),
-						Messager.SELECT_BY_TEXT_NOT_PERFORMED.getMessage(partialSelectText, getNameWithLocator()));
-				
-				final Select s = new Select(getElement());
-				String fullTextValue = null;
-				for (WebElement option : s.getOptions()) {
-					if (option.getText().contains(partialSelectText)) {
-						fullTextValue = option.getText();
-						break;
-					}
-				}
-				s.selectByVisibleText(fullTextValue);
-				return true;
-			}
+                String textLog = (!decryptedSelectText.equals(text) ? "********" : text);
 
-			@Override
-			public boolean doSelectByIndex(int index) {
-				DriverListener.setMessages(
-						Messager.SELECT_BY_INDEX_PERFORMED.getMessage(String.valueOf(index), getName()),
-						Messager.SELECT_BY_INDEX_NOT_PERFORMED.getMessage(String.valueOf(index), getNameWithLocator()));
-				
-				
-				final Select s = new Select(getElement());
-				s.selectByIndex(index);
-				return true;
-			}
+                DriverListener.setMessages(Messager.SELECT_BY_TEXT_PERFORMED.getMessage(textLog, getName()),
+                        Messager.SELECT_BY_TEXT_NOT_PERFORMED.getMessage(textLog, getNameWithLocator()));
 
-			@Override
-			public String doGetSelectedValue() {
-				final Select s = new Select(getElement());
-				return s.getAllSelectedOptions().get(0).getText();
-			}
+                final Select s = new Select(getElement());
+                // [VD] do not use selectByValue as modern controls could have only visible value without value
+                s.selectByVisibleText(decryptedSelectText);
+                return true;
+            }
 
-			@Override
-			public List<String> doGetSelectedValues() {
-		        final Select s = new Select(getElement());
-		        List<String> values = new ArrayList<String>();
-		        for (WebElement we : s.getAllSelectedOptions()) {
-		            values.add(we.getText());
-		        }
-		        return values;
-			}
-			
-		}, inputArgs);
-		return output;
+            @Override
+            public boolean doSelectValues(String[] values) {
+                boolean result = true;
+                for (String value : values) {
+                    if (!select(value)) {
+                        result = false;
+                    }
+                }
+                return result;
+            }
+
+            @Override
+            public boolean doSelectByMatcher(BaseMatcher<String> matcher) {
+
+                DriverListener.setMessages(Messager.SELECT_BY_MATCHER_TEXT_PERFORMED.getMessage(matcher.toString(), getName()),
+                        Messager.SELECT_BY_MATCHER_TEXT_NOT_PERFORMED.getMessage(matcher.toString(), getNameWithLocator()));
+
+                final Select s = new Select(getElement());
+                String fullTextValue = null;
+                for (WebElement option : s.getOptions()) {
+                    if (matcher.matches(option.getText())) {
+                        fullTextValue = option.getText();
+                        break;
+                    }
+                }
+                s.selectByVisibleText(fullTextValue);
+                return true;
+            }
+
+            @Override
+            public boolean doSelectByPartialText(String partialSelectText) {
+
+                DriverListener.setMessages(
+                        Messager.SELECT_BY_TEXT_PERFORMED.getMessage(partialSelectText, getName()),
+                        Messager.SELECT_BY_TEXT_NOT_PERFORMED.getMessage(partialSelectText, getNameWithLocator()));
+
+                final Select s = new Select(getElement());
+                String fullTextValue = null;
+                for (WebElement option : s.getOptions()) {
+                    if (option.getText().contains(partialSelectText)) {
+                        fullTextValue = option.getText();
+                        break;
+                    }
+                }
+                s.selectByVisibleText(fullTextValue);
+                return true;
+            }
+
+            @Override
+            public boolean doSelectByIndex(int index) {
+                DriverListener.setMessages(
+                        Messager.SELECT_BY_INDEX_PERFORMED.getMessage(String.valueOf(index), getName()),
+                        Messager.SELECT_BY_INDEX_NOT_PERFORMED.getMessage(String.valueOf(index), getNameWithLocator()));
+
+                final Select s = new Select(getElement());
+                s.selectByIndex(index);
+                return true;
+            }
+
+            @Override
+            public String doGetSelectedValue() {
+                final Select s = new Select(getElement());
+                return s.getAllSelectedOptions().get(0).getText();
+            }
+
+            @Override
+            public List<String> doGetSelectedValues() {
+                final Select s = new Select(getElement());
+                List<String> values = new ArrayList<>();
+                for (WebElement we : s.getAllSelectedOptions()) {
+                    values.add(we.getText());
+                }
+                return values;
+            }
+
+        }, inputArgs);
 	}
 
     public WebDriver getDriver() {
 		if (driver == null) {
-			LOGGER.error("There is no any initialized driver for ExtendedWebElement: " + getNameWithLocator());
-			throw new RuntimeException(
-					"Driver isn't initialized. Review stacktrace to analyze why driver is not populated correctly via reflection!");
-		}
+            LOGGER.error("There is no any initialized driver for ExtendedWebElement: {}", getNameWithLocator());
+            throw new RuntimeException(
+                    "Driver isn't initialized. Review stacktrace to analyze why driver is not populated correctly via reflection!");
+        }
 		return driver;
     }
 
@@ -1983,5 +1929,4 @@ public class ExtendedWebElement implements IWebElement {
                     .build();
         }
     }
-
 }

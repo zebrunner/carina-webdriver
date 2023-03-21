@@ -35,23 +35,32 @@ import com.zebrunner.carina.webdriver.locator.ExtendedElementLocatorFactory;
 public abstract class AbstractUIObject extends DriverHelper {
 
     protected String name;
-    @Deprecated
+    /**
+     * @deprecated use {@link #getRootExtendedElement()} instead
+     */
+    @Deprecated(forRemoval = true, since = "1.0.0")
     protected WebElement rootElement;
-    @Deprecated
+    /**
+     * @deprecated use {@link #getRootExtendedElement()} instead
+     */
+    @Deprecated(forRemoval = true, since = "1.0.0")
     protected By rootBy;
 
     protected ExtendedWebElement uiLoadedMarker;
     private ExtendedWebElement rootExtendedElement;
 
-    @Deprecated
+    /**
+     * @deprecated useless variable
+     */
+    @Deprecated(forRemoval = true, since = "1.0.0")
     private ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy.valueOf(Configuration.get(Parameter.ELEMENT_LOADING_STRATEGY));
 
     /**
      * Initializes UI object using {@link PageFactory}. Whole browser window is used as search context
-     * 
+     *
      * @param driver WebDriver
      */
-    public AbstractUIObject(WebDriver driver) {
+    protected AbstractUIObject(WebDriver driver) {
         this(driver, driver);
     }
 
@@ -60,14 +69,14 @@ public abstract class AbstractUIObject extends DriverHelper {
      * SearchContext instance.
      * If {@link WebDriver} object is used as search context then whole browser window will be used for initialization
      * of {@link ExtendedWebElement} fields inside.
-     * 
+     * <p>
      * Note: implement this constructor if you want your {@link AbstractUIObject} instances marked with {@link FindBy}
      * to be auto-initialized on {@link AbstractPage} inheritors
-     * 
-     * @param driver WebDriver instance to initialize UI Object fields using PageFactory
+     *
+     * @param driver        WebDriver instance to initialize UI Object fields using PageFactory
      * @param searchContext Window area that will be used for locating of internal elements
      */
-    public AbstractUIObject(WebDriver driver, SearchContext searchContext) {
+    protected AbstractUIObject(WebDriver driver, SearchContext searchContext) {
         super(driver);
         ExtendedElementLocatorFactory factory = new ExtendedElementLocatorFactory(driver, searchContext);
         PageFactory.initElements(new ExtendedFieldDecorator(factory, driver), this);
@@ -75,16 +84,12 @@ public abstract class AbstractUIObject extends DriverHelper {
 
     /**
      * Verifies if root {@link WebElement} presents on page.
-     *
+     * <p>
      * If {@link AbstractUIObject} field on {@link AbstractPage} is marked with {@link FindBy} annotation then this
      * locator will be used to instantiate rootElement
-     * 
-     * @param timeout
-     *            - max timeout for waiting until rootElement appear
-     * 
-     * @return true - if rootElement is enabled and visible on browser's screen;
      *
-     *         false - otherwise
+     * @param timeout max timeout for waiting until rootElement appear
+     * @return true if rootElement is enabled and visible on browser's screen, false - otherwise
      */
     public boolean isUIObjectPresent(long timeout) {
         return this.rootExtendedElement.isPresent(timeout);
@@ -104,7 +109,7 @@ public abstract class AbstractUIObject extends DriverHelper {
 
     /**
      * @deprecated to interact with the current component
-     *             (getting information about the current element) use {@link #rootExtendedElement}
+     * (getting information about the current element) use {@link #rootExtendedElement}
      */
     @Deprecated(since = "8.0.4", forRemoval = true)
     public ElementLoadingStrategy getLoadingStrategy() {
@@ -113,7 +118,7 @@ public abstract class AbstractUIObject extends DriverHelper {
 
     /**
      * @deprecated to interact with the current component
-     *             (getting information about the current element) use {@link #rootExtendedElement}
+     * (getting information about the current element) use {@link #rootExtendedElement}
      */
     @Deprecated(since = "8.0.4", forRemoval = true)
     public void setLoadingStrategy(ElementLoadingStrategy loadingStrategy) {

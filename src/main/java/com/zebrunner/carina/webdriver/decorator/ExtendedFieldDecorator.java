@@ -44,11 +44,10 @@ import com.zebrunner.carina.webdriver.locator.internal.AbstractUIObjectListHandl
 import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
 
 public class ExtendedFieldDecorator implements FieldDecorator {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
     protected ElementLocatorFactory factory;
-
-    private WebDriver webDriver;
+    private final WebDriver webDriver;
     
     public ExtendedFieldDecorator(ElementLocatorFactory factory, WebDriver webDriver) {
         this.factory = factory;
@@ -142,8 +141,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
             uiObject = (T) clazz.getConstructor(WebDriver.class, SearchContext.class).newInstance(
                     webDriver, proxy);
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException(
-                    "Implement appropriate AbstractUIObject constructor for auto-initialization!", e);
+            throw new RuntimeException("Implement appropriate AbstractUIObject constructor for auto-initialization!", e);
         } catch (Exception e) {
             throw new RuntimeException("Error creating UIObject!", e);
         }
@@ -157,9 +155,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
     @SuppressWarnings("unchecked")
     protected List<ExtendedWebElement> proxyForListLocator(ClassLoader loader, Field field, ElementLocator locator) {
         InvocationHandler handler = new LocatingListHandler(loader, locator, field);
-        List<ExtendedWebElement> proxies = (List<ExtendedWebElement>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
-
-        return proxies;
+        return (List<ExtendedWebElement>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
     }
 
     @SuppressWarnings("unchecked")
@@ -167,8 +163,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
             ElementLocator locator) {
         InvocationHandler handler = new AbstractUIObjectListHandler<T>(loader, (Class<?>) getListType(field), webDriver,
                 locator, field.getName());
-        List<T> proxies = (List<T>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
-        return proxies;
+        return (List<T>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
     }
 
     private Type getListType(Field field) {
@@ -184,7 +179,6 @@ public class ExtendedFieldDecorator implements FieldDecorator {
     
     private By getLocatorBy(ElementLocator locator) {
     	By rootBy = null;
-    	
         //TODO: get root by annotation from ElementLocator to be able to append by for those elements and reuse fluent waits
 		try {
 			Field byContextField = null;
@@ -202,7 +196,6 @@ public class ExtendedFieldDecorator implements FieldDecorator {
 		} catch (Exception e) {
 			LOGGER.error("Unable to get rootBy via reflection!", e);
 		}
-    	
     	return rootBy;
     }
 }

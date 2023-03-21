@@ -64,8 +64,7 @@ public class ExtendedAppiumAnnotations extends DefaultElementByBuilder {
         checkDisallowedAnnotationPairs(findAll, findAny);
     }
 
-    private static void checkDisallowedAnnotationPairs(Annotation a1, Annotation a2)
-            throws IllegalArgumentException {
+    private static void checkDisallowedAnnotationPairs(Annotation a1, Annotation a2) {
         if (a1 != null && a2 != null) {
             throw new IllegalArgumentException(
                     "If you use a '@" + a1.getClass().getSimpleName() + "' annotation, "

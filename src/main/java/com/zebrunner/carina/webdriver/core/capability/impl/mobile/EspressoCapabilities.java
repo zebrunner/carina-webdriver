@@ -23,11 +23,10 @@ public class EspressoCapabilities extends AbstractCapabilities<EspressoOptions> 
 
     @Override
     public EspressoOptions getCapability(String testName) {
-        EspressoOptions capabilities = new EspressoOptions();
+        EspressoOptions options = new EspressoOptions();
         // this step should be executed before initCapabilities() to be able to override this capabilities by default appium approach.
-        setLocaleAndLanguage(capabilities);
-        // add capabilities based on dynamic _config.properties variables
-        initCapabilities(capabilities);
-        return capabilities;
+        setLocaleAndLanguage(options);
+        addConfigurationCapabilities(options);
+        return options;
     }
 }

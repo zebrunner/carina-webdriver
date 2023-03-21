@@ -21,6 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.openqa.selenium.WebDriver;
@@ -35,35 +36,30 @@ import com.zebrunner.carina.webdriver.device.Device;
 import com.zebrunner.carina.webdriver.gui.AbstractPage;
 
 public interface ICustomTypePageFactory extends IDriverPool {
-    static final Logger PAGEFACTORY_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    Logger PAGEFACTORY_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     String VERSION_SPLITTER = "\\.";
-
     String INTEGER_STR = "class java.lang.Integer";
     String INT_STR = "int";
-
     String LONG_OBJ_STR = "class java.lang.Long";
     String LONG_STR = "long";
-
     String DOUBLE_OBJ_STR = "class java.lang.Double";
     String DOUBLE_STR = "double";
-
     Reflections REFLECTIONS = new Reflections("");
 
-    public default <T extends AbstractPage> T initPage(Class<T> parentClass, Object... parameters) {
+    default <T extends AbstractPage> T initPage(Class<T> parentClass, Object... parameters) {
         return initPage(getDriver(), parentClass, parameters);
     }
 
-    public default <T extends AbstractPage> T initPage(WebDriver driver, Class<T> parentClass, Object... parameters) {
-
-        if (driver == null) {
-            PAGEFACTORY_LOGGER.error("Page isn't created. There is no any initialized driver for thread: " + Thread.currentThread().getId());
-            throw new RuntimeException("Page isn't created. Driver isn't initialized.");
-        }
-
+    default <T extends AbstractPage> T initPage(WebDriver driver, Class<T> parentClass, Object... parameters) {
+        Objects.requireNonNull(driver, String.format("Page isn't created because driver is null. Thread id: %s", Thread.currentThread().getId()));
         Set<Class<? extends T>> setClasses = REFLECTIONS.getSubTypesOf(parentClass);
-        PAGEFACTORY_LOGGER.debug("Relatives classes count:" + setClasses.size());
-        Class<? extends T> versionClass = null, majorVersionClass = null, deviceClass = null, familyClass = null, requiredClass = null;
+        PAGEFACTORY_LOGGER.debug("Relatives classes count: {}", setClasses.size());
+        Class<? extends T> versionClass = null;
+        Class<? extends T> majorVersionClass = null;
+        Class<? extends T> deviceClass = null;
+        Class<? extends T> familyClass = null;
+        Class<? extends T> requiredClass = null;
         Device device = getDevice(driver);
         Type screenType = device.getDeviceType();
 
@@ -73,20 +69,22 @@ public interface ICustomTypePageFactory extends IDriverPool {
             deviceVersion = device.getOsVersion();
         }
         String majorVersionNumber = deviceVersion.split(VERSION_SPLITTER)[0];
-        PAGEFACTORY_LOGGER.debug("Major version of device OS: " + majorVersionNumber);
+        PAGEFACTORY_LOGGER.debug("Major version of device OS: {}", majorVersionNumber);
         for (Class<? extends T> clazz : setClasses) {
             if (clazz.getAnnotation(DeviceType.class) == null || clazz.getAnnotation(DeviceType.class).parentClass() != parentClass) {
-                PAGEFACTORY_LOGGER.debug(String.format("Removing as parentClass (%s) is not satisfied or due to absence of @DeviceType annotation on class: %s",
-                        parentClass.getName(), clazz.getName()));
+                PAGEFACTORY_LOGGER.debug("Removing as parentClass ({}) is not satisfied or due to absence of @DeviceType annotation on class: {}",
+                        parentClass.getName(), clazz.getName());
                 continue;
             }
             DeviceType dt = clazz.getAnnotation(DeviceType.class);
 
-            PAGEFACTORY_LOGGER.debug(String.format("Expected screenType: %s, Actual screenType: %s", screenType, dt.pageType()));
+            PAGEFACTORY_LOGGER.debug("Expected screenType: {}, Actual screenType: {}", screenType, dt.pageType());
             if (dt.pageType().equals(screenType)) {
-                if (Arrays.asList(dt.version()).contains(deviceVersion)) {
-                    PAGEFACTORY_LOGGER.debug("Expected version: " + deviceVersion);
-                    PAGEFACTORY_LOGGER.debug("Actual versions: " + dt.version());
+                String[] versions = dt.version();
+                if (Arrays.asList(versions).contains(deviceVersion)) {
+                    PAGEFACTORY_LOGGER.debug("Expected version: {}", deviceVersion);
+                    String versionsAsString = Arrays.toString(versions);
+                    PAGEFACTORY_LOGGER.debug("Actual versions: {}", versionsAsString);
                     versionClass = clazz;
                     break;
                 }
@@ -103,10 +101,9 @@ public interface ICustomTypePageFactory extends IDriverPool {
                 continue;
             }
             if (dt.pageType().getFamily().equals(screenType.getFamily())) {
-                PAGEFACTORY_LOGGER.debug(String.format("Family class '%s' correspond to required page.", screenType.getFamily()));
+                PAGEFACTORY_LOGGER.debug("Family class '{}' correspond to required page.", screenType.getFamily());
                 familyClass = clazz;
             }
-
         }
         try {
             if (versionClass != null) {
@@ -130,7 +127,7 @@ public interface ICustomTypePageFactory extends IDriverPool {
             if (parameters.length == 0) {
                 parameters = new Object[] { driver };
             }
-            PAGEFACTORY_LOGGER.debug("Invoking constructor for " + requiredClass);
+            PAGEFACTORY_LOGGER.debug("Invoking constructor for {}", requiredClass);
             Constructor<? extends T> requiredCtor = getConstructorByParams(requiredClass, parameters);
 
             return requiredCtor.newInstance(parameters);
@@ -144,30 +141,26 @@ public interface ICustomTypePageFactory extends IDriverPool {
     /**
      * Get constructor from clazz that satisfy specific range of parameters
      * (using Reflection)
-     * 
-     * @param <T> This is the type parameter
-     * 
-     * @param clazz
-     * 			Class clazz
-     * @param parameters
-     * 			Object... parameters
+     *
+     * @param <T>        This is the type parameter
+     * @param clazz      Class clazz
+     * @param parameters Object... parameters
      * @return constructor
-     * 			
      */
     @SuppressWarnings("unchecked")
     default <T extends AbstractPage> Constructor<? extends T> getConstructorByParams(Class<T> clazz, Object... parameters) {
-        PAGEFACTORY_LOGGER.debug("Attempt to find costructor that satisfy to following parameters: " + Arrays.toString(parameters));
+        PAGEFACTORY_LOGGER.debug("Attempt to find costructor that satisfy to following parameters: {}", Arrays.toString(parameters));
         Class<?>[] parametersTypes;
-        List<Class<?>> parametersTypesList = new ArrayList<Class<?>>();
+        List<Class<?>> parametersTypesList = new ArrayList<>();
         for (Object param : parameters) {
             parametersTypesList.add(param.getClass());
         }
         parametersTypes = parametersTypesList.toArray(new Class<?>[parametersTypesList.size()]);
         Constructor<?> requiredCtor = null;
         Constructor<?>[] ctors = clazz.getDeclaredConstructors();
-        PAGEFACTORY_LOGGER.debug(String.format("Class %s contains %d ctors ", clazz.toString(), ctors.length));
+        PAGEFACTORY_LOGGER.debug("Class {} contains {} ctors ", clazz, ctors.length);
         for (Constructor<?> constructor : ctors) {
-            PAGEFACTORY_LOGGER.debug("Constructor: ".concat(constructor.toString()));
+            PAGEFACTORY_LOGGER.debug("Constructor: {}", constructor);
         }
         for (Constructor<?> constructor : ctors) {
             Class<?>[] ctorTypes = constructor.getParameterTypes();
@@ -175,8 +168,8 @@ public interface ICustomTypePageFactory extends IDriverPool {
             // Check if passed parameters quantity satisfy to constructor's
             // parameters size
             if (parametersTypes.length != ctorTypes.length) {
-                PAGEFACTORY_LOGGER.debug(String.format("Ctors quantity doesn't satisfy to requirements. " + "Expected: %d. Actual: %d", parametersTypes.length,
-                        ctorTypes.length));
+                PAGEFACTORY_LOGGER.debug("Ctors quantity doesn't satisfy to requirements. " + "Expected: {}. Actual: {}", parametersTypes.length,
+                        ctorTypes.length);
                 continue;
             }
             if (parametersTypes.length == 0) {
@@ -211,25 +204,18 @@ public interface ICustomTypePageFactory extends IDriverPool {
 
     /**
      * Method to compare primitives with corresponding wrappers
-     * 
-     * @param obj1
-     * 			Object obj1
-     * @param obj2
-     * 			Object obj2
-     * @return boolean
-     * 			boolean result
+     *
+     * @param obj1 Object obj1
+     * @param obj2 Object obj2
+     * @return boolean result
      */
     default boolean comparePrimitives(Object obj1, Object obj2) {
-
-        switch (obj1.toString()) {
-        case INT_STR:
-        case INTEGER_STR:
+        String s = obj1.toString();
+        if (INT_STR.equals(s) || INTEGER_STR.equals(s)) {
             return INTEGER_STR.equalsIgnoreCase(obj2.toString()) || obj2.toString().equalsIgnoreCase(INT_STR);
-        case LONG_OBJ_STR:
-        case LONG_STR:
+        } else if (LONG_OBJ_STR.equals(s) || LONG_STR.equals(s)) {
             return LONG_OBJ_STR.equalsIgnoreCase(obj2.toString()) || obj2.toString().equalsIgnoreCase(LONG_STR);
-        case DOUBLE_OBJ_STR:
-        case DOUBLE_STR:
+        } else if (DOUBLE_OBJ_STR.equals(s) || DOUBLE_STR.equals(s)) {
             return DOUBLE_OBJ_STR.equalsIgnoreCase(obj2.toString()) || obj2.toString().equalsIgnoreCase(DOUBLE_STR);
         }
         return false;

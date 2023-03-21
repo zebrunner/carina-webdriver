@@ -15,10 +15,10 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.factory.impl;
 
+import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Objects;
 
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
@@ -26,12 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.webdriver.core.capability.impl.windows.WindowsCapabilities;
 import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
+import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 
 import io.appium.java_client.windows.WindowsDriver;
-import io.appium.java_client.windows.options.WindowsOptions;
 
 /**
  * WindowsFactory creates instance {@link WebDriver} for Windows native application testing.
@@ -39,44 +38,26 @@ import io.appium.java_client.windows.options.WindowsOptions;
  * @author Sergei Zagriychuk (sergeizagriychuk@gmail.com)
  */
 public class WindowsFactory extends AbstractFactory {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @Override
     public WebDriver create(String name, MutableCapabilities capabilities, String seleniumHost) {
-
         if (seleniumHost == null) {
             seleniumHost = Configuration.getSeleniumUrl();
         }
-        LOGGER.debug("selenium: {}", seleniumHost);
+        LOGGER.debug("Selenium URL: {}", seleniumHost);
 
-        String driverType = Configuration.getDriverType(capabilities);
-        if (!SpecialKeywords.WINDOWS.equals(driverType)) {
-            throw new RuntimeException(String.format("Driver type %s is not applicable for Windows driver", driverType));
-        }
-
-        WebDriver driver = null;
         if (isCapabilitiesEmpty(capabilities)) {
-            capabilities = getCapabilities(name);
+            capabilities = new WindowsCapabilities().getCapability(name);
         }
+        LOGGER.debug("Capabilities: {}", capabilities);
 
-        if (Objects.equals(Configuration.get(Configuration.Parameter.W3C), "false")) {
-            capabilities = removeAppiumPrefix(capabilities);
-        }
-
-        LOGGER.debug("capabilities: {}", capabilities);
-
-        URL url;
         try {
-            url = new URL(seleniumHost);
+            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
+            return new WindowsDriver(ce, capabilities);
         } catch (MalformedURLException e) {
-            throw new RuntimeException("Malformed appium URL!", e);
+            throw new UncheckedIOException("Malformed appium URL!", e);
         }
-        driver = new WindowsDriver(url, capabilities);
-
-        return driver;
-    }
-
-    private WindowsOptions getCapabilities(String name) {
-        return new WindowsCapabilities().getCapability(name);
     }
 }

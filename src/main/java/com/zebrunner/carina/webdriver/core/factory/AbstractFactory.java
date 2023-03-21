@@ -15,8 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.factory;
 
-import java.lang.invoke.MethodHandles;
-
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -25,8 +23,6 @@ import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.events.EventFiringDecorator;
 import org.openqa.selenium.support.events.WebDriverListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.R;
 
@@ -38,7 +34,6 @@ import io.appium.java_client.internal.CapabilityHelpers;
  * @author Alex Khursevich (alex@qaprosoft.com)
  */
 public abstract class AbstractFactory {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     /**
      * Creates new instance of {@link WebDriver} according to specified {@link MutableCapabilities}.

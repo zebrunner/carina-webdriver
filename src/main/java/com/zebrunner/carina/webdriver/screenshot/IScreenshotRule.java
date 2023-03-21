@@ -15,8 +15,11 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.screenshot;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.openqa.selenium.Beta;
@@ -89,11 +92,18 @@ public interface IScreenshotRule {
     /**
      * Is need to check rules when capture screenshot<br>
      * Method that validate rules: com.qaprosoft.carina.core.foundation.webdriver.Screenshot#validateRule(IScreenshotRule)
-     * 
+     *
      * @return true if needed, false otherwise
      */
     @Beta
     public default boolean isEnableValidation() {
         return "DEBUG".equalsIgnoreCase(Configuration.get(Configuration.Parameter.CORE_LOG_LEVEL));
     }
+
+    @Beta
+    public default void after(Path pathToTheScreenshot) throws IOException {
+        // upload screenshot to the Zebrunner Reporting
+        com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(pathToTheScreenshot), Instant.now().toEpochMilli());
+    }
+
 }

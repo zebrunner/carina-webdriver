@@ -150,7 +150,7 @@ public class ExtendedElementLocator implements ElementLocator {
             element = elements.get(0);
         } else if (elements.size() > 1) {
             element = elements.get(0);
-            LOGGER.debug(elements.size() + " elements detected by: " + by.toString());
+            LOGGER.debug("{} elements detected by: {}", elements.size(), by.toString());
         }
 
         if (element == null) {

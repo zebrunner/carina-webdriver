@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -51,7 +50,6 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoAlertPresentException;
 import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.NoSuchWindowException;
 import org.openqa.selenium.ScriptTimeoutException;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.UnhandledAlertException;
@@ -96,36 +94,29 @@ import com.zebrunner.carina.webdriver.locator.LocatorUtils;
  * @author Alex Khursevich
  */
 public class DriverHelper {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
+    private static final String CRYPTO_PATTERN = Configuration.get(Parameter.CRYPTO_PATTERN);
     protected static final long EXPLICIT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT);
-    
     protected static final long SHORT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT) / 3;
-
     protected static final long RETRY_TIME = Configuration.getLong(Parameter.RETRY_INTERVAL);
-
-    protected long timer;
-
     protected WebDriver driver;
-    
     protected String pageURL = getUrl();
-
     protected CryptoTool cryptoTool = null;
 
-    protected static String CRYPTO_PATTERN = Configuration.get(Parameter.CRYPTO_PATTERN);
+    /**
+     * @deprecated unused field
+     */
+    @Deprecated(forRemoval = true, since = "1.0.0")
+    protected long timer;
 
     public DriverHelper() {
     }
 
     public DriverHelper(WebDriver driver) {
         this();
-        
+        Objects.requireNonNull(driver, "WebDriver not initialized, check log files for details!");
         this.driver = driver;
-
-        if (driver == null) {
-            throw new RuntimeException("WebDriver not initialized, check log files for details!");
-        }
-
     }
     
     /**
@@ -134,24 +125,21 @@ public class DriverHelper {
     public void open() {
         openURL(this.pageURL);
     }
-    
+
     /**
      * Open URL.
-     * 
-     * @param url
-     *            to open.
+     *
+     * @param url to open.
      */
     public void openURL(String url) {
         openURL(url, Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
     }
-    
+
     /**
      * Open URL.
-     * 
-     * @param url
-     *            to open.
-     * @param timeout
-     *            long
+     *
+     * @param url     to open.
+     * @param timeout long
      */
     public void openURL(String url, long timeout) {
         final String decryptedURL = getEnvArgURL(decryptIfEncrypted(url));
@@ -182,7 +170,6 @@ public class DriverHelper {
 
     protected void setPageURL(String relURL) {
         String baseURL;
-        // if(!"NULL".equalsIgnoreCase(Configuration.get(Parameter.ENV)))
         if (!Configuration.get(Parameter.ENV).isEmpty()) {
             baseURL = Configuration.getEnvArg("base");
         } else {
@@ -202,12 +189,12 @@ public class DriverHelper {
     // --------------------------------------------------------------------------
     // Base UI interaction operations
     // --------------------------------------------------------------------------
+
     /**
      * Method which quickly looks for all element and check that they present
      * during EXPLICIT_TIMEOUT
      *
-     * @param elements
-     *            ExtendedWebElement...
+     * @param elements ExtendedWebElement...
      * @return boolean return true only if all elements present.
      */
     public boolean allElementsPresent(ExtendedWebElement... elements) {
@@ -218,9 +205,8 @@ public class DriverHelper {
      * Method which quickly looks for all element and check that they present
      * during timeout sec
      *
-     * @param timeout long
-     * @param elements
-     *            ExtendedWebElement...
+     * @param timeout  long
+     * @param elements ExtendedWebElement...
      * @return boolean return true only if all elements present.
      */
     public boolean allElementsPresent(long timeout, ExtendedWebElement... elements) {
@@ -232,10 +218,10 @@ public class DriverHelper {
         if (timeout < 1)
             timeout = 1;
         while (present && index++ < counts) {
-            for (int i = 0; i < elements.length; i++) {
-                present = elements[i].isElementPresent(timeout);
+            for (ExtendedWebElement element : elements) {
+                present = element.isElementPresent(timeout);
                 if (!present) {
-                    LOGGER.error(elements[i].getNameWithLocator() + " is not present.");
+                    LOGGER.error("{} is not present.", element.getNameWithLocator());
                     ret = false;
                 }
             }
@@ -247,8 +233,7 @@ public class DriverHelper {
      * Method which quickly looks for all element lists and check that they
      * contain at least one element during SHORT_TIMEOUT
      *
-     * @param elements
-     *            List&lt;ExtendedWebElement&gt;...
+     * @param elements List&lt;ExtendedWebElement&gt;...
      * @return boolean
      */
     @SuppressWarnings("unchecked")
@@ -260,11 +245,9 @@ public class DriverHelper {
      * Method which quickly looks for all element lists and check that they
      * contain at least one element during timeout
      *
-     * @param timeout long
-     * @param elements
-     *            List&lt;ExtendedWebElement&gt;...
-     * @return boolean return true only if All Element lists contain at least
-     *         one element
+     * @param timeout  long
+     * @param elements List&lt;ExtendedWebElement&gt;...
+     * @return boolean return true only if All Element lists contain at least one element
      */
     @SuppressWarnings("unchecked")
     public boolean allElementListsAreNotEmpty(long timeout, List<ExtendedWebElement>... elements) {
@@ -280,12 +263,13 @@ public class DriverHelper {
                 try {
                     present = elements[i].get(0).isElementPresent(timeout);
                 } catch (Exception e) {
-                    present = false;
+                    // do nothing
                 }
             }
-            ret = (elements[i].size() > 0);
+            ret = (!elements[i].isEmpty());
             if (!ret) {
-                LOGGER.error("List of elements[" + i + "] from elements " + Arrays.toString(elements) + " is empty.");
+                String elementsAsString = Arrays.toString(elements);
+                LOGGER.error("List of elements[{}] from elements {} is empty.", i, elementsAsString);
                 return false;
             }
         }
@@ -306,9 +290,8 @@ public class DriverHelper {
     /**
      * Method which quickly looks for any element presence during timeout sec
      *
-     * @param timeout long
-     * @param elements
-     *            ExtendedWebElement...
+     * @param timeout  long
+     * @param elements ExtendedWebElement...
      * @return true if any of elements was found.
      */
     public boolean isAnyElementPresent(long timeout, ExtendedWebElement... elements) {
@@ -318,15 +301,15 @@ public class DriverHelper {
         if (timeout < 1)
             timeout = 1;
         while (index++ < counts) {
-            for (int i = 0; i < elements.length; i++) {
-                if (elements[i].isElementPresent(timeout)) {
-                    LOGGER.debug(elements[i].getNameWithLocator() + " is present");
+            for (ExtendedWebElement element : elements) {
+                if (element.isElementPresent(timeout)) {
+                    LOGGER.debug("{} is present", element.getNameWithLocator());
                     return true;
                 }
             }
         }
-        
-        LOGGER.error("Unable to find any element from array: " + Arrays.toString(elements));
+
+        LOGGER.error("Unable to find any element from array: {}", Arrays.toString(elements));
         return false;
     }
 
@@ -344,9 +327,8 @@ public class DriverHelper {
     /**
      * return Any Present Element from the list which present during timeout sec
      *
-     * @param timeout long
-     * @param elements
-     *            ExtendedWebElement...
+     * @param timeout  long
+     * @param elements ExtendedWebElement...
      * @return ExtendedWebElement
      */
     public ExtendedWebElement returnAnyPresentElement(long timeout, ExtendedWebElement... elements) {
@@ -356,10 +338,10 @@ public class DriverHelper {
         if (timeout < 1)
             timeout = 1;
         while (index++ < counts) {
-            for (int i = 0; i < elements.length; i++) {
-                if (elements[i].isElementPresent(timeout)) {
-                    LOGGER.debug(elements[i].getNameWithLocator() + " is present");
-                    return elements[i];
+            for (ExtendedWebElement element : elements) {
+                if (element.isElementPresent(timeout)) {
+                    LOGGER.debug(element.getNameWithLocator() + " is present");
+                    return element;
                 }
             }
         }
@@ -370,10 +352,9 @@ public class DriverHelper {
 
     /**
      * Check that element with text present.
-     * 
+     *
      * @param extWebElement to check if element with text is present
-     * @param text
-     *            of element to check.
+     * @param text          of element to check.
      * @return element with text existence status.
      */
     public boolean isElementWithTextPresent(final ExtendedWebElement extWebElement, final String text) {
@@ -382,11 +363,10 @@ public class DriverHelper {
 
     /**
      * Check that element with text present.
-     * 
+     *
      * @param extWebElement to check if element with text is present
-     * @param text
-     *            of element to check.
-     * @param timeout Long
+     * @param text          of element to check.
+     * @param timeout       Long
      * @return element with text existence status.
      */
     public boolean isElementWithTextPresent(final ExtendedWebElement extWebElement, final String text, long timeout) {
@@ -397,7 +377,6 @@ public class DriverHelper {
      * Check that element not present on page.
      * 
      * @param extWebElement to check if element is not present
-     * 
      * @return element non-existence status.
      */
     public boolean isElementNotPresent(final ExtendedWebElement extWebElement) {
@@ -409,7 +388,6 @@ public class DriverHelper {
      * 
      * @param extWebElement to check if element is not present
      * @param timeout to wait
-     * 
      * @return element non-existence status.
      */
 
@@ -422,7 +400,6 @@ public class DriverHelper {
      * 
      * @param element to check if element is not present
      * @param controlInfo String
-     * 
      * @return element non-existence status.
      */
 
@@ -434,7 +411,6 @@ public class DriverHelper {
      * Clicks on element.
      * 
      * @param elements ExtendedWebElements to click
-     *
      */
 
     public void clickAny(ExtendedWebElement... elements) {
@@ -446,7 +422,6 @@ public class DriverHelper {
      * 
      * @param elements ExtendedWebElements to click
      * @param timeout to wait
-     *
      */
 
     public void clickAny(long timeout, ExtendedWebElement... elements) {
@@ -460,7 +435,7 @@ public class DriverHelper {
 
             for (ExtendedWebElement element : elements) {
                 List<WebElement> foundElements = drv.findElements(element.getBy());
-                if (foundElements.size() > 0) {
+                if (!foundElements.isEmpty()) {
                     possiblyFoundElement = foundElements.get(0);
                     break;
                 }
@@ -473,7 +448,7 @@ public class DriverHelper {
                 .execute();
 
         if (searchableElement.isEmpty()) {
-            throw new RuntimeException("Unable to click onto any elements from array: " + Arrays.toString(elements));
+            throw new RuntimeException(String.format("Unable to click onto any elements from array: %s", Arrays.toString(elements)));
         }
 
         searchableElement.get()
@@ -485,27 +460,19 @@ public class DriverHelper {
      * @return String
      */
     public String getPageSource() {
-        WebDriver drv = getDriver();
-
         Messager.GET_PAGE_SOURCE.info();
 
-        Wait<WebDriver> wait = new FluentWait<WebDriver>(drv)
+        Wait<WebDriver> wait = new FluentWait<>(getDriver())
                 .pollingEvery(Duration.ofMillis(5000)) // there is no sense to refresh url address too often
                 .withTimeout(Duration.ofSeconds(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT)))
                 .ignoring(WebDriverException.class)
                 .ignoring(JavascriptException.class); // org.openqa.selenium.JavascriptException: javascript error: Cannot read property 'outerHTML' of null
-
         String res = "";
         try {
-            res = wait.until(new Function<WebDriver, String>() {
-                public String apply(WebDriver driver) {
-                    return drv.getPageSource();
-                }
-            });
+            res = wait.until(WebDriver::getPageSource);
         } catch (ScriptTimeoutException | TimeoutException e) {
             Messager.FAIL_GET_PAGE_SOURCE.error();
         }
-
         Messager.GET_PAGE_SOURCE.info();
         return res;
     }
@@ -515,59 +482,48 @@ public class DriverHelper {
      * @param Cookie
      */
     public void addCookie(Cookie cookie) {
-        WebDriver drv = getDriver();
-
-        DriverListener.setMessages(Messager.ADD_COOKIE.getMessage(cookie.getName()), 
+        DriverListener.setMessages(Messager.ADD_COOKIE.getMessage(cookie.getName()),
                 Messager.FAIL_ADD_COOKIE.getMessage(cookie.getName()));
-
-        Wait<WebDriver> wait = new FluentWait<WebDriver>(drv)
+        Wait<WebDriver> wait = new FluentWait<>(getDriver())
                 .pollingEvery(Duration.ofMillis(Configuration.getInt(Parameter.RETRY_INTERVAL)))
                 .withTimeout(Duration.ofSeconds(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT)))
                 .ignoring(WebDriverException.class)
-                .ignoring(JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters rea
-
-        wait.until(new Function<WebDriver, Boolean>() {
-            public Boolean apply(WebDriver driver) {
-                drv.manage().addCookie(cookie);
-                return true;
-            }
+                .ignoring(
+                        JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters rea
+        wait.until(drv -> {
+            drv.manage().addCookie(cookie);
+            return true;
         });
     }
-    
+
     /**
      * Get a string representing the current URL that the browser is looking at.
+     *
      * @return url.
      */
     public String getCurrentUrl() {
         return getCurrentUrl(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
     }
-    
+
     /**
      * Get a string representing the current URL that the browser is looking at.
+     *
      * @param timeout long
      * @return validation result.
      */
     public String getCurrentUrl(long timeout) {
-        WebDriver drv = getDriver();
-        
         // explicitly limit time for the getCurrentUrl operation
-        Future<?> future = Executors.newSingleThreadExecutor().submit(new Callable<String>() {
-            public String call() throws Exception {
-                //organize fluent waiter for getting url
-                Wait<WebDriver> wait = new FluentWait<WebDriver>(drv)
-                        .pollingEvery(Duration.ofMillis(Configuration.getInt(Parameter.RETRY_INTERVAL)))
-                        .withTimeout(Duration.ofSeconds(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT)))
-                        .ignoring(WebDriverException.class)
-                        .ignoring(JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters rea
-
-                return wait.until(new Function<WebDriver, String>() {
-                    public String apply(WebDriver driver) {
-                        return drv.getCurrentUrl();
-                    }
-                });
-            }
+        Future<?> future = Executors.newSingleThreadExecutor().submit(() -> {
+            //organize fluent waiter for getting url
+            Wait<WebDriver> wait = new FluentWait<WebDriver>(getDriver())
+                    .pollingEvery(Duration.ofMillis(Configuration.getInt(Parameter.RETRY_INTERVAL)))
+                    .withTimeout(Duration.ofSeconds(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT)))
+                    .ignoring(WebDriverException.class)
+                    .ignoring(
+                            JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters rea
+            return wait.until(WebDriver::getCurrentUrl);
         });
-        
+
         String url = "";
         try {
             url = (String) future.get(timeout, TimeUnit.SECONDS);
@@ -581,15 +537,13 @@ public class DriverHelper {
         } catch (Exception e) {
             LOGGER.error("Undefined error on get driver url detected!", e);
         }
-        
         return url;
-    }    
+    }
 
     /**
      * Checks that current URL is as expected.
-     * 
-     * @param expectedURL
-     *            Expected Url
+     *
+     * @param expectedURL expected Url
      * @return validation result.
      */
     public boolean isUrlAsExpected(String expectedURL) {
@@ -598,51 +552,47 @@ public class DriverHelper {
 
     /**
      * Checks that current URL is as expected.
-     * 
-     * @param expectedURL
-     *            Expected Url
-     * @param timeout long
+     *
+     * @param expectedURL Expected Url
+     * @param timeout     long
      * @return validation result.
      */
     public boolean isUrlAsExpected(String expectedURL, long timeout) {
         String decryptedURL = decryptIfEncrypted(expectedURL);
         decryptedURL = getEnvArgURL(decryptedURL);
-        
         String actualUrl = getCurrentUrl(timeout);
-        
         if (LogicUtils.isURLEqual(decryptedURL, actualUrl)) {
             Messager.EXPECTED_URL.info(actualUrl);
             return true;
         } else {
             Messager.UNEXPECTED_URL.error(expectedURL, actualUrl);
             return false;
-        }        
+        }
     }
-    
-    
-	/**
-	 * Get full or relative URL considering Env argument
-	 * 
-	 * @param decryptedURL String
-	 * @return url
-	 */
-	private String getEnvArgURL(String decryptedURL) {
-		if (!(decryptedURL.contains("http:") || decryptedURL.contains("https:"))) {
-			if (Configuration.getEnvArg(Parameter.URL.getKey()).isEmpty()) {
-				decryptedURL = Configuration.get(Parameter.URL) + decryptedURL;
-			} else {
-				decryptedURL = Configuration.getEnvArg(Parameter.URL.getKey()) + decryptedURL;
-			}
-		}
-		return decryptedURL;
-	}
 
     /**
+     * Get full or relative URL considering Env argument
+     *
+     * @param decryptedURL String
+     * @return url
+     */
+    private String getEnvArgURL(String decryptedURL) {
+        if (!(decryptedURL.contains("http:") || decryptedURL.contains("https:"))) {
+            if (Configuration.getEnvArg(Parameter.URL.getKey()).isEmpty()) {
+                decryptedURL = Configuration.get(Parameter.URL) + decryptedURL;
+            } else {
+                decryptedURL = Configuration.getEnvArg(Parameter.URL.getKey()) + decryptedURL;
+            }
+        }
+        return decryptedURL;
+    }
+
+    /**
+     * Get clipboard text
      *
      * @return String saved in clipboard
      */
     public String getClipboardText() {
-        String clipboardText = "";
         try {
             LOGGER.debug("Trying to get clipboard from remote machine with hub...");
             String url = getSelenoidClipboardUrl(driver);
@@ -659,32 +609,35 @@ public class DriverHelper {
                 con.addRequestProperty("Authorization", basicAuthPayload);
             }
 
+            String clipboardText = "";
             int status = con.getResponseCode();
             if (200 <= status && status <= 299) {
                 BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
                 String inputLine;
-                StringBuffer content = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 while ((inputLine = br.readLine()) != null) {
-                    content.append(inputLine);
+                    sb.append(inputLine);
                 }
                 br.close();
-                clipboardText = content.toString();
+                clipboardText = sb.toString();
             } else {
                 LOGGER.debug("Trying to get clipboard from local java machine...");
                 clipboardText = (String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+
+            clipboardText = clipboardText.replace("\n", "");
+            LOGGER.info("Clipboard: {}", clipboardText);
+            return clipboardText;
+        } catch (Exception e) {
+            throw new RuntimeException("Error when try to get clipboard text.", e);
         }
-        clipboardText = clipboardText.replaceAll("\n", "");
-        LOGGER.info("Clipboard: " + clipboardText);
-        return clipboardText;
     }
 
     /**
      * Set text to clipboard
+     *
      * @param text text
-     * @return true if successfull, false otherwise
+     * @return true if successful, false otherwise
      */
     public boolean setClipboardText(String text) {
         boolean isSuccessful = false;
@@ -750,11 +703,9 @@ public class DriverHelper {
 
     /**
      * Pause for specified timeout.
-     * 
-     * @param timeout
-     *            in seconds.
+     *
+     * @param timeout in seconds.
      */
-
     public void pause(long timeout) {
         CommonUtils.pause(timeout);
     }
@@ -762,52 +713,41 @@ public class DriverHelper {
     public void pause(Double timeout) {
         CommonUtils.pause(timeout);
     }
-    
+
     /**
      * Return page title.
-     * 
+     *
      * @return title String.
      */
     public String getTitle() {
         return getTitle(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
     }
-    
+
     /**
      * Return page title.
-     * 
+     *
      * @param timeout long
      * @return title String.
      */
     public String getTitle(long timeout) {
-        
-        WebDriver drv = getDriver();
-
-        Wait<WebDriver> wait = new FluentWait<WebDriver>(drv)
+        Wait<WebDriver> wait = new FluentWait<>(getDriver())
                 .pollingEvery(Duration.ofMillis(RETRY_TIME))
                 .withTimeout(Duration.ofSeconds(timeout))
                 .ignoring(WebDriverException.class)
                 .ignoring(JavascriptException.class); // org.openqa.selenium.JavascriptException: javascript error: Cannot read property 'outerHTML' of null
-
         String res = "";
         try {
-            res = wait.until(new Function<WebDriver, String>() {
-                public String apply(WebDriver driver) {
-                    return drv.getTitle();
-                }
-            });
+            res = wait.until(WebDriver::getTitle);
         } catch (ScriptTimeoutException | TimeoutException e) {
             Messager.FAIL_GET_TITLE.error();
         }
-
         return res;
-
-    }    
+    }
 
     /**
      * Checks that page title is as expected.
-     * 
-     * @param expectedTitle
-     *            Expected title
+     *
+     * @param expectedTitle expected title
      * @return validation result.
      */
     public boolean isTitleAsExpected(final String expectedTitle) {
@@ -819,20 +759,17 @@ public class DriverHelper {
         } else {
             Messager.TITLE_NOT_CORRECT.error(expectedTitle, title);
         }
-        
         return result;
     }
 
     /**
      * Checks that page suites to expected pattern.
-     * 
-     * @param expectedPattern
-     *            Expected Pattern
+     *
+     * @param expectedPattern Expected Pattern
      * @return validation result.
      */
     public boolean isTitleAsExpectedPattern(String expectedPattern) {
         final String decryptedExpectedPattern = decryptIfEncrypted(expectedPattern);
-        
         String actual = getTitle(EXPLICIT_TIMEOUT);
         Pattern p = Pattern.compile(decryptedExpectedPattern);
         Matcher m = p.matcher(actual);
@@ -842,7 +779,6 @@ public class DriverHelper {
         } else {
             Messager.TITLE_NOT_CORRECT.error(expectedPattern, actual);   
         }
-        
         return result;
     }
 
@@ -863,28 +799,23 @@ public class DriverHelper {
 
     /**
      * Refresh browser.
-     * 
+     *
      * @param timeout long
      */
     public void refresh(long timeout) {
-        WebDriver drv = getDriver();
-        Wait<WebDriver> wait = new FluentWait<WebDriver>(drv)
+        Wait<WebDriver> wait = new FluentWait<>(getDriver())
                 .pollingEvery(Duration.ofMillis(5000)) // there is no sense to refresh url address too often
                 .withTimeout(Duration.ofSeconds(timeout))
                 .ignoring(WebDriverException.class)
                 .ignoring(JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters read
-        
         try {
-            wait.until(new Function<WebDriver, Void>() {
-                public Void apply(WebDriver driver) {
-                    drv.navigate().refresh();
-                    return null;
-                }
+            wait.until((Function<WebDriver, Void>) drv -> {
+                drv.navigate().refresh();
+                return null;
             });
         } catch (ScriptTimeoutException | TimeoutException e) {
             Messager.FAIL_REFRESH.error();
         }
-
         Messager.REFRESH.info();
     }
 
@@ -893,14 +824,11 @@ public class DriverHelper {
         builder.sendKeys(Keys.TAB).perform();
     }
 
-
     /**
      * Drags and drops element to specified place.
-     * 
-     * @param from
-     *            - element to drag.
-     * @param to
-     *            - element to drop to.
+     *
+     * @param from element to drag.
+     * @param to   element to drop to.
      */
     public void dragAndDrop(final ExtendedWebElement from, final ExtendedWebElement to) {
 
@@ -912,17 +840,16 @@ public class DriverHelper {
                         .release(to.getElement()).build();
                 dragAndDrop.perform();
             } else {
-                WebElement LocatorFrom = from.getElement();
-                WebElement LocatorTo = to.getElement();
-                String xto = Integer.toString(LocatorTo.getLocation().x);
-                String yto = Integer.toString(LocatorTo.getLocation().y);
+                WebElement locatorfrom = from.getElement();
+                WebElement locatorTo = to.getElement();
+                String xto = Integer.toString(locatorTo.getLocation().x);
+                String yto = Integer.toString(locatorTo.getLocation().y);
                 ((JavascriptExecutor) driver)
                         .executeScript(
                                 "function simulate(f,c,d,e){var b,a=null;for(b in eventMatchers)if(eventMatchers[b].test(c)){a=b;break}if(!a)return!1;document.createEvent?(b=document.createEvent(a),a==\"HTMLEvents\"?b.initEvent(c,!0,!0):b.initMouseEvent(c,!0,!0,document.defaultView,0,d,e,d,e,!1,!1,!1,!1,0,null),f.dispatchEvent(b)):(a=document.createEventObject(),a.detail=0,a.screenX=d,a.screenY=e,a.clientX=d,a.clientY=e,a.ctrlKey=!1,a.altKey=!1,a.shiftKey=!1,a.metaKey=!1,a.button=1,f.fireEvent(\"on\"+c,a));return!0} var eventMatchers={HTMLEvents:/^(?:load|unload|abort|error|select|change|submit|reset|focus|blur|resize|scroll)$/,MouseEvents:/^(?:click|dblclick|mouse(?:down|up|over|move|out))$/}; "
                                         + "simulate(arguments[0],\"mousedown\",0,0); simulate(arguments[0],\"mousemove\",arguments[1],arguments[2]); simulate(arguments[0],\"mouseup\",arguments[1],arguments[2]); ",
-                                LocatorFrom, xto, yto);
+                                locatorfrom, xto, yto);
             }
-
             Messager.ELEMENTS_DRAGGED_AND_DROPPED.info(from.getName(), to.getName());
         } else {
             Messager.ELEMENTS_NOT_DRAGGED_AND_DROPPED.error(from.getNameWithLocator(), to.getNameWithLocator());
@@ -932,25 +859,44 @@ public class DriverHelper {
     /**
      * Drags and drops element to specified place. Elements Need To have an id.
      *
-     * @param from
-     *            - the element to drag.
-     * @param to
-     *            - the element to drop to.
+     * @param from the element to drag.
+     * @param to   the element to drop to.
      */
     public void dragAndDropHtml5(final ExtendedWebElement from, final ExtendedWebElement to) {
-        String source = "#" + from.getAttribute("id");
-        String target = "#" + to.getAttribute("id");
+        String source = from.getAttribute("id");
+        String target = to.getAttribute("id");
         if (source.isEmpty() || target.isEmpty()) {
             Messager.ELEMENTS_NOT_DRAGGED_AND_DROPPED.error(from.getNameWithLocator(), to.getNameWithLocator());
         } else {
-            jQuerify(driver);
-            String javaScript = "(function( $ ) {        $.fn.simulateDragDrop = function(options) {                return this.each(function() {                        new $.simulateDragDrop(this, options);                });        };        $.simulateDragDrop = function(elem, options) {                this.options = options;                this.simulateEvent(elem, options);        };        $.extend($.simulateDragDrop.prototype, {                simulateEvent: function(elem, options) {                        /*Simulating drag start*/                        var type = 'dragstart';                        var event = this.createEvent(type);                        this.dispatchEvent(elem, type, event);                        /*Simulating drop*/                        type = 'drop';                        var dropEvent = this.createEvent(type, {});                        dropEvent.dataTransfer = event.dataTransfer;                        this.dispatchEvent($(options.dropTarget)[0], type, dropEvent);                        /*Simulating drag end*/                        type = 'dragend';                        var dragEndEvent = this.createEvent(type, {});                        dragEndEvent.dataTransfer = event.dataTransfer;                        this.dispatchEvent(elem, type, dragEndEvent);                },                createEvent: function(type) {                        var event = document.createEvent(\"CustomEvent\");                        event.initCustomEvent(type, true, true, null);                        event.dataTransfer = {                                data: {                                },                                setData: function(type, val){                                        this.data[type] = val;                                },                                getData: function(type){                                        return this.data[type];                                }                        };                        return event;                },                dispatchEvent: function(elem, type, event) {                        if(elem.dispatchEvent) {                                elem.dispatchEvent(event);                        }else if( elem.fireEvent ) {                                elem.fireEvent(\"on\"+type, event);                        }                }        });})(jQuery);";;
-            ((JavascriptExecutor)driver)
-                    .executeScript(javaScript + "$('" + source + "')" +
-                            ".simulateDragDrop({ dropTarget: '" + target + "'});");
+            jQuerify(getDriver());
+            String javaScript = "(function( $ ) {        $.fn.simulateDragDrop = function(options) { return this.each(function() {  "
+                    + " new $.simulateDragDrop(this, options); }); };  $.simulateDragDrop = function(elem, options) { "
+                    + " this.options = options;  this.simulateEvent(elem, options); };  "
+                    + " $.extend($.simulateDragDrop.prototype, {  simulateEvent: function(elem, options) {   "
+                    + " /*Simulating drag start*/  var type = 'dragstart';  "
+                    + " var event = this.createEvent(type); this.dispatchEvent(elem, type, event);  "
+                    + "  /*Simulating drop*/    type = 'drop';  "
+                    + "var dropEvent = this.createEvent(type, {}); "
+                    + "dropEvent.dataTransfer = event.dataTransfer;  "
+                    + "this.dispatchEvent($(options.dropTarget)[0], type, dropEvent);  "
+                    + " /*Simulating drag end*/       type = 'dragend'; "
+                    + "  var dragEndEvent = this.createEvent(type, {}); "
+                    + " dragEndEvent.dataTransfer = event.dataTransfer; "
+                    + " this.dispatchEvent(elem, type, dragEndEvent);   }, "
+                    + " createEvent: function(type) {   var event = document.createEvent(\"CustomEvent\"); "
+                    + "  event.initCustomEvent(type, true, true, null);   event.dataTransfer = {  "
+                    + " data: {    },  setData: function(type, val){  "
+                    + " this.data[type] = val; }, "
+                    + "  getData: function(type){   return this.data[type];   } "
+                    + "   };   return event;  },               "
+                    + " dispatchEvent: function(elem, type, event) {  if(elem.dispatchEvent) { "
+                    + "    elem.dispatchEvent(event);  }else if( elem.fireEvent ) {  "
+                    + "  elem.fireEvent(\"on\"+type, event);  }  }  });})(jQuery);";
+
+            ((JavascriptExecutor) driver).executeScript(javaScript + "$('#" + source + "')" +
+                    ".simulateDragDrop({ dropTarget: '#" + target + "'});");
             Messager.ELEMENTS_DRAGGED_AND_DROPPED.info(from.getName(), to.getName());
         }
-
     }
 
     private static void jQuerify(WebDriver driver) {
@@ -978,21 +924,17 @@ public class DriverHelper {
                 "        callback();\n" +
                 "    }\n" +
                 "})(arguments[0], arguments[arguments.length - 1]);";
-        driver.manage().timeouts().setScriptTimeout(10, TimeUnit.SECONDS);
+        driver.manage().timeouts().scriptTimeout(Duration.ofSeconds(10));
         JavascriptExecutor js = (JavascriptExecutor) driver;
         js.executeAsyncScript(jQueryLoader);
     }
 
-
     /**
      * Performs slider move for specified offset.
-     * 
-     * @param slider
-     *            slider
-     * @param moveX
-     *            move x
-     * @param moveY
-     *            move y
+     *
+     * @param slider slider
+     * @param moveX  move x
+     * @param moveY  move y
      */
     public void slide(ExtendedWebElement slider, int moveX, int moveY) {
     	//TODO: SZ migrate to FluentWaits
@@ -1048,7 +990,7 @@ public class DriverHelper {
         try {
             getDriver().switchTo().alert();
             return true;
-        } catch (NoAlertPresentException Ex) {
+        } catch (NoAlertPresentException e) {
             return false;
         }
     }
@@ -1062,34 +1004,29 @@ public class DriverHelper {
 
     public boolean isPageOpened(final AbstractPage page, long timeout) {
         boolean result;
-        final WebDriver drv = getDriver();
-
         long retryInterval = getRetryInterval(timeout);
-        Wait<WebDriver> wait = new WebDriverWait(drv, Duration.ofSeconds(timeout), Duration.ofMillis(retryInterval));
+        Wait<WebDriver> wait = new WebDriverWait(getDriver(), Duration.ofSeconds(timeout), Duration.ofMillis(retryInterval));
         try {
-            wait.until((Function<WebDriver, Object>) dr -> LogicUtils.isURLEqual(page.getPageURL(), drv.getCurrentUrl()));
+            wait.until((Function<WebDriver, Object>) dr -> LogicUtils.isURLEqual(page.getPageURL(), dr.getCurrentUrl()));
             result = true;
         } catch (Exception e) {
             result = false;
         }
         if (!result) {
-            LOGGER.warn(String.format("Actual URL differs from expected one. Expected '%s' but found '%s'",
-                    page.getPageURL(), drv.getCurrentUrl()));
+            LOGGER.warn("Actual URL differs from expected one. Expected '{}' but found '{}'",
+                    page.getPageURL(), getDriver().getCurrentUrl());
         }
         return result;
     }
 
     /**
      * Executes a script on an element
-     * 
+     * <p>
      * Really should only be used when the web driver is sucking at exposing
      * functionality natively
-     * 
-     * @param script
-     *            The script to execute
-     * @param element
-     *            The target of the script, referenced as arguments[0]
-     *            
+     *
+     * @param script  The script to execute
+     * @param element The target of the script, referenced as arguments[0]
      * @return Object
      */
     public Object trigger(String script, WebElement element) {
@@ -1097,14 +1034,12 @@ public class DriverHelper {
     }
 
     /**
-     * Executes a script
-     * 
+     * Executes a script.
+     * <p>
      * Really should only be used when the web driver is sucking at exposing
-     * functionality natively
-     * 
-     * @param script
-     *            The script to execute
-     * 
+     * functionality natively.
+     *
+     * @param script The script to execute
      * @return Object
      */
     public Object trigger(String script) {
@@ -1113,11 +1048,9 @@ public class DriverHelper {
 
     /**
      * Opens a new tab for the given URL
-     * 
-     * @param url
-     *            The URL to
-     * @throws RuntimeException
-     *             If unable to open tab
+     *
+     * @param url The URL to
+     * @throws RuntimeException If unable to open tab
      */
     public void openTab(String url) {
         final String decryptedURL = decryptIfEncrypted(url);
@@ -1132,7 +1065,7 @@ public class DriverHelper {
         }
     }
 
-    public void switchWindow() throws NoSuchWindowException {
+    public void switchWindow() {
         WebDriver drv = getDriver();
         Set<String> handles = drv.getWindowHandles();
         String current = drv.getWindowHandle();
@@ -1215,7 +1148,6 @@ public class DriverHelper {
             Messager.ELEMENT_NOT_FOUND.error(name);
             return null;
         }
-
         return new ExtendedWebElement(by, name, getDriver(), getDriver());
     }
 
@@ -1273,57 +1205,57 @@ public class DriverHelper {
     public WebDriver getDriver() {
         if (driver == null) {
             long currentThreadId = Thread.currentThread().getId();
-            LOGGER.error("There is no any initialized driver for thread: " + currentThreadId);
+            LOGGER.error("There is no any initialized driver for thread: {}", currentThreadId);
             throw new RuntimeException("Driver isn't initialized.");
         }
         return driver;
     }
-    
+
     /**
      * Wait until any condition happens.
      *
-     * @param condition - ExpectedCondition.
-     * @param timeout - timeout.
-     * @return true if condition happen.
+     * @param condition ExpectedCondition
+     * @param timeout   timeout
+     * @return true if condition happen
      */
 	public boolean waitUntil(ExpectedCondition<?> condition, long timeout) {
-		boolean result;
+        boolean result;
         long startMillis = 0;
-		final WebDriver drv = getDriver();
+        final WebDriver drv = getDriver();
         long retryInterval = getRetryInterval(timeout);
         Wait<WebDriver> wait = new WebDriverWait(drv, Duration.ofSeconds(timeout), Duration.ofMillis(retryInterval));
-		try {
-		    startMillis = System.currentTimeMillis();
-			wait.until(condition);
-			result = true;
-			LOGGER.debug("waitUntil: finished true...");
-		} catch (NoSuchElementException | TimeoutException e) {
-			// don't write exception even in debug mode
-			LOGGER.debug("waitUntil: NoSuchElementException | TimeoutException e..." + condition.toString());
-			result = false;
-		} catch (Exception e) {
-			LOGGER.error("waitUntil: " + condition.toString(), e);
-			result = false;
-		} finally {
-		    long timePassed = System.currentTimeMillis() - startMillis;
-		    // timePassed is time in ms timeout in sec so we have to adjust
+        try {
+            startMillis = System.currentTimeMillis();
+            wait.until(condition);
+            result = true;
+            LOGGER.debug("waitUntil: finished true...");
+        } catch (NoSuchElementException | TimeoutException e) {
+            // don't write exception even in debug mode
+            LOGGER.debug("waitUntil: NoSuchElementException | TimeoutException e... {}", condition.toString());
+            result = false;
+        } catch (Exception e) {
+            LOGGER.error("waitUntil: " + condition.toString(), e);
+            result = false;
+        } finally {
+            long timePassed = System.currentTimeMillis() - startMillis;
+            // timePassed is time in ms timeout in sec so we have to adjust
             if (timePassed > 2 * timeout * 1000) {
-                LOGGER.error("Your retry_interval is too low: " + RETRY_TIME + " ms! Increase it or upgrade your hardware");
+                LOGGER.error("Your retry_interval is too low: {} ms! Increase it or upgrade your hardware", RETRY_TIME);
             }
         }
-		return result;
-	}
-	
-	//TODO: uncomment javadoc when T could be described correctly
-	/*
-	 * Method to handle SocketException due to okhttp factory initialization (java client 6.*).
-	 * Second execution of the same function works as expected.
-	 *  
-	 * @param T The expected class of the supplier.
-	 * @param supplier Object 
-	 * @return result Object 
-	 */
-	public <T> T performIgnoreException(Supplier<T> supplier) {
+        return result;
+    }
+
+    //TODO: uncomment javadoc when T could be described correctly
+    /*
+     * Method to handle SocketException due to okhttp factory initialization (java client 6.*).
+     * Second execution of the same function works as expected.
+     *
+     * @param T The expected class of the supplier.
+     * @param supplier Object
+     * @return result Object
+     */
+    public <T> T performIgnoreException(Supplier<T> supplier) {
         try {
             LOGGER.debug("Command will be performed with the exception ignoring");
             return supplier.get();
@@ -1332,12 +1264,11 @@ public class DriverHelper {
             LOGGER.info(supplier.toString());
             return supplier.get();
         }
-        
     }
-	
+
     private String getUrl() {
         String url = "";
-        if (Configuration.getEnvArg(Parameter.URL.getKey()).isEmpty()) {
+        if (Configuration.isNull(Parameter.ENV) || Configuration.getEnvArg(Parameter.URL.getKey()).isEmpty()) {
             url = Configuration.get(Parameter.URL);
         } else {
             url = Configuration.getEnvArg(Parameter.URL.getKey());
@@ -1354,7 +1285,6 @@ public class DriverHelper {
         } catch (WebDriverException e) {
             LOGGER.debug("Appium: Not implemented yet for pageLoad timeout!", e);
         }
-
     }
 
     private long getPageLoadTimeout() {

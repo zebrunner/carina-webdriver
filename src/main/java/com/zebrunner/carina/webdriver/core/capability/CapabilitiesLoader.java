@@ -15,17 +15,21 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.capability;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.Assert;
 
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
@@ -54,12 +58,11 @@ public class CapabilitiesLoader {
      * {@code capabilities.<name>=<value> will be attached to each WebDriver capabilities
      * <name>=<value> will override appropriate configuration parameter by new <value>}
      *
-     * @param fileName
-     *            String path to the properties file with custom capabilities and properties
+     * @param fileName path to the properties file with custom capabilities and properties
      * @param currentTestOnly boolean
      */
     public void loadCapabilities(String fileName, boolean currentTestOnly) {
-        LOGGER.info("Loading capabilities to global context from " + fileName);
+        LOGGER.info("Loading capabilities to global context from {}", fileName);
         Properties props = loadProperties(fileName);
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -67,7 +70,7 @@ public class CapabilitiesLoader {
         for (Map.Entry<String, String> entry : capabilitiesMap.entrySet()) {
             String value = entry.getValue();
             String key = entry.getKey();
-            LOGGER.info("Set custom property: " + key + "; value: " + value);
+            LOGGER.info("Set custom property: {}; value: {}", key, value);
             // add each property directly into CONFIG
             R.CONFIG.put(key, value, currentTestOnly);
         }
@@ -85,11 +88,10 @@ public class CapabilitiesLoader {
             String key = cap.getKey();
             // so far only primitive String, integer and boolean are supported from Zebrunner Launcher
             String value = cap.getValue().toString();
-            LOGGER.info("Set custom property: " + key + "; value: " + value);
+            LOGGER.info("Set custom property: {}; value: {}", key, value);
             // add each property directly into CONFIG
             R.CONFIG.put(SpecialKeywords.CAPABILITIES + "." + key, value);
         }
-
         return (MutableCapabilities) caps;
     }
 
@@ -97,56 +99,33 @@ public class CapabilitiesLoader {
      * Generate MutableCapabilities from external file.
      * Only "capabilities.name=value" will be added to the response.
      *
-     * @param fileName String path to the properties file with custom capabilities
-     *
-     * @return capabilities MutableCapabilities
+     * @param fileName path to the properties file with custom capabilities
+     * @return capabilities see {@link MutableCapabilities}
+     * @throws UncheckedIOException FileNotFoundException if the file is not found
+     * @throws RuntimeException     if an error occurred while loading capabilities from a file
      */
     public MutableCapabilities getCapabilities(String fileName) {
-        MutableCapabilities capabilities = new MutableCapabilities();
-
-        LOGGER.info("Generating capabilities from " + fileName);
+        MutableCapabilities options = new MutableCapabilities();
+        LOGGER.info("Generating capabilities from '{}'", fileName);
         Properties props = loadProperties(fileName);
-
-        final String prefix = SpecialKeywords.CAPABILITIES + ".";
-
-        @SuppressWarnings({ "rawtypes", "unchecked" })
-        Map<String, String> capabilitiesMap = new HashMap(props);
-        for (Map.Entry<String, String> entry : capabilitiesMap.entrySet()) {
-            if (entry.getKey().toLowerCase().startsWith(prefix)) {
-                String value = entry.getValue();
-                if (!value.isEmpty()) {
-                    String cap = entry.getKey().replaceAll(prefix, "");
-                    if ("false".equalsIgnoreCase(value)) {
-                        LOGGER.debug("Set capabilities value as boolean: false");
-                        capabilities.setCapability(cap, false);
-                    } else if ("true".equalsIgnoreCase(value)) {
-                        LOGGER.debug("Set capabilities value as boolean: true");
-                        capabilities.setCapability(cap, true);
-                    } else {
-                        LOGGER.debug("Set capabilities value as string: " + value);
-                        capabilities.setCapability(cap, value);
-                    }
-                }
-            }
-        }
-
-        return capabilities;
+        AbstractCapabilities.addPropertiesCapabilities(options, props);
+        return options;
     }
 
     private Properties loadProperties(String fileName) {
-        Properties props = new Properties();
-        URL baseResource = ClassLoader.getSystemResource(fileName);
-        try {
-            if (baseResource != null) {
-                props.load(baseResource.openStream());
-                LOGGER.info("Custom capabilities properties loaded: " + fileName);
-            } else {
-                Assert.fail("Unable to find custom capabilities file '" + fileName + "'!");
-            }
-        } catch (Exception e) {
-            Assert.fail("Unable to load custom capabilities from '" + baseResource.getPath() + "'!", e);
+        Properties properties = new Properties();
+        URL resource = ClassLoader.getSystemResource(fileName);
+        if (Objects.isNull(resource)) {
+            throw new UncheckedIOException(
+                    new FileNotFoundException(String.format("Unable to find custom capabilities file '%s'.", fileName))
+            );
         }
-
-        return props;
+        try (InputStream istream = resource.openStream()) {
+            properties.load(istream);
+            LOGGER.info("Custom capabilities properties loaded: '{}'", fileName);
+        } catch (IOException e) {
+            throw new UncheckedIOException(String.format("Unable to load custom capabilities from '%s'.", resource.getPath()), e);
+        }
+        return properties;
     }
 }

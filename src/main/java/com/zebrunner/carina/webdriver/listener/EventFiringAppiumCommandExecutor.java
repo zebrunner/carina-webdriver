@@ -160,7 +160,7 @@ public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
         }
 
         ProtocolHandshake.Result result = new AppiumProtocolHandshake().createSession(
-                getClient().with((httpHandler) -> (req) -> {
+                getClient().with(httpHandler -> req -> {
                     req.setHeader(IDEMPOTENCY_KEY_HEADER, UUID.randomUUID().toString().toLowerCase());
                     return httpHandler.execute(req);
                 }), command);
@@ -201,7 +201,6 @@ public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
                     if (service.isRunning()) {
                         return new WebDriverException("The session is closed!", rootCause);
                     }
-
                     return new WebDriverException("The appium server has accidentally died!", rootCause);
                 }).orElseGet((Supplier<WebDriverException>) () -> new WebDriverException(rootCause.getMessage(), rootCause));
             }
@@ -215,4 +214,3 @@ public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
         }
     }
 }
-

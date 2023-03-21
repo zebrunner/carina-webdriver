@@ -40,7 +40,7 @@ import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 
 public class LocatingListHandler implements InvocationHandler {
     private final ElementLocator locator;
-    private String name;
+    private final String name;
     private final ClassLoader loader;
 
     public LocatingListHandler(ClassLoader loader, ElementLocator locator, Field field){
@@ -76,7 +76,7 @@ public class LocatingListHandler implements InvocationHandler {
         List<ExtendedWebElement> extendedWebElements = null;
         int i = 0;
         if (elements != null) {
-            extendedWebElements = new ArrayList<ExtendedWebElement>();
+            extendedWebElements = new ArrayList<>();
             for (WebElement element : elements) {
                 InvocationHandler handler = new LocatingListsElementHandler(element, locator);
                 WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,

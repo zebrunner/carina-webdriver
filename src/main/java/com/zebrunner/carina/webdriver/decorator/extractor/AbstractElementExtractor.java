@@ -55,7 +55,7 @@ public abstract class AbstractElementExtractor {
      * @return int
      */
     public int isLower(Rectangle rect, int y) {
-        LOGGER.debug(String.format("isLower(): Rectangle: x - %d. y - %d. Width: %d, height: %d", rect.x, rect.y, rect.width, rect.height));
+        LOGGER.debug("isLower(): Rectangle: x - {}. y - {}. Width: {}, height: {}", rect.x, rect.y, rect.width, rect.height);
         if (y > rect.y + rect.height) {
             return 1;
         } else if (y < rect.y) {
@@ -83,5 +83,4 @@ public abstract class AbstractElementExtractor {
         }
         return new ExtendedWebElement(elements.get(0), name);
     }
-
 }

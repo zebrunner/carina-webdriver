@@ -39,35 +39,26 @@ import io.appium.java_client.AppiumBy;
 public class NotificationPage extends MobileAbstractPage implements IAndroidUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
-    public NotificationPage(WebDriver driver) {
-        super(driver);
-        notificationService = AndroidService.getInstance();
-    }
-
-    private AndroidService notificationService;
-
-    protected static final By NOTIFICATION_XPATH = By
-            .xpath("//*[@resource-id = 'com.android.systemui:id/"
-                    + "notification_stack_scroller']/android.widget.FrameLayout");
+    private final AndroidService notificationService;
+    private static final String ITEM_TEXT_TABLET_LOCATOR_TEXT = "android:id/big_text";
 
     @FindBy(xpath = "//*[@resource-id = 'com.android.systemui:id/notification_stack_scroller' or @resource-id = 'com.android.systemui:id/latestItems']")
-    protected ExtendedWebElement title;
+    private ExtendedWebElement title;
 
     @FindBy(xpath = "//*[@resource-id = 'com.android.systemui:id/notification_stack_scroller']")
-    protected ExtendedWebElement notification_scroller;
+    private ExtendedWebElement notificationScroller;
 
     @FindBy(xpath = "//*[@resource-id = 'com.android.systemui:id/"
             + "notification_stack_scroller' or @resource-id = 'com.android.systemui:id/latestItems']/*")
-    protected List<ExtendedWebElement> notifications;
+    private List<ExtendedWebElement> notifications;
 
     @FindBy(xpath = "//*[@resource-id = 'android:id/status_bar_latest_event_content']/*")
-    protected List<ExtendedWebElement> notificationsOtherDevices;
+    private List<ExtendedWebElement> notificationsOtherDevices;
 
     @FindBy(xpath = "//*[@resource-id='com.android.systemui:id/clear_all' " +
             "or @resource-id='com.android.systemui:id/clear_all_button' " +
             "or @resource-id='com.android.systemui:id/dismiss_text']")
-    protected ExtendedWebElement dismissBtn;
+    private ExtendedWebElement dismissBtn;
 
     // Found stable solution
     @FindBy(id = "com.android.systemui:id/notification_panel")
@@ -88,8 +79,6 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
     @FindBy(id = "android:id/title")
     private List<ExtendedWebElement> itemTitle;
 
-    String itemTitle_Locator_Text = "android:id/title";
-
     @FindAll({
             @FindBy(id = "android:id/big_text"),
             @FindBy(id = "android:id/text")
@@ -99,10 +88,13 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
     @FindBy(xpath = "//*[@text='%s']")
     private ExtendedWebElement textItem;
 
-    String itemText_Phone_Locator_Text = "android:id/text";
-    String itemText_Tablet_Locator_Text = "android:id/big_text";
     @FindBy(id = "android:id/time")
     private List<ExtendedWebElement> itemTime;
+
+    public NotificationPage(WebDriver driver) {
+        super(driver);
+        notificationService = AndroidService.getInstance();
+    }
 
     /**
      * isNativeNotificationPage
@@ -143,9 +135,9 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
      */
     public String getItemTitle(int num) {
         try {
-            return lastItemsContent.get(num).findExtendedWebElement(By.id(itemTitle_Locator_Text)).getText();
+            return lastItemsContent.get(num).findExtendedWebElement(By.id("android:id/title")).getText();
         } catch (Exception e) {
-            LOGGER.info("Can't get notification title. Exception: " + e);
+            LOGGER.info("Can't get notification title.", e);
             return "";
         }
     }
@@ -158,13 +150,13 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
      */
     public String getItemText(int num) {
         try {
-            LOGGER.info("Visible text:" + lastItemsContent.get(num).findExtendedWebElements(AppiumBy.className("android.widget.TextView")).size());
+            LOGGER.info("Visible text:{}", lastItemsContent.get(num).findExtendedWebElements(AppiumBy.className("android.widget.TextView")).size());
             if (IDriverPool.getDefaultDevice().getDeviceType() == DeviceType.Type.ANDROID_TABLET) {
                 try {
-                    if (lastItemsContent.get(num).findExtendedWebElement(AppiumBy.id(itemText_Tablet_Locator_Text)).isElementNotPresent(1)) {
-                        return lastItemsContent.get(num).findExtendedWebElement(AppiumBy.id(itemText_Phone_Locator_Text)).getText();
+                    if (lastItemsContent.get(num).findExtendedWebElement(AppiumBy.id(ITEM_TEXT_TABLET_LOCATOR_TEXT)).isElementNotPresent(1)) {
+                        return lastItemsContent.get(num).findExtendedWebElement(AppiumBy.id("android:id/text")).getText();
                     } else {
-                        return lastItemsContent.get(num).findExtendedWebElement(AppiumBy.id(itemText_Tablet_Locator_Text)).getText();
+                        return lastItemsContent.get(num).findExtendedWebElement(AppiumBy.id(ITEM_TEXT_TABLET_LOCATOR_TEXT)).getText();
                     }
                 } catch (Exception err) {
                     LOGGER.error("Issue for getting notifications on Tablet.", err);
@@ -183,28 +175,16 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
         clearAllBtn.get(0).click();
     }
 
-    /*
-     * public MessagesPage tapLastItemsContent(int num) {
-     * tapElement(lastItemsContainer.get(num));
-     * return new MessagesPage(driver);
-     * }
-     * 
-     * public MessagesPage tapItemTitle(int num) {
-     * tapElement(lastItemsContent.get(num));
-     * return new MessagesPage(driver);
-     * }
-     */
-
     /**
      * clearNotifications
      */
     public void clearNotifications() {
         if (!isOpened(1)) {
-            notificationService.expandStatusBar();
+            notificationService.openStatusBar();
         }
 
         try{
-            swipe(dismissBtn, notification_scroller);
+            swipe(dismissBtn, notificationScroller);
             if(dismissBtn.getAttribute("enabled").equals("true")) {
                 LOGGER.info("Clicking 'Dismiss All Notifications' button...");
                 dismissBtn.click();
@@ -230,15 +210,14 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
      * @return List of Notification
      */
     public List<Notification> getAllAvailableNotifications() {
-        List<Notification> list = notificationService.getNotifications();
-        return list;
+        return notificationService.getNotifications();
     }
 
     /**
      * collapseStatusBar
      */
     public void collapseStatusBar() {
-        notificationService.collapseStatusBar();
+        notificationService.closeStatusBar();
     }
 
     /**
@@ -247,7 +226,7 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
      * @return boolean
      */
     public boolean isStatusBarExpanded() {
-        notificationService.expandStatusBar();
+        notificationService.openStatusBar();
         return isOpened(DELAY);
     }
 
@@ -262,7 +241,6 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
      * @param timeout long
      * @return boolean
      */
-
     public boolean isOpened(long timeout) {
         return title.isElementPresent(timeout);
     }
@@ -271,5 +249,4 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
     public boolean isOpened() {
         return isOpened(DriverHelper.EXPLICIT_TIMEOUT);
     }
-
 }

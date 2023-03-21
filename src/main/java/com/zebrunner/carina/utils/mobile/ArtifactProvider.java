@@ -26,7 +26,9 @@ import com.zebrunner.carina.commons.artifact.IArtifactManager;
 import com.zebrunner.carina.commons.artifact.IArtifactManagerFactory;
 
 public final class ArtifactProvider implements IArtifactManager {
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final String ARTIFACT_MANAGER_NOT_FOUND_ERROR = "Cannot find suitable artifact manager for url: %s";
     private static IArtifactManager instance;
     private final List<IArtifactManagerFactory> artifactManagerFactories = new ArrayList<>();
 
@@ -74,7 +76,7 @@ public final class ArtifactProvider implements IArtifactManager {
         IArtifactManagerFactory manager = artifactManagerFactories.stream()
                 .filter(entity -> entity.isSuitable(from))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(String.format("Cannot find suitable artifact manager for url: %s", from)));
+                .orElseThrow(() -> new RuntimeException(String.format(ARTIFACT_MANAGER_NOT_FOUND_ERROR, from)));
         return manager.getInstance().download(from, to);
     }
 
@@ -83,7 +85,7 @@ public final class ArtifactProvider implements IArtifactManager {
         IArtifactManagerFactory manager = artifactManagerFactories.stream()
                 .filter(entity -> entity.isSuitable(to))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(String.format("Cannot find suitable artifact manager for url: %s", to)));
+                .orElseThrow(() -> new RuntimeException(String.format(ARTIFACT_MANAGER_NOT_FOUND_ERROR, to)));
         return manager.getInstance().put(from, to);
     }
 
@@ -92,7 +94,7 @@ public final class ArtifactProvider implements IArtifactManager {
         IArtifactManagerFactory manager = artifactManagerFactories.stream()
                 .filter(entity -> entity.isSuitable(url))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(String.format("Cannot find suitable artifact manager for url: %s", url)));
+                .orElseThrow(() -> new RuntimeException(String.format(ARTIFACT_MANAGER_NOT_FOUND_ERROR, url)));
         return manager.getInstance().delete(url);
     }
 
@@ -104,7 +106,6 @@ public final class ArtifactProvider implements IArtifactManager {
         if (manager.isEmpty()) {
             LOGGER.debug("Cannot find artifact manager to get direct link: '{}', so it will return as is", url);
         }
-
         return manager.isEmpty() ? url
                 : manager.get()
                         .getInstance()

@@ -39,6 +39,7 @@ import com.zebrunner.carina.utils.commons.SpecialKeywords;
  * EventFiringSeleniumCommandExecutor triggers event listener before/after execution of the command.
  */
 public class EventFiringSeleniumCommandExecutor extends HttpCommandExecutor {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     public EventFiringSeleniumCommandExecutor(URL addressOfRemoteServer) {
@@ -56,18 +57,17 @@ public class EventFiringSeleniumCommandExecutor extends HttpCommandExecutor {
         while (retry >= 0) {
             response = super.execute(command);
             if (response.getValue() instanceof WebDriverException) {
-                LOGGER.debug("CarinaCommandExecutor catched: " + response.getValue().toString());
-                
+                LOGGER.debug("CarinaCommandExecutor catched: {}", response.getValue());
                 if (DriverCommand.QUIT.equals(command.getName())) {
                     // do not retry on quit command (grid will close it forcibly anyway)
                     break;
                 }
 
                 String msg = response.getValue().toString();
-                if (msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED)
-                        || msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED2)
-                        || msg.contains(SpecialKeywords.DRIVER_TARGET_FRAME_DETACHED)) {
-                    LOGGER.warn("Enabled command executor retries: " + msg);
+                if (msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED) ||
+                        msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED2) ||
+                        msg.contains(SpecialKeywords.DRIVER_TARGET_FRAME_DETACHED)) {
+                    LOGGER.warn("Enabled command executor retries: {}", msg);
                     CommonUtils.pause(pause);
                 } else {
                     // do not retry for non "driver connection refused" errors!

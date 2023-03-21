@@ -76,6 +76,7 @@ import ru.yandex.qatools.ashot.shooting.ShootingStrategy;
  * @author Alex Khursevich
  */
 public class Screenshot {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final List<IScreenshotRule> RULES = new CopyOnWriteArrayList<>();
     private static final Duration DEFAULT_PAGE_LOAD_TIMEOUT = Duration.ofSeconds(300);
@@ -162,7 +163,7 @@ public class Screenshot {
     public static List<IScreenshotRule> removeScreenshotRule(IScreenshotRule rule) {
         LOGGER.debug("Following rule will be removed if it exists: {}", rule.getClass().getName());
         RULES.remove(rule);
-        LOGGER.debug("Actual range of screenshot rules: {}", RULES.toString());
+        LOGGER.debug(ACTUAL_RANGE_OF_SCREENSHOT_RULES_MESSAGE, RULES);
         return RULES;
     }
 
@@ -191,7 +192,7 @@ public class Screenshot {
             LOGGER.debug("Detected rule '{}' with event type '{}', it will be removed.", ruleByEventType.get().getClass(), screenshotType);
             RULES.remove(ruleByEventType.get());
         }
-        LOGGER.debug("Actual range of screenshot rules: {}", RULES);
+        LOGGER.debug(ACTUAL_RANGE_OF_SCREENSHOT_RULES_MESSAGE, RULES);
         return RULES;
     }
 
@@ -414,8 +415,7 @@ public class Screenshot {
                 // add screenshot comment to collector
                 ReportContext.addScreenshotComment(screenshotFileName, comment);
             }
-            // upload screenshot to Zebrunner Reporting
-            com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(file), Instant.now().toEpochMilli());
+            rule.after(file);
         } catch (NoSuchWindowException e) {
             LOGGER.warn("Unable to capture screenshot due to NoSuchWindowException!");
             LOGGER.debug(ERROR_STACKTRACE, e);
@@ -733,7 +733,7 @@ public class Screenshot {
 
 		if (!isContains) {
 		    // for released builds put below message to debug  
-		    LOGGER.debug("isCaptured->message: '" + message + "'");
+            LOGGER.debug("isCaptured->message: '{}'", message);
 		    // for snapshot builds use info to get more useful information
 		    //LOGGER.info("isCaptured->message: '" + message + "'");
 		}

@@ -34,44 +34,43 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @FindBy(xpath = "//android.widget.TextView[@text = 'Date & time']")
-    protected ExtendedWebElement dateAndTimeScreenHeaderTitle;
+    private ExtendedWebElement dateAndTimeScreenHeaderTitle;
 
     @FindBy(xpath = "//android.widget.TextView[@text = 'Time zone']")
-    protected ExtendedWebElement timeZoneOption;
+    private ExtendedWebElement timeZoneOption;
 
     @FindBy(xpath = "//android.widget.TextView[@text = 'Region']")
-    protected ExtendedWebElement timeZoneRegionOption;
+    private ExtendedWebElement timeZoneRegionOption;
 
     @FindBy(id = "android:id/search_src_text")
-    protected ExtendedWebElement timeZoneRegionSearchInputField;
+    private ExtendedWebElement timeZoneRegionSearchInputField;
 
     @FindBy(xpath = "//*[@resource-id='com.android.settings:id/recycler_view']//android.widget.TextView[contains(@text,'%s')]")
-    protected ExtendedWebElement timeZoneRegionSearchResult;
+    private ExtendedWebElement timeZoneRegionSearchResult;
+
+    @FindBy(xpath = "//android.widget.TextView[@text = 'Select time zone']")
+    private ExtendedWebElement selectTimeZone;
+
+    @FindBy(xpath = "//android.widget.ListView")
+    private ExtendedWebElement scrollableContainer;
+
+    @FindBy(id = "com.android.settings:id/recycler_view")
+    private ExtendedWebElement scrollableContainerInVersion81;
+
+    @FindBy(className = "android.widget.ListView")
+    private ExtendedWebElement scrollableContainerByClassName;
+
+    @FindBy(xpath = "//android.widget.TextView[contains(@text,'%s')]")
+    private ExtendedWebElement tzSelectionBase;
+
+    @FindBy(id = "com.android.settings:id/next_button")
+    private ExtendedWebElement nextButton;
+
+    private static final String SELECT_TIME_ZONE_TEXT = "Select time zone";
 
     public DateTimeSettingsPage(WebDriver driver) {
         super(driver);
-
     }
-
-    @FindBy(xpath = "//android.widget.TextView[@text = 'Select time zone']")
-    protected ExtendedWebElement selectTimeZone;
-
-    @FindBy(xpath = "//android.widget.ListView")
-    protected ExtendedWebElement scrollableContainer;
-
-    @FindBy(id = "com.android.settings:id/recycler_view")
-    protected ExtendedWebElement scrollableContainerInVersion8_1;
-
-    @FindBy(className = "android.widget.ListView")
-    protected ExtendedWebElement scrollableContainerByClassName;
-
-    @FindBy(xpath = "//android.widget.TextView[contains(@text,'%s')]")
-    protected ExtendedWebElement tzSelectionBase;
-
-    @FindBy(id = "com.android.settings:id/next_button")
-    protected ExtendedWebElement nextButton;
-
-    protected static final String SELECT_TIME_ZONE_TEXT = "Select time zone";
 
     /**
      * openTimeZoneSetting
@@ -87,7 +86,7 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
                 throw new RuntimeException("Desired Time Zone Menu item not found.. ");
             }
         }
-        LOGGER.info("Select Time Zone Menu item was clicked: " + found);
+        LOGGER.info("Select Time Zone Menu item was clicked: {}", found);
     }
 
     /**
@@ -105,9 +104,9 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
 
         //Adding extra step required to get to TimeZone screen on devices running versions > 8
         if (deviceOsFullVersion.contains(".")) {
-            deviceOsVersion = Integer.valueOf(deviceOsFullVersion.split("\\.")[0]);
+            deviceOsVersion = Integer.parseInt(deviceOsFullVersion.split("\\.")[0]);
         } else {
-            deviceOsVersion = Integer.valueOf(deviceOsFullVersion);
+            deviceOsVersion = Integer.parseInt(deviceOsFullVersion);
         }
 
         //if device OS version >= 9, we have to set Country Region and obtain city from timeZone
@@ -147,30 +146,24 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
     /**
      * selectTimezoneByGMT
      *
-     * @param tzGMT         String
-     * @param deviceOsVersion  int
+     * @param tzGMT           String
+     * @param deviceOsVersion int
      * @return boolean
      */
-    private boolean locateTimeZoneByGMT(String tzGMT, int deviceOsVersion){
-        LOGGER.info("Searching for tz by GTM: " + tzGMT);
+    private boolean locateTimeZoneByGMT(String tzGMT, int deviceOsVersion) {
+        LOGGER.info("Searching for tz by GTM: {}", tzGMT);
         boolean result = false;
 
-        if (deviceOsVersion > 8) {
-            try {
-                result = scroll(tzGMT, scrollableContainerInVersion8_1,
+        try {
+            if (deviceOsVersion > 8) {
+                result = scroll(tzGMT, scrollableContainerInVersion81,
                         SelectorType.ID, SelectorType.TEXT_CONTAINS).isElementPresent();
-            } catch (NoSuchElementException e){
-                e.printStackTrace();
-                result = false;
-            }
-        } else {
-            try {
+            } else {
                 result = scroll(tzGMT, scrollableContainerByClassName,
                         SelectorType.CLASS_NAME, SelectorType.TEXT_CONTAINS).isElementPresent();
-            } catch (NoSuchElementException e){
-                e.printStackTrace();
-                result = false;
             }
+        } catch (NoSuchElementException e) {
+            LOGGER.debug("Element is not found.", e);
         }
 
         return result;
@@ -184,24 +177,22 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
      * @return boolean
      */
     private boolean locateTimeZoneByCity(String tz, int deviceOsVersion){
-        LOGGER.info("Searching for tz by City: " + tz);
+        LOGGER.info("Searching for tz by City: {}", tz);
         boolean result = false;
 
         if (deviceOsVersion > 8) {
             try {
-                result = scroll(tz, scrollableContainerInVersion8_1,
+                result = scroll(tz, scrollableContainerInVersion81,
                         SelectorType.ID, SelectorType.TEXT_CONTAINS).isElementPresent();
             } catch (NoSuchElementException e){
-                e.printStackTrace();
-                result = false;
+                LOGGER.debug("Element is not found.", e);
             }
         } else {
             try {
                 result = scroll(tz, scrollableContainerByClassName,
                         SelectorType.CLASS_NAME, SelectorType.TEXT_CONTAINS).isElementPresent();
             } catch (NoSuchElementException e){
-                e.printStackTrace();
-                result = false;
+                LOGGER.debug("Element is not found.", e);
             }
         }
 
@@ -215,7 +206,7 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
      */
     public boolean clickNextButton() {
         boolean res = nextButton.clickIfPresent(SHORT_TIMEOUT);
-        LOGGER.info("Next button was clicked: " + res);
+        LOGGER.info("Next button was clicked: {}", res);
         return res;
     }
 

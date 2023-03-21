@@ -25,17 +25,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WindowsHandler {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private static Map<Integer, Set<String>> windows = new HashMap<Integer, Set<String>>();
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Map<Integer, Set<String>> WINDOWS = new HashMap<>();
+
+    private WindowsHandler() {
+        // hide
+    }
 
     public static synchronized void saveBeforePopup(WebDriver driver) {
-        windows.put(driver.hashCode(), driver.getWindowHandles());
+        WINDOWS.put(driver.hashCode(), driver.getWindowHandles());
     }
 
     public static void switchBackAfterPopup(WebDriver driver) {
         try {
-            Set<String> beforeHandles = windows.get((driver).hashCode());
+            Set<String> beforeHandles = WINDOWS.get((driver).hashCode());
             String newWindowHandle = beforeHandles.iterator().next();
             driver.switchTo().window(newWindowHandle);
         } catch (Exception e) {
@@ -45,7 +49,7 @@ public class WindowsHandler {
 
     public static boolean switchToPopup(WebDriver driver) {
         try {
-            Set<String> beforeHandles = windows.get((driver).hashCode());
+            Set<String> beforeHandles = WINDOWS.get((driver).hashCode());
             Set<String> afterHandles = driver.getWindowHandles();
             afterHandles.removeAll(beforeHandles);
             String newWindowHandle = afterHandles.iterator().next();

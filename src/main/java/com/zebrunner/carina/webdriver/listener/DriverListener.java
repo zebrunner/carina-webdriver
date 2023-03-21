@@ -20,6 +20,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Alert;
@@ -49,14 +50,14 @@ import com.zebrunner.carina.webdriver.ScreenshotType;
  * @author Alex Khursevich (alex@qaprosoft.com)
  */
 public class DriverListener implements WebDriverListener, IDriverPool {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final ThreadLocal<String> CURRENT_POSITIVE_MESSAGE = new ThreadLocal<>();
     private static final ThreadLocal<String> CURRENT_NEGATIVE_MESSAGE = new ThreadLocal<>();
+    private final WebDriver driver;
 
-    private WebDriver driver = null;
-
-    // FIXME refactor - it is not a good idea to set driver using constructor
     public DriverListener(WebDriver driver) {
+        Objects.requireNonNull(driver, "driver parameter should contain value.");
         this.driver = driver;
     }
 
@@ -68,7 +69,6 @@ public class DriverListener implements WebDriverListener, IDriverPool {
     @Override
     public void afterDismiss(Alert alert) {
         onAfterAction("Alert dismissed", this.driver);
-
     }
 
     @Override
@@ -90,7 +90,6 @@ public class DriverListener implements WebDriverListener, IDriverPool {
     @Override
     public void afterForward(WebDriver.Navigation navigation) {
         onAfterAction("Navigated forward", this.driver);
-
     }
 
     @Override
@@ -102,7 +101,6 @@ public class DriverListener implements WebDriverListener, IDriverPool {
     public void afterTo(WebDriver.Navigation navigation, String url) {
         String comment = String.format("URL '%s' opened", url);
         onAfterAction(comment, this.driver);
-
     }
 
     // TODO investigate this method is too complex, and it contails old logic. Can we simplify it?
@@ -156,8 +154,7 @@ public class DriverListener implements WebDriverListener, IDriverPool {
             return;
         }
 
-        LOGGER.debug("DriverListener->onException starting..." + e.getMessage());
-        //this.driver = castDriver(this.driver);
+        LOGGER.debug("DriverListener->onException starting...{}", e.getMessage());
 
         try {
             // 1. if you see mess with afterTest carina actions and Timer startup failure you should follow steps #2+ to determine root cause.
@@ -180,7 +177,6 @@ public class DriverListener implements WebDriverListener, IDriverPool {
         } catch (Throwable err) {
             LOGGER.error("Take a look to the logs above for current thread and add exception into the exclusion for Screenshot.isCaptured().", err);
         }
-
         LOGGER.debug("DriverListener->onException finished.");
     }
 
@@ -231,7 +227,7 @@ public class DriverListener implements WebDriverListener, IDriverPool {
         if (uiDumpFile != null) {
             // use the same naming but with zip extension. Put into the test artifacts folder
             String dumpArtifact = ReportContext.getArtifactsFolder().getAbsolutePath() + "/" + screenName.replace(".png", ".zip");
-            LOGGER.debug("UI Dump artifact: " + dumpArtifact);
+            LOGGER.debug("UI Dump artifact: {}", dumpArtifact);
 
             // build path to screenshot using name
             File screenFile = new File(ReportContext.getTestDir().getAbsolutePath() + "/" + screenName);
@@ -266,20 +262,6 @@ public class DriverListener implements WebDriverListener, IDriverPool {
         CURRENT_POSITIVE_MESSAGE.remove();
         CURRENT_NEGATIVE_MESSAGE.remove();
     }
-
-    /**
-     * Cast Carina driver to WebDriver removing all extra listeners (try to avoid direct operations via WebDriver as it doesn't support logging etc)
-     *
-     * @param drv WebDriver
-     *
-     * @return WebDriver
-     */
-//    private WebDriver castDriver(WebDriver drv) {
-//        if (drv instanceof Decorated) {
-//            drv = ((Decorated<WebDriver>) drv).getOriginal();
-//        }
-//        return drv;
-//    }
 
     /**
      * Clean driver from Decorator and cast driver to
