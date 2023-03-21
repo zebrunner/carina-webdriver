@@ -41,10 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Device implements IDriverPool {
@@ -327,7 +324,7 @@ public class Device implements IDriverPool {
         if (!isAdbEnabled)
             return;
         
-        if (isNull())
+        if (isNull() || Objects.isNull(getRemoteURL()))
             return;
 
         // [VD] No need to do adb command as stopping STF session do it correctly
