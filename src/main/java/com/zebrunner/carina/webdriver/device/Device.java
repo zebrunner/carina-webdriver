@@ -45,7 +45,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Device implements IDriverPool {
@@ -328,13 +327,19 @@ public class Device implements IDriverPool {
         if (!isAdbEnabled)
             return;
         
-        if (isNull() || Objects.isNull(getRemoteURL()))
+        if (isNull())
             return;
+
+        String connectUrl = getAdbName();
+        if (StringUtils.isEmpty(connectUrl)) {
+            LOGGER.error("Unable to use adb as ADB remote url is not available!");
+            return;
+        }
 
         // [VD] No need to do adb command as stopping STF session do it correctly
         // in new STF we have huge problems with sessions disconnect
         LOGGER.debug("adb disconnect {}", getRemoteURL());
-        String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "disconnect", getRemoteURL());
+        String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "disconnect", connectUrl);
         executor.execute(cmd);
         isAdbEnabled = false;
     }
