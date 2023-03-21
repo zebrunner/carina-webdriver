@@ -10,6 +10,7 @@ import io.appium.java_client.remote.MobileCapabilityType;
 import io.appium.java_client.remote.YouiEngineCapabilityType;
 import io.appium.java_client.remote.options.W3CCapabilityKeys;
 
+@Deprecated(forRemoval = true, since = "1.0.0")
 public class W3CCapabilityCommonKeys extends W3CCapabilityKeys {
     public static final W3CCapabilityCommonKeys INSTANCE = new W3CCapabilityCommonKeys();
 
