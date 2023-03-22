@@ -5,10 +5,8 @@ import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
 import com.zebrunner.carina.webdriver.locator.Context;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.PageFactory;
-import org.openqa.selenium.support.pagefactory.FieldDecorator;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -17,67 +15,11 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class ExtendedPageFactory extends PageFactory {
-    //    public static void initElements(FieldDecorator decorator, Object page) {
-//        //first init fields without @Context annotation
-//        proxyFields(decorator, page, true);
-//        //after that init fields with @Context annotation
-//        proxyFields(decorator, page, false);
-//    }
-//
-//    private static void proxyFields(FieldDecorator decorator, Object page, boolean isContextDependingField) {
-//        Class<?> proxyIn = page.getClass();
-//        while (proxyIn != Object.class) {
-//            List<Field> fields = Arrays.stream(proxyIn.getDeclaredFields())
-//                    .filter(field ->
-//                            Objects.isNull(field.getDeclaredAnnotation(Context.class)) == isContextDependingField)
-//                    .collect(Collectors.toList());
-//
-//            proxyCurrentClassFields(decorator, page, fields);
-//            proxyIn = proxyIn.getSuperclass();
-//        }
-//    }
-//
-//    private static void proxyCurrentClassFields(FieldDecorator decorator, Object page, List<Field> fieldList) {
-//        for (Field field : fieldList) {
-//            Object value = decorator.decorate(page.getClass().getClassLoader(), field);
-//            if (value != null) {
-//                try {
-//                    field.setAccessible(true);
-//                    field.set(page, value);
-//                } catch (IllegalAccessException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//        }
-//    }
-    public static void initElements(FieldDecorator decorator, Object page) {
-        Class<?> proxyIn = page.getClass();
-        while (proxyIn != Object.class) {
-            proxyFields(decorator, page, proxyIn);
-            proxyIn = proxyIn.getSuperclass();
-        }
-    }
-
     public static void initElementsContext(Object page) {
         Class<?> proxyIn = page.getClass();
         while (proxyIn != AbstractUIObject.class) {
             setContext(page, proxyIn);
             proxyIn = proxyIn.getSuperclass();
-        }
-    }
-
-    private static void proxyFields(FieldDecorator decorator, Object page, Class<?> proxyIn) {
-        Field[] fields = proxyIn.getDeclaredFields();
-        for (Field field : fields) {
-            Object value = decorator.decorate(page.getClass().getClassLoader(), field);
-            if (value != null) {
-                try {
-                    field.setAccessible(true);
-                    field.set(page, value);
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
-            }
         }
     }
 
