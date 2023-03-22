@@ -15,11 +15,9 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.locator;
 
-import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Capabilities;
@@ -53,12 +51,9 @@ public final class ExtendedElementLocatorFactory implements ElementLocatorFactor
     private final String automation;
     private final String driverType;
 
-    private final Object pageObject;
-
-    public <T extends AbstractUIObject>  ExtendedElementLocatorFactory(WebDriver webDriver, SearchContext searchContext, T pageObject) {
+    public ExtendedElementLocatorFactory(WebDriver webDriver, SearchContext searchContext) {
         this.webDriver = webDriver;
         this.searchContext = searchContext;
-        this.pageObject = pageObject;
         if (this.webDriver instanceof HasCapabilities) {
             Capabilities capabilities = ((HasCapabilities) this.webDriver).getCapabilities();
             this.platform = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
@@ -101,42 +96,13 @@ public final class ExtendedElementLocatorFactory implements ElementLocatorFactor
         if (annotations == null) {
             return null;
         }
-
         ExtendedElementLocator extendedElementLocator = null;
-        Context context = field.getAnnotation(Context.class);
         try {
-            if (context == null) {
-                extendedElementLocator = new ExtendedElementLocator(webDriver, searchContext, field, annotations);
-            } else {
-                extendedElementLocator = initLocatorWithContext(context, field, annotations);
-            }
+            extendedElementLocator = new ExtendedElementLocator(webDriver, searchContext, field, annotations);
         } catch (Exception e) {
             LOGGER.debug("Cannot create extended element locator", e);
         }
-
         return extendedElementLocator;
-    }
-
-    private ExtendedElementLocator initLocatorWithContext(Context context, Field field, AbstractAnnotations annotations){
-        Class<?> page = field.getDeclaringClass();
-        Field contextField = null;
-        while (contextField == null && !page.isAssignableFrom(AbstractUIObject.class)) {
-            try {
-                contextField = page.getDeclaredField(context.dependsOn());
-            } catch (NoSuchFieldException e) {
-                page = page.getSuperclass();
-            }
-        }
-
-        try {
-            contextField.setAccessible(true);
-            ExtendedWebElement element = (ExtendedWebElement) contextField.get(pageObject);
-            return new ExtendedElementLocator(webDriver, element.getElement(), field, annotations);
-        } catch (NullPointerException e) {
-            throw new RuntimeException("Cannot find context element: " + context.dependsOn(), e);
-        } catch (IllegalAccessException | IllegalArgumentException e) {
-            throw new RuntimeException("Cannot get context field from " + page.getName(), e);
-        }
     }
 
     private String detectDriverType(String browserName, String platform) {

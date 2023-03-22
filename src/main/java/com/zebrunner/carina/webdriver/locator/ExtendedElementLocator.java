@@ -52,7 +52,7 @@ public class ExtendedElementLocator implements ElementLocator {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final WebDriver driver;
-    private final SearchContext searchContext;
+    private SearchContext searchContext;
     private final String className;
     private final By originalBy;
     private By by;
@@ -178,6 +178,10 @@ public class ExtendedElementLocator implements ElementLocator {
 
     public SearchContext getSearchContext() {
         return this.searchContext;
+    }
+
+    public void setSearchContext(SearchContext searchContext) {
+        this.searchContext = searchContext;
     }
 
     public boolean isLocalized() {
