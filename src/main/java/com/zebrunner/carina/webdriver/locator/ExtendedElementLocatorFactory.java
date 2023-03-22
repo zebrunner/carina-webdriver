@@ -18,7 +18,6 @@ package com.zebrunner.carina.webdriver.locator;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 
-import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.HasCapabilities;
