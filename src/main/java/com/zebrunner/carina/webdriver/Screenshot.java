@@ -737,8 +737,49 @@ public class Screenshot {
 		return !isContains;
 	}
 
-    public static boolean compare(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual, String comment, boolean artifact) {
-        return compare(bufferedImageExpected, bufferedImageActual, comment, artifact, new PointsMarkupPolicy());
+    /**
+     * Compares two screenshots.
+     *
+     * @param bufferedImageExpected expected image
+     * @param bufferedImageActual actual image
+     * @param markupPolicy {@link DiffMarkupPolicy}
+     * @return boolean true if images differ, false if not
+     */
+    public static boolean hasDiff(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual, DiffMarkupPolicy markupPolicy){
+        return compare(bufferedImageExpected, bufferedImageActual, markupPolicy).isPresent();
+    }
+
+    /**
+     * Compares two screenshots.
+     *
+     * @param bufferedImageExpected expected image
+     * @param bufferedImageActual actual image
+     * @param markupPolicy {@link DiffMarkupPolicy}
+     * @return Optional of BufferedImage. If empty there is no difference between images
+     */
+    public static Optional<BufferedImage> compare(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual, DiffMarkupPolicy markupPolicy) {
+        ImageDiffer imageDiffer = new ImageDiffer();
+        imageDiffer.withDiffMarkupPolicy(markupPolicy);
+        ImageDiff diff = imageDiffer.makeDiff(bufferedImageExpected, bufferedImageActual);
+        if (diff.hasDiff()) {
+            return Optional.of(diff.getMarkedImage());
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Compares two different screenshots by PointsMarkupPolicy.
+     * Creates an image with marked differences if the images differ.
+     *
+     * @param bufferedImageExpected old image
+     * @param bufferedImageActual new image
+     * @param fileNameDiffImage name of the new image with marked differences
+     * @param artifact true if attach to test run as artifact, false if upload as screenshot
+     * @return boolean true if images differ, false if not
+     */
+    public static boolean compare(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual, String fileNameDiffImage, boolean artifact) {
+        return compare(bufferedImageExpected, bufferedImageActual, fileNameDiffImage, artifact, new PointsMarkupPolicy());
     }
 
     /**
@@ -750,44 +791,42 @@ public class Screenshot {
      * @param fileNameDiffImage name of the new image with marked differences
      * @param artifact true if attach to test run as artifact, false if upload as screenshot
      * @param markupPolicy {@link DiffMarkupPolicy}
-     * @return boolean
+     * @return boolean true if images differ, false if not
      */
     public static boolean compare(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual,
-            String fileNameDiffImage, boolean artifact, DiffMarkupPolicy markupPolicy) {
-        String screenName;
-        BufferedImage screen;
+                                  String fileNameDiffImage, boolean artifact, DiffMarkupPolicy markupPolicy) {
+
+        Optional<BufferedImage> markedImage = compare(bufferedImageExpected, bufferedImageActual, markupPolicy);
+        if (markedImage.isEmpty()) {
+            LOGGER.info("Unable to create comparative screenshot, there is no difference between images!");
+            return false;
+        }
+
         try {
-            ImageDiffer imageDiffer = new ImageDiffer();
-            imageDiffer.withDiffMarkupPolicy(markupPolicy);
-            ImageDiff diff = imageDiffer.makeDiff(bufferedImageExpected, bufferedImageActual);
-            if (diff.hasDiff()) {
-                screen = diff.getMarkedImage();
-                // Define test screenshot root
-                File testScreenRootDir = ReportContext.getTestDir();
+            BufferedImage screen = markedImage.get();
+            String screenName;
+            // Define test screenshot root
+            File testScreenRootDir = ReportContext.getTestDir();
 
-                screenName = fileNameDiffImage + ".png";
-                String screenPath = testScreenRootDir.getAbsolutePath() + "/" + screenName;
+            screenName = fileNameDiffImage + ".png";
+            String screenPath = testScreenRootDir.getAbsolutePath() + "/" + screenName;
 
-                if (Configuration.getInt(Parameter.BIG_SCREEN_WIDTH) != -1
-                        && Configuration.getInt(Parameter.BIG_SCREEN_HEIGHT) != -1) {
-                    screen = resizeImg(screen, Configuration.getInt(Parameter.BIG_SCREEN_WIDTH),
-                            Configuration.getInt(Parameter.BIG_SCREEN_HEIGHT));
-                }
-
-                File screenshot = new File(screenPath);
-                FileUtils.touch(screenshot);
-                ImageIO.write(screen, "PNG", screenshot);
-
-                // Uploading comparative screenshot to Amazon S3
-                if (artifact){
-                    com.zebrunner.agent.core.registrar.Artifact.attachToTest(fileNameDiffImage + ".png", screenshot);
-                } else {
-                    com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(screenshot.toPath()), Instant.now().toEpochMilli());
-                }
+            if (Configuration.getInt(Parameter.BIG_SCREEN_WIDTH) != -1
+                    && Configuration.getInt(Parameter.BIG_SCREEN_HEIGHT) != -1) {
+                screen = resizeImg(screen, Configuration.getInt(Parameter.BIG_SCREEN_WIDTH),
+                        Configuration.getInt(Parameter.BIG_SCREEN_HEIGHT));
             }
-            else {
-                LOGGER.info("Unable to create comparative screenshot, there is no difference between images!");
-                return false;
+
+            File screenshot;
+            screenshot = new File(screenPath);
+            FileUtils.touch(screenshot);
+            ImageIO.write(screen, "PNG", screenshot);
+
+            // Uploading comparative screenshot to Amazon S3
+            if (artifact) {
+                com.zebrunner.agent.core.registrar.Artifact.attachToTest(screenName, screenshot);
+            } else {
+                com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(screenshot.toPath()), Instant.now().toEpochMilli());
             }
         } catch (IOException e) {
             LOGGER.warn("Unable to compare screenshots due to the I/O issues!");
