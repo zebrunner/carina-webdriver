@@ -23,8 +23,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.events.EventFiringDecorator;
 import org.openqa.selenium.support.events.WebDriverListener;
 
-import com.zebrunner.carina.utils.R;
-
 /**
  * Base implementation of WebDriver factory.
  * 
@@ -64,10 +62,6 @@ public abstract class AbstractFactory {
      */
     protected boolean isCapabilitiesEmpty(Capabilities capabilities) {
         return capabilities == null || MapUtils.isEmpty(capabilities.asMap());
-    }
-
-    protected boolean isEnabled(String capability) {
-        return R.CONFIG.getBoolean(capability);
     }
 
 }
