@@ -6,43 +6,45 @@ import com.zebrunner.carina.webdriver.locator.Context;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.support.PageFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
+import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public class ExtendedPageFactory extends PageFactory {
     public static void initElementsContext(Object page) {
         Class<?> proxyIn = page.getClass();
         while (proxyIn != AbstractUIObject.class) {
-            setContext(page, proxyIn);
+            Field[] contextFields = Arrays.stream(proxyIn.getDeclaredFields())
+                    .filter(field -> !Objects.isNull(field.getDeclaredAnnotation(Context.class)))
+                    .toArray(Field[]::new);
+
+            setContext(page, contextFields);
             proxyIn = proxyIn.getSuperclass();
         }
     }
 
-    private static void setContext(Object page, Class<?> proxyIn) {
-        Field[] fields = Arrays.stream(proxyIn.getDeclaredFields())
-                .filter(field -> !Objects.isNull(field.getDeclaredAnnotation(Context.class)))
-                .toArray(Field[]::new);
-
+    private static void setContext(Object page, Field[] fields) {
         for (Field field : fields) {
-            field.setAccessible(true);
-            try {
-                ExtendedWebElement param = (ExtendedWebElement) field.get(page);
-                WebElement contextElement = getElement(field,page);
-                if (param.getElement() instanceof Proxy){
-                    WebElement paramWeb = param.getElement();
-                    InvocationHandler innerProxy = Proxy.getInvocationHandler(paramWeb);
-                    ExtendedElementLocator locator = (ExtendedElementLocator) (FieldUtils.getDeclaredField(innerProxy.getClass(), "locator", true))
-                            .get(innerProxy);
-                    locator.setSearchContext(contextElement);
-                }
-                param.setSearchContext(contextElement);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException("Can't set context for null element " + field.getName(), e);
+            WebElement contextElement = getElement(field, page);
+
+            if (ExtendedWebElement.class.isAssignableFrom(field.getType())) {
+                setContextForWebElement((ExtendedWebElement) getParamByField(field, page), contextElement);
+            }
+
+            if (AbstractUIObject.class.isAssignableFrom(field.getType())) {
+                setContextForAbstractUIObject((AbstractUIObject) getParamByField(field, page), contextElement);
+            }
+
+            if (List.class.isAssignableFrom(field.getType())) {
+                setContextForWebElementsList(field, contextElement, page);
             }
         }
     }
@@ -59,13 +61,99 @@ public class ExtendedPageFactory extends PageFactory {
             }
         }
 
+        if (contextField == null){
+            throw new RuntimeException("Cannot find context element: " + context.dependsOn());
+        }
+
         try {
             contextField.setAccessible(true);
-            return ((ExtendedWebElement) contextField.get(page)).getElement();
-        } catch (NullPointerException e) {
-            throw new RuntimeException("Cannot find context element: " + context.dependsOn(), e);
+            ExtendedWebElement element = null;
+            if (contextField.getType().isAssignableFrom(AbstractUIObject.class)){
+                element = ((AbstractUIObject) contextField.get(page)).getRootExtendedElement();
+            } else if (contextField.getType().isAssignableFrom(ExtendedWebElement.class)){
+                element = ((ExtendedWebElement) contextField.get(page));
+            } else if (contextField.getType().isAssignableFrom(List.class)){
+                throw new RuntimeException("List couldn't be passed as context element");
+            }
+
+            if (element != null && element.getElement() != null) {
+                return element.getElement();
+            } else {
+                throw new RuntimeException("Context WebElement is null!");
+            }
         } catch (IllegalAccessException | IllegalArgumentException e) {
             throw new RuntimeException("Cannot get context field from " + pageClass.getName(), e);
+        }
+    }
+
+    private static Object getParamByField(Field field, Object page) {
+        Object param;
+        try {
+            field.setAccessible(true);
+            param = field.get(page);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Error on finding param: " + field.getName(), e);
+        }
+        return param;
+    }
+
+    private static void setContextForWebElement(ExtendedWebElement param, SearchContext contextElement) {
+        if (param.getElement() instanceof Proxy) {
+            WebElement paramWeb = param.getElement();
+
+            InvocationHandler innerProxy = Proxy.getInvocationHandler(paramWeb);
+            ExtendedElementLocator locator;
+            try {
+                locator = (ExtendedElementLocator) (FieldUtils.getDeclaredField(innerProxy.getClass(), "locator", true))
+                        .get(innerProxy);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Error finding locator for created ExtendedWebElement.", e);
+            }
+
+            locator.setSearchContext(contextElement);
+        }
+        param.setSearchContext(contextElement);
+    }
+
+    private static void setContextForAbstractUIObject(AbstractUIObject param, SearchContext contextElement) {
+        setContextForWebElement(param.getRootExtendedElement(), contextElement);
+        Class<?> clazz = param.getClass().getSuperclass();
+        if (clazz != AbstractUIObject.class) {
+            setContext(clazz, clazz.getDeclaredFields());
+        }
+    }
+
+    private static void setContextForWebElementsList(Field field, SearchContext contextElement, Object page) {
+        Type genericType = field.getGenericType();
+        if (!(genericType instanceof ParameterizedType)) {
+            return;
+        }
+
+        genericType = ((ParameterizedType) genericType).getActualTypeArguments()[0];
+        if (ExtendedWebElement.class.isAssignableFrom((Class<?>) genericType)) {
+
+            Object elementsList = getParamByField(field, page);
+            if (elementsList instanceof Proxy){
+
+                InvocationHandler innerProxy = Proxy.getInvocationHandler(elementsList);
+                ExtendedElementLocator locator;
+                try {
+                    locator = (ExtendedElementLocator) (FieldUtils.getDeclaredField(innerProxy.getClass(), "locator", true))
+                            .get(innerProxy);
+                } catch (Exception e) {
+                    throw new RuntimeException("Error finding locator for created List<ExtendedWebElement>.", e);
+                }
+
+                locator.setSearchContext(contextElement);
+            }
+        }
+
+        if (AbstractUIObject.class.isAssignableFrom((Class<?>) genericType)) {
+            @SuppressWarnings({"unchecked"})
+            List<AbstractUIObject> elementsList = (List<AbstractUIObject>) getParamByField(field, page);
+            for (AbstractUIObject element : elementsList) {
+                setContextForAbstractUIObject(element, contextElement);
+            }
         }
     }
 }

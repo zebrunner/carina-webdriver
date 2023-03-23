@@ -79,7 +79,7 @@ public abstract class AbstractUIObject extends DriverHelper {
     protected AbstractUIObject(WebDriver driver, SearchContext searchContext) {
         super(driver);
         ExtendedElementLocatorFactory factory = new ExtendedElementLocatorFactory(driver, searchContext);
-        ExtendedPageFactory.initElements(new ExtendedFieldDecorator(factory, driver), this);
+        PageFactory.initElements(new ExtendedFieldDecorator(factory, driver), this);
         ExtendedPageFactory.initElementsContext(this);
     }
 
