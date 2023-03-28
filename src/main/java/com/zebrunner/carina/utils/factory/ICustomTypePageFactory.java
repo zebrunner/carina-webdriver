@@ -18,20 +18,14 @@ package com.zebrunner.carina.utils.factory;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 import org.openqa.selenium.WebDriver;
 import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,19 +45,7 @@ public interface ICustomTypePageFactory extends IDriverPool {
     String LONG_STR = "long";
     String DOUBLE_OBJ_STR = "class java.lang.Double";
     String DOUBLE_STR = "double";
-    // We need a configuration for the reflection object, since pages can be located not only in the project, but also in dependencies
-    ConfigurationBuilder REFLECTION_CONFIG = new ConfigurationBuilder().addUrls(Arrays.stream(Package.getPackages())
-            .map(Package::getName)
-            .map(s -> s.split("\\.")[0])
-            .distinct()
-            .map(ClasspathHelper::forPackage).reduce((c1, c2) -> {
-                Collection<URL> c3 = new HashSet<>();
-                c3.addAll(c1);
-                c3.addAll(c2);
-                return c3;
-            }).orElseThrow())
-            .addScanners(new SubTypesScanner(false));
-    Reflections REFLECTIONS = new Reflections(REFLECTION_CONFIG);
+    Reflections REFLECTIONS = new Reflections("");
 
     default <T extends AbstractPage> T initPage(Class<T> parentClass, Object... parameters) {
         return initPage(getDriver(), parentClass, parameters);
