@@ -19,16 +19,21 @@ import static io.appium.java_client.pagefactory.utils.WebDriverUnpackUtility.get
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
-import java.util.Arrays;
+import java.util.Map;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ArrayList;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ByIdOrName;
 import org.openqa.selenium.support.pagefactory.AbstractAnnotations;
+import org.openqa.selenium.support.pagefactory.ByAll;
+import org.openqa.selenium.support.pagefactory.ByChained;
 import org.openqa.selenium.support.pagefactory.ElementLocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +45,7 @@ import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter
 import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
 import com.zebrunner.carina.webdriver.locator.converter.caseinsensitive.CaseInsensitiveConverter;
 
+import io.appium.java_client.AppiumBy;
 import io.appium.java_client.pagefactory.bys.ContentMappedBy;
 import io.appium.java_client.pagefactory.bys.ContentType;
 
@@ -90,25 +96,98 @@ public class ExtendedElementLocator implements ElementLocator {
         if (field.isAnnotationPresent(Localized.class)) {
             this.localized = true;
         }
+
         buildConvertedBy();
     }
 
+    @SuppressWarnings("unchecked")
     public void buildConvertedBy() {
         // do not do converting if there are no locator converters at all
         if (locatorConverters.isEmpty()) {
             return;
         }
-        String byAsString = this.originalBy.toString();
-        for (LocatorConverter converter : locatorConverters) {
-            byAsString = converter.convert(byAsString);
+
+        if (by.getClass().isAssignableFrom(ContentMappedBy.class)) {
+            Map<ContentType, By> contentByMap;
+            try {
+                contentByMap = (Map<ContentType, By>) FieldUtils.readDeclaredField(by, "map", true);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e.getMessage());
+            }
+            for (By complexBy : contentByMap.values()) {
+                By[] simpleByArray = parseComplexBy(complexBy);
+                for (By simpleBy : simpleByArray) {
+                    changeValueInBy(simpleBy);
+                }
+            }
+        } else {
+            By[] simpleByArray = parseComplexBy(by);
+            for (By simpleBy : simpleByArray) {
+                changeValueInBy(simpleBy);
+            }
+        }
+    }
+
+    private void changeValueInBy(By simpleBy) {
+        try {
+            String toConvert = simpleBy.toString();
+            for (LocatorConverter converter : locatorConverters) {
+                toConvert = converter.convert(toConvert);
+            }
+
+            //if convert where executed
+            if (!toConvert.equals(simpleBy.toString())) {
+                //overriding only locator
+                toConvert = toConvert.substring(toConvert.indexOf(":") + 1).trim();
+
+                if (AppiumBy.class.isAssignableFrom(simpleBy.getClass())) {
+                    By.Remotable.Parameters parameters = (By.Remotable.Parameters) FieldUtils.readField(simpleBy, "remoteParameters", true);
+                    FieldUtils.writeField(parameters, "value", toConvert, true);
+                } else {
+                    Field fieldBy = simpleBy.getClass().getDeclaredFields()[0];
+                    FieldUtils.writeField(simpleBy, fieldBy.getName(), toConvert, true);
+                }
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private By[] parseComplexBy(By by) {
+        By[] bys = null;
+        Class<? extends By> complexByClass = by.getClass();
+        //ByIdOrName, ByAll, ByChained, By (and maybe carina's ByAny)
+        try {
+            if (ByIdOrName.class.isAssignableFrom(complexByClass)) {
+                //By.Id + By.Name = 2
+                bys = new By[2];
+                bys[0] = (By) FieldUtils.readDeclaredField(by, "idFinder", true);
+                bys[1] = (By) FieldUtils.readDeclaredField(by, "nameFinder", true);
+            } else if (ByAll.class.isAssignableFrom(complexByClass) ||
+                    ByChained.class.isAssignableFrom(complexByClass) ||
+                    ByAny.class.isAssignableFrom(complexByClass)) {
+                bys = (By[]) FieldUtils.readDeclaredField(by, "bys", true);
+            } else {
+                bys = new By[]{by};
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
         }
 
-        String finalByAsString = byAsString;
-        this.by = Arrays.stream(LocatorType.values())
-                .filter(locatorType -> locatorType.is(finalByAsString))
-                .findFirst()
-                .orElseThrow()
-                .buildLocatorFromString(byAsString);
+        List<By> byList = new ArrayList<>();
+        for (By possiblySimpleBy : bys) {
+            if (ByIdOrName.class.isAssignableFrom(possiblySimpleBy.getClass()) ||
+                    ByAll.class.isAssignableFrom(possiblySimpleBy.getClass()) ||
+                    ByChained.class.isAssignableFrom(possiblySimpleBy.getClass()) ||
+                    ByAny.class.isAssignableFrom(possiblySimpleBy.getClass())) {
+                By[] recursiveBys = parseComplexBy(possiblySimpleBy);
+                byList.addAll(List.of(recursiveBys));
+            } else {
+                byList.add(possiblySimpleBy);
+            }
+        }
+
+        return byList.toArray(new By[0]);
     }
 
     /**
