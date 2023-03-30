@@ -81,7 +81,7 @@ public class ExtendedElementLocator implements ElementLocator {
         String[] classPath = field.getDeclaringClass().toString().split("\\.");
         this.className = classPath[classPath.length - 1];
         this.by = annotations.buildBy();
-        this.originalBy = this.by;
+        this.originalBy = annotations.buildBy();
         if (LocalizeLocatorConverter.getL10nPattern().matcher(this.by.toString()).find()) {
             this.locatorConverters.add(new LocalizeLocatorConverter());
         }
@@ -138,7 +138,7 @@ public class ExtendedElementLocator implements ElementLocator {
             //if convert where executed
             if (!toConvert.equals(simpleBy.toString())) {
                 //overriding only locator
-                toConvert = toConvert.substring(toConvert.indexOf(":") + 1).trim();
+                toConvert = toConvert.substring(toConvert.indexOf(':') + 1).trim();
 
                 if (AppiumBy.class.isAssignableFrom(simpleBy.getClass())) {
                     By.Remotable.Parameters parameters = (By.Remotable.Parameters) FieldUtils.readField(simpleBy, "remoteParameters", true);
@@ -146,6 +146,13 @@ public class ExtendedElementLocator implements ElementLocator {
                 } else {
                     Field fieldBy = simpleBy.getClass().getDeclaredFields()[0];
                     FieldUtils.writeField(simpleBy, fieldBy.getName(), toConvert, true);
+                    By.Remotable.Parameters parameters;
+                    try {
+                        parameters = (By.Remotable.Parameters) FieldUtils.readField(simpleBy, "params", true);
+                    } catch (IllegalArgumentException | IllegalAccessException ex) {
+                        parameters = (By.Remotable.Parameters) FieldUtils.readField(simpleBy, "remoteParams", true);
+                    }
+                    FieldUtils.writeField(parameters, "value", toConvert, true);
                 }
             }
         } catch (Exception ex) {
