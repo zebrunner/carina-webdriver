@@ -27,6 +27,7 @@ import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.webdriver.DriverHelper;
+import com.zebrunner.carina.webdriver.core.factory.ExtendedPageFactory;
 import com.zebrunner.carina.webdriver.decorator.ElementLoadingStrategy;
 import com.zebrunner.carina.webdriver.decorator.ExtendedFieldDecorator;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
@@ -80,6 +81,7 @@ public abstract class AbstractUIObject extends DriverHelper {
         super(driver);
         ExtendedElementLocatorFactory factory = new ExtendedElementLocatorFactory(driver, searchContext);
         PageFactory.initElements(new ExtendedFieldDecorator(factory, driver), this);
+        ExtendedPageFactory.initElementsContext(this);
     }
 
     /**

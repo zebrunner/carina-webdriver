@@ -24,11 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.remote.Browser;
 import org.openqa.selenium.remote.CapabilityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +52,6 @@ import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.remote.AutomationName;
 import io.appium.java_client.remote.MobileCapabilityType;
-import io.appium.java_client.safari.SafariDriver;
 
 /**
  * MobileFactory creates instance {@link WebDriver} for mobile testing.
@@ -113,7 +110,6 @@ public class MobileFactory extends AbstractFactory {
         LOGGER.debug("capabilities: {}", capabilities);
 
         try {
-            String browserName = CapabilityHelpers.getCapability(capabilities, CapabilityType.BROWSER_NAME, String.class);
             String mobilePlatformName = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
             EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
 
@@ -121,13 +117,9 @@ public class MobileFactory extends AbstractFactory {
                 driver = new AndroidDriver(ce, capabilities);
             } else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) ||
                     SpecialKeywords.TVOS.equalsIgnoreCase(mobilePlatformName)) {
-                if (Browser.SAFARI.browserName().equalsIgnoreCase(browserName)) {
-                    driver = new SafariDriver(ce, capabilities);
-                } else if (StringUtils.isBlank(browserName)) {
-                    driver = new IOSDriver(ce, capabilities);
-                } else {
-                    throw new InvalidConfigurationException("Unsupported browser for IOS: " + browserName);
-                }
+                // can't create a SafariDriver as it has no advantages over IOSDriver, but needs revision in the future
+                // SafariDriver only limits functionality
+                driver = new IOSDriver(ce, capabilities);
             } else {
                 throw new InvalidConfigurationException("Unsupported mobile platform: " + mobilePlatformName);
             }

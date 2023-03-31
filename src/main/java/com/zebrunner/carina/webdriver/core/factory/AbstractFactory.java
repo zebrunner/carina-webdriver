@@ -17,16 +17,11 @@ package com.zebrunner.carina.webdriver.core.factory;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.events.EventFiringDecorator;
 import org.openqa.selenium.support.events.WebDriverListener;
-
-import com.zebrunner.carina.utils.R;
-
-import io.appium.java_client.internal.CapabilityHelpers;
 
 /**
  * Base implementation of WebDriver factory.
@@ -69,16 +64,4 @@ public abstract class AbstractFactory {
         return capabilities == null || MapUtils.isEmpty(capabilities.asMap());
     }
 
-    protected boolean isEnabled(String capability) {
-        return R.CONFIG.getBoolean(capability);
-    }
-
-    protected MutableCapabilities removeAppiumPrefix(MutableCapabilities capabilities) {
-        MutableCapabilities allCapabilities = new MutableCapabilities();
-        for (String capabilityName : capabilities.asMap().keySet()) {
-            String cleanCapabilityName = StringUtils.removeStart(capabilityName, CapabilityHelpers.APPIUM_PREFIX);
-            allCapabilities.setCapability(cleanCapabilityName, capabilities.getCapability(capabilityName));
-        }
-        return allCapabilities;
-    }
 }
