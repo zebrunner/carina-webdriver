@@ -62,10 +62,13 @@ public class ExtendedElementLocator implements ElementLocator {
     private final WebDriver driver;
     private SearchContext searchContext;
     private final String className;
-    private final By originalBy;
     private By by;
     private boolean caseInsensitive = false;
     private boolean localized = false;
+    private boolean alreadyConverted = false;
+
+    private final AbstractAnnotations annotations;
+
     private final LinkedList<LocatorConverter> locatorConverters = new LinkedList<>();
 
     /**
@@ -80,8 +83,8 @@ public class ExtendedElementLocator implements ElementLocator {
         this.searchContext = searchContext;
         String[] classPath = field.getDeclaringClass().toString().split("\\.");
         this.className = classPath[classPath.length - 1];
+        this.annotations = annotations;
         this.by = annotations.buildBy();
-        this.originalBy = annotations.buildBy();
         if (LocalizeLocatorConverter.getL10nPattern().matcher(this.by.toString()).find()) {
             this.locatorConverters.add(new LocalizeLocatorConverter());
         }
@@ -105,6 +108,13 @@ public class ExtendedElementLocator implements ElementLocator {
         // do not do converting if there are no locator converters at all
         if (locatorConverters.isEmpty()) {
             return;
+        }
+
+        if (alreadyConverted) {
+            // recreate original by before converting
+            this.by = annotations.buildBy();
+        } else {
+            alreadyConverted = true;
         }
 
         if (by.getClass().isAssignableFrom(ContentMappedBy.class)) {
