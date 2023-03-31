@@ -18,6 +18,7 @@ package com.zebrunner.carina.webdriver.locator;
 import static io.appium.java_client.pagefactory.utils.WebDriverUnpackUtility.getCurrentContentType;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.LinkedList;
@@ -148,22 +149,34 @@ public class ExtendedElementLocator implements ElementLocator {
             //if convert where executed
             if (!toConvert.equals(simpleBy.toString())) {
                 //overriding only locator
-                toConvert = toConvert.substring(toConvert.indexOf(':') + 1).trim();
+                String using = toConvert.substring(toConvert.indexOf("By.") + 3, toConvert.indexOf(':'));
+                String value = toConvert.substring(toConvert.indexOf(':') + 1).trim();
 
+                By.Remotable.Parameters parameters;
+                //for all appium Bys
                 if (AppiumBy.class.isAssignableFrom(simpleBy.getClass())) {
-                    By.Remotable.Parameters parameters = (By.Remotable.Parameters) FieldUtils.readField(simpleBy, "remoteParameters", true);
-                    FieldUtils.writeField(parameters, "value", toConvert, true);
+                    parameters = (By.Remotable.Parameters) FieldUtils.readField(simpleBy, "remoteParameters", true);
                 } else {
-                    Field fieldBy = simpleBy.getClass().getDeclaredFields()[0];
-                    FieldUtils.writeField(simpleBy, fieldBy.getName(), toConvert, true);
-                    By.Remotable.Parameters parameters;
-                    try {
-                        parameters = (By.Remotable.Parameters) FieldUtils.readField(simpleBy, "params", true);
-                    } catch (IllegalArgumentException | IllegalAccessException ex) {
+                    //for PreW3CLocator selenium Bys (id, name, className)
+                    if (simpleBy.getClass().getSuperclass().toString().contains("PreW3CLocator")) {
+                        Constructor<? extends By> preW3CLocatorC= simpleBy.getClass().getConstructor(String.class);
+                        By tmp = preW3CLocatorC.newInstance(value);
+                        By.ByCssSelector fallback = (By.ByCssSelector) FieldUtils.readField(tmp, "fallback", true);
+                        FieldUtils.writeField(simpleBy, "fallback", fallback, true);
+
                         parameters = (By.Remotable.Parameters) FieldUtils.readField(simpleBy, "remoteParams", true);
+
+                    //for BaseW3CLocator selenium Bys  (xpath, css, tagName, partialLinkText, linkText)
+                    } else {
+                        parameters = (By.Remotable.Parameters) FieldUtils.readField(simpleBy, "params", true);
                     }
-                    FieldUtils.writeField(parameters, "value", toConvert, true);
+
+                    Field fieldBy = simpleBy.getClass().getDeclaredFields()[0];
+                    FieldUtils.writeField(simpleBy, fieldBy.getName(), value, true);
                 }
+
+                FieldUtils.writeField(parameters, "using", using, true);
+                FieldUtils.writeField(parameters, "value", value, true);
             }
         } catch (Exception ex) {
             throw new RuntimeException(ex);
@@ -171,7 +184,7 @@ public class ExtendedElementLocator implements ElementLocator {
     }
 
     private By[] parseComplexBy(By by) {
-        By[] bys = null;
+        By[] bys;
         Class<? extends By> complexByClass = by.getClass();
         //ByIdOrName, ByAll, ByChained, By (and maybe carina's ByAny)
         try {
