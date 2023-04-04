@@ -50,7 +50,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
         <carina-utils.version>1.0.3</carina-utils.version>
-        <carina-commons.version>1.0.1</carina-commons.version>
+        <carina-commons.version>1.0.2</carina-commons.version>
         <carina-proxy.version>1.0.1</carina-proxy.version>
         <zebrunner-testng-pluggable.version>1.9.3</zebrunner-testng-pluggable.version>
         <slf4j.version>1.7.30</slf4j.version>
