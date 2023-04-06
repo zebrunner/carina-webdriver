@@ -24,9 +24,6 @@ import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.CapabilityType;
-import org.openqa.selenium.support.FindAll;
-import org.openqa.selenium.support.FindBy;
-import org.openqa.selenium.support.FindBys;
 import org.openqa.selenium.support.pagefactory.AbstractAnnotations;
 import org.openqa.selenium.support.pagefactory.ElementLocator;
 import org.openqa.selenium.support.pagefactory.ElementLocatorFactory;
@@ -85,16 +82,10 @@ public final class ExtendedElementLocatorFactory implements ElementLocatorFactor
                 builder.setAnnotated(field);
                 annotations = builder;
             }
-        } else if (field.getAnnotation(FindBy.class) != null ||
-                    field.getAnnotation(FindBys.class) != null ||
-                field.getAnnotation(FindAll.class) != null ||
-                field.getAnnotation(FindAny.class) != null) {
+        } else {
             annotations = new ExtendedSeleniumAnnotations(field);
         }
 
-        if (annotations == null) {
-            return null;
-        }
         ExtendedElementLocator extendedElementLocator = null;
         try {
             extendedElementLocator = new ExtendedElementLocator(webDriver, searchContext, field, annotations);

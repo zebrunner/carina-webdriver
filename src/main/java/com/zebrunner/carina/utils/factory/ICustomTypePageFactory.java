@@ -153,7 +153,11 @@ public interface ICustomTypePageFactory extends IDriverPool {
         } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException e) {
             PAGEFACTORY_LOGGER.debug(
                     "Discovered one of the InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException");
-            throw new RuntimeException("Unable to instantiate page!", e);
+            if (e.getCause() == null) {
+                throw new RuntimeException("Unable to instantiate page!\n" + e.getMessage(), e);
+            } else {
+                throw new RuntimeException("Unable to instantiate page! " + e.getCause().getMessage(), e.getCause());
+            }
         }
     }
 
