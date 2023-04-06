@@ -64,7 +64,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
                 isDecoratableList(field))) {
             return null;
         }
-        //TODO: (hotfix) remove when
+        //TODO: (hotfix) remove when AbstractPage will be separated from AbstractUIObject
         if (AbstractPage.class.isAssignableFrom(field.getType())) {
             return null;
         }
