@@ -80,7 +80,7 @@ public final class ExtendedElementLocatorFactory implements ElementLocatorFactor
                     field.isAnnotationPresent(AccessibilityId.class) ||
                     field.isAnnotationPresent(Predicate.class)) {
                 annotations = new ExtendedAnnotations(field);
-            } else {
+            } else if (field.getAnnotations().length != 0) {
                 ExtendedAppiumAnnotations builder = new ExtendedAppiumAnnotations(platform, automation);
                 builder.setAnnotated(field);
                 annotations = builder;
