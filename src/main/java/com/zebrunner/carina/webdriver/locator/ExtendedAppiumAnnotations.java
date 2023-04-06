@@ -50,18 +50,6 @@ public class ExtendedAppiumAnnotations extends DefaultElementByBuilder {
     }
 
     @Override
-    public By buildBy() {
-        By defaultBy = buildDefaultBy();
-        By mobileNativeBy = buildMobileNativeBy();
-
-        if (defaultBy == null && mobileNativeBy == null){
-            return null;
-        }
-
-        return super.buildBy();
-    }
-
-    @Override
     protected void assertValidAnnotations() {
         AnnotatedElement annotatedElement = annotatedElementContainer.getAnnotated();
         FindBy findBy = annotatedElement.getAnnotation(FindBy.class);

@@ -80,21 +80,15 @@ public final class ExtendedElementLocatorFactory implements ElementLocatorFactor
                     field.isAnnotationPresent(AccessibilityId.class) ||
                     field.isAnnotationPresent(Predicate.class)) {
                 annotations = new ExtendedAnnotations(field);
-            } else if (field.getAnnotations().length != 0) {
+            } else {
                 ExtendedAppiumAnnotations builder = new ExtendedAppiumAnnotations(platform, automation);
                 builder.setAnnotated(field);
                 annotations = builder;
             }
-        } else if (field.getAnnotation(FindBy.class) != null ||
-                    field.getAnnotation(FindBys.class) != null ||
-                field.getAnnotation(FindAll.class) != null ||
-                field.getAnnotation(FindAny.class) != null) {
+        } else {
             annotations = new ExtendedSeleniumAnnotations(field);
         }
 
-        if (annotations == null) {
-            return null;
-        }
         ExtendedElementLocator extendedElementLocator = null;
         try {
             extendedElementLocator = new ExtendedElementLocator(webDriver, searchContext, field, annotations);

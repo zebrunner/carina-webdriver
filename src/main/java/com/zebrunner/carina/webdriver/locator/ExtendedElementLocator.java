@@ -76,11 +76,6 @@ public class ExtendedElementLocator implements ElementLocator {
         this.className = classPath[classPath.length - 1];
         this.by = annotations.buildBy();
         this.originalBy = this.by;
-
-        if (by == null){
-            throw new RuntimeException("Can't create by for " + field.getName());
-        }
-
         if (LocalizeLocatorConverter.getL10nPattern().matcher(this.by.toString()).find()) {
             this.locatorConverters.add(new LocalizeLocatorConverter());
         }
