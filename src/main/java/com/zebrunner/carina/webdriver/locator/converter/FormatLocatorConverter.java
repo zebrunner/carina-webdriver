@@ -14,6 +14,20 @@ public class FormatLocatorConverter implements LocatorConverter {
 
     @Override
     public String convert(String by) {
-        return String.format(by, arguments.toArray());
+        String converted = by;
+        int index = 0;
+        while (index < arguments.size()){
+            String tmp =  String.format(converted, arguments.get(index));
+            if (tmp.equals(converted)){
+                break;
+            } else {
+                converted = tmp;
+                arguments.remove(index);
+                --index;
+            }
+            ++index;
+        }
+
+        return converted;
     }
 }
