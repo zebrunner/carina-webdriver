@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Optional;
 
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
-import com.zebrunner.carina.webdriver.locator.ExtendedElementLocatorFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -36,7 +35,6 @@ import org.openqa.selenium.WrapsDriver;
 import org.openqa.selenium.WrapsElement;
 import org.openqa.selenium.interactions.Locatable;
 import org.openqa.selenium.support.pagefactory.ElementLocator;
-import org.openqa.selenium.support.pagefactory.internal.LocatingElementHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
