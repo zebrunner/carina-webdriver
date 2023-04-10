@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD, ElementType.TYPE})
 public @interface Localized {
 
-    NameFocus nameFocus() default NameFocus.CLASS_DECLARE;
+    NameFocus focus() default NameFocus.CLASS_DECLARE;
 
     String localeName() default "";
 

@@ -344,22 +344,24 @@ public class ExtendedWebElement implements IWebElement {
     }
 
     public String getName() {
+        String name = getSimpleName();
         if (localized == null){
-            return getSimpleName();
+            return name;
         }
 
-        if (!localized.localeName().isEmpty()){
-            return localized.localeName();
+        //insert custom name;
+        if (!this.localized.localeName().isEmpty()) {
+            name = name.replace(name.replaceAll("\\d*$", ""), this.localized.localeName());
         }
 
-        Localized.NameFocus focus = localized.nameFocus();
+        Localized.NameFocus focus = localized.focus();
         switch (focus) {
             case ELEMENT:
-                return getSimpleName();
+                return name;
             case CLASS_DECLARE:
-                return getDeclareClassName();
+                return this.declareClass + name;
             case FULL_PATH:
-                return getFullName();
+                return this.fullDeclarePath + name;
             default:
                 return null;
         }
@@ -1259,7 +1261,7 @@ public class ExtendedWebElement implements IWebElement {
                         .buildLocatorFromString(locator, objects);
                 LOGGER.debug("Formatted locator is : {}", by);
             }
-            formattedElement = new ExtendedWebElement(by, name, this.driver, this.searchContext, objects);
+            formattedElement = new ExtendedWebElement(by, this.name, this.driver, this.searchContext, objects);
         }
 
         return formattedElement;
