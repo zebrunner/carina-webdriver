@@ -19,10 +19,13 @@ import static io.appium.java_client.pagefactory.utils.WebDriverUnpackUtility.get
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.SearchContext;
@@ -55,11 +58,16 @@ public class ExtendedElementLocator implements ElementLocator {
 
     private final WebDriver driver;
     private SearchContext searchContext;
+    private final String elementName;
     private final String className;
+    private final String fullPathName;
     private final By originalBy;
     private By by;
     private boolean caseInsensitive = false;
-    private boolean localized = false;
+    private Localized localized;
+    private boolean isList;
+    private int listCount = 0;
+
     private final LinkedList<LocatorConverter> locatorConverters = new LinkedList<>();
 
     /**
@@ -72,8 +80,29 @@ public class ExtendedElementLocator implements ElementLocator {
     public ExtendedElementLocator(WebDriver driver, SearchContext searchContext, Field field, AbstractAnnotations annotations) {
         this.driver = driver;
         this.searchContext = searchContext;
-        String[] classPath = field.getDeclaringClass().toString().split("\\.");
-        this.className = classPath[classPath.length - 1];
+        this.elementName = field.getName();
+        this.isList = field.getType().isAssignableFrom(List.class);
+
+        StringBuilder classNameBuilder = new StringBuilder(field.getDeclaringClass().getSimpleName());
+        StringBuilder fullPathNameBuilder = new StringBuilder();
+        try {
+            if (searchContext instanceof Proxy) {
+                InvocationHandler innerProxy = Proxy.getInvocationHandler(searchContext);
+                ExtendedElementLocator locator = (ExtendedElementLocator) (FieldUtils.getDeclaredField(innerProxy.getClass(), "locator", true))
+                        .get(innerProxy);
+                if (locator.isForList()) {
+                    classNameBuilder.append(locator.getListCount());
+                }
+                fullPathNameBuilder.append(locator.getFullPathName());
+            }
+            classNameBuilder.append(".");
+            fullPathNameBuilder.append(classNameBuilder);
+        } catch (IllegalAccessException exception) {
+            throw new RuntimeException(exception);
+        }
+        this.className = classNameBuilder.toString();
+        this.fullPathName = fullPathNameBuilder.toString();
+
         this.by = annotations.buildBy();
         this.originalBy = this.by;
         if (LocalizeLocatorConverter.getL10nPattern().matcher(this.by.toString()).find()) {
@@ -88,7 +117,7 @@ public class ExtendedElementLocator implements ElementLocator {
             caseInsensitive = true;
         }
         if (field.isAnnotationPresent(Localized.class)) {
-            this.localized = true;
+            this.localized = field.getAnnotation(Localized.class);
         }
         buildConvertedBy();
     }
@@ -118,10 +147,9 @@ public class ExtendedElementLocator implements ElementLocator {
      * then it is switched to the searching for some html or native mobile element.
      * Otherwise nothing happens there.
      *
-     * @param currentBy is some locator strategy
+     * @param currentBy      is some locator strategy
      * @param currentContent is an instance of some subclass of the {@link SearchContext}.
      * @return the corrected {@link By} for the further searching
-     *
      */
     private By getBy(By currentBy, SearchContext currentContent) {
         if (!ContentMappedBy.class.isAssignableFrom(currentBy.getClass())) {
@@ -186,7 +214,7 @@ public class ExtendedElementLocator implements ElementLocator {
         this.searchContext = searchContext;
     }
 
-    public boolean isLocalized() {
+    public Localized getLocalized() {
         return this.localized;
     }
 
@@ -202,8 +230,28 @@ public class ExtendedElementLocator implements ElementLocator {
         return this.driver;
     }
 
+    public String getElementName() {
+        return elementName;
+    }
+
     public String getClassName() {
         return className;
+    }
+
+    public String getFullPathName() {
+        return fullPathName;
+    }
+
+    public int getListCount() {
+        return listCount;
+    }
+
+    public void increaseListCount() {
+        ++listCount;
+    }
+
+    public boolean isForList() {
+        return isList;
     }
 
     public LinkedList<LocatorConverter> getLocatorConverters() {

@@ -23,4 +23,15 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.TYPE})
 public @interface Localized {
+
+    NameFocus nameFocus() default NameFocus.CLASS_DECLARE;
+
+    String localeName() default "";
+
+
+    enum NameFocus {
+        FULL_PATH,
+        CLASS_DECLARE,
+        ELEMENT;
+    }
 }

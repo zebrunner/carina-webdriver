@@ -94,8 +94,11 @@ public class ExtendedWebElement implements IWebElement {
     private CryptoTool cryptoTool = null;
     private WebElement element = null;
     private String name;
+    private String declareClass;
+    private String fullDeclarePath;
     private By by;
-    private boolean isLocalized = false;
+    private Localized localized;
+    private boolean isToCheckLocale = false;
     private boolean isSingleElement = true;
     private boolean isRefreshSupport = true;
     // Converted array of objects to String for dynamic element locators
@@ -148,13 +151,14 @@ public class ExtendedWebElement implements IWebElement {
                 ExtendedElementLocator locator = (ExtendedElementLocator) (FieldUtils.getDeclaredField(innerProxy.getClass(), "locator", true))
                         .get(innerProxy);
 
-                this.isLocalized = locator.isLocalized();
-                if (isLocalized) {
-                    this.name = locator.getClassName() + "." + name;
-                }
-
                 this.searchContext = locator.getSearchContext();
                 this.driver = locator.getDriver();
+
+                this.localized = locator.getLocalized();
+                this.isToCheckLocale = this.localized != null;
+
+                this.declareClass = locator.getClassName();
+                this.fullDeclarePath = locator.getFullPathName();
 
                 // TODO: identify if it is a child element and
                 // 1. get rootBy
@@ -323,6 +327,14 @@ public class ExtendedWebElement implements IWebElement {
         return this.name + this.formatValues;
     }
 
+    public String getDeclareClassName(){
+        return this.declareClass + this.getName();
+    }
+
+    public String getFullName() {
+        return this.fullDeclarePath + this.getName();
+    }
+
     public String getNameWithLocator() {
         if (this.by != null) {
             return this.name + this.formatValues + String.format(" (%s)", by);
@@ -364,6 +376,29 @@ public class ExtendedWebElement implements IWebElement {
      */
     public String getText() {
         return (String) doAction(ACTION_NAME.GET_TEXT, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
+    }
+
+    @Override
+    public String getLocalizedName() {
+        if (localized == null){
+            return getName();
+        }
+
+        if (!localized.localeName().isEmpty()){
+            return localized.localeName();
+        }
+
+        Localized.NameFocus focus = localized.nameFocus();
+        switch (focus) {
+            case ELEMENT:
+                return getName();
+            case CLASS_DECLARE:
+                return getDeclareClassName();
+            case FULL_PATH:
+                return getFullName();
+            default:
+                return null;
+        }
     }
 
     /**
@@ -1228,7 +1263,6 @@ public class ExtendedWebElement implements IWebElement {
             formattedElement = new ExtendedWebElement(by, name, this.driver, this.searchContext, objects);
         }
 
-        formattedElement.setName(this.name);
         return formattedElement;
     }
 
@@ -1320,7 +1354,7 @@ public class ExtendedWebElement implements IWebElement {
                 }
                 int i = 0;
                 for (WebElement el : this.searchContext.findElements(by)) {
-                    ExtendedWebElement extendedWebElement = new ExtendedWebElement(by, String.format("%s - [%s]", name, i++), driver, searchContext,
+                    ExtendedWebElement extendedWebElement = new ExtendedWebElement(by, String.format("%s%d", name, i++), driver, searchContext,
                             objects);
                     extendedWebElement.setElement(el);
                     extendedWebElement.setIsSingle(false);
@@ -1502,8 +1536,8 @@ public class ExtendedWebElement implements IWebElement {
 			}
 		}
 		
-        if (isLocalized) {
-            isLocalized = false; // single verification is enough for this particular element
+        if (isToCheckLocale) {
+            isToCheckLocale = false; // single verification is enough for this particular element
             L10N.verify(this);
         }
 

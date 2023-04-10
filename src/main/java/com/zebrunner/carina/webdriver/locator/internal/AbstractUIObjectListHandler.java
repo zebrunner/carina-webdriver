@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
+import com.zebrunner.carina.webdriver.locator.ExtendedElementLocatorFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -34,6 +36,7 @@ import org.openqa.selenium.WrapsDriver;
 import org.openqa.selenium.WrapsElement;
 import org.openqa.selenium.interactions.Locatable;
 import org.openqa.selenium.support.pagefactory.ElementLocator;
+import org.openqa.selenium.support.pagefactory.internal.LocatingElementHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,11 +87,15 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
         int index = 0;
         if (elements != null) {
             for (WebElement element : elements) {
+                InvocationHandler elementHandler = new LocatingListsElementHandler(element, locator);
+                WebElement elementProxy = (WebElement) Proxy.newProxyInstance(loader,
+                        new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
+                        elementHandler);
+
                 T uiObject;
                 try {
                     uiObject = (T) clazz.getConstructor(WebDriver.class, SearchContext.class)
-                            .newInstance(
-                                    webDriver, element);
+                            .newInstance(webDriver, elementProxy);
                 } catch (NoSuchMethodException e) {
                     LOGGER.error("Implement appropriate AbstractUIObject constructor for auto-initialization: "
                             + e.getMessage());
@@ -98,11 +105,19 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                             e);
                 }
 
-                InvocationHandler handler = new LocatingListsElementHandler(element, locator);
-                WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,
-                        new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
-                        handler);
-                ExtendedWebElement webElement = new ExtendedWebElement(proxy, String.format("%s - %d", name, index), locatorBy);
+                ExtendedWebElement webElement;
+                if (locator instanceof ExtendedElementLocator){
+                    ExtendedElementLocator extLocator = (ExtendedElementLocator) locator;
+                    webElement = new ExtendedWebElement(elementProxy,
+                            String.format("%s%d", extLocator.getElementName(), extLocator.getListCount()),
+                            locatorBy);
+                    uiObject.setName(String.format("%s%d", extLocator.getElementName(), extLocator.getListCount()));
+                    extLocator.increaseListCount();
+                } else {
+                    webElement = new ExtendedWebElement(elementProxy, String.format("%s%d", name, index), locatorBy);
+                    uiObject.setName(String.format("%s%d", name, index));
+                }
+
                 webElement.setIsSingle(false);
                 if (isByForListSupported) {
                     webElement.setIsRefreshSupport(true);
@@ -111,7 +126,6 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                     webElement.setIsRefreshSupport(false);
                 }
                 uiObject.setRootExtendedElement(webElement);
-                uiObject.setName(String.format("%s - %d", name, index));
                 uiObject.setRootElement(element);
                 uiObject.setRootBy(locatorBy);
                 uIObjects.add(uiObject);
