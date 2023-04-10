@@ -12,6 +12,9 @@ public class FormatLocatorConverter implements LocatorConverter {
                 .collect(Collectors.toList());
     }
 
+    //if we use @FindAny({ @FindBy(id = "%s"), @FindBy(id = "%s") }) annotation,
+    //we want element.format("id1","id2") to create @FindAny({ @FindBy(id = "id1"), @FindBy(id = "id2") })
+    //with simply String.format(by, arguments.toString()) we will get @FindAny({ @FindBy(id = "id1"), @FindBy(id = "id1") })
     @Override
     public String convert(String by) {
         String converted = by;
