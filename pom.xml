@@ -50,7 +50,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
         <carina-utils.version>1.0.3</carina-utils.version>
-        <carina-commons.version>1.0.1</carina-commons.version>
+        <carina-commons.version>1.0.2</carina-commons.version>
         <carina-proxy.version>1.0.1</carina-proxy.version>
         <zebrunner-testng-pluggable.version>1.9.3</zebrunner-testng-pluggable.version>
         <slf4j.version>1.7.30</slf4j.version>
@@ -58,7 +58,7 @@
         <selenium.version>4.4.0</selenium.version>
         <appium.version>8.2.0</appium.version>
         <ashot.version>1.5.4</ashot.version>
-        <itext.version>5.5.13.2</itext.version>
+        <itext.version>5.5.13.3</itext.version>
         <reflections.version>0.9.10</reflections.version>
         <jersey.version>1.19.4</jersey.version>
         <commons-collections.version>3.2.2</commons-collections.version>
@@ -94,6 +94,20 @@
             <groupId>com.zebrunner</groupId>
             <artifactId>carina-utils</artifactId>
             <version>${carina-utils.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.testng</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.seleniumhq.selenium</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.rest-assured</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -110,6 +124,18 @@
                 <exclusion>
                     <groupId>com.google.guava</groupId>
                     <artifactId>guava</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.testng</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.seleniumhq.selenium</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.rest-assured</groupId>
+                    <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
