@@ -20,6 +20,19 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Checks/generates locale for marked element
+ *
+ * focus() - L10N will search/generate locale key with certain pattern.
+ * CLASS_DECLARE (default): Component.element or Page.element
+ * ELEMENT: element
+ * FULL_PATH: Page.Component.Component.element
+ *
+ * localeName() - override L10N search/generate elements name.
+ * CLASS_DECLARE (default): Component.customName or Page.customName
+ * ELEMENT: customName
+ * FULL_PATH: Page.Component.Component.customName
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.TYPE})
 public @interface Localized {
@@ -27,7 +40,6 @@ public @interface Localized {
     NameFocus focus() default NameFocus.CLASS_DECLARE;
 
     String localeName() default "";
-
 
     enum NameFocus {
         FULL_PATH,
