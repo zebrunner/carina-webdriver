@@ -323,16 +323,16 @@ public class ExtendedWebElement implements IWebElement {
         this.isRefreshSupport = isRefreshSupport;
     }
 
-    public String getName() {
+    public String getSimpleName() {
         return this.name + this.formatValues;
     }
 
-    public String getDeclareClassName(){
-        return this.declareClass + this.getName();
+    public String getDeclareClassName() {
+        return this.declareClass + this.getSimpleName();
     }
 
     public String getFullName() {
-        return this.fullDeclarePath + this.getName();
+        return this.fullDeclarePath + this.getSimpleName();
     }
 
     public String getNameWithLocator() {
@@ -340,6 +340,28 @@ public class ExtendedWebElement implements IWebElement {
             return this.name + this.formatValues + String.format(" (%s)", by);
         } else {
             return this.name + this.formatValues + " (n/a)";
+        }
+    }
+
+    public String getName() {
+        if (localized == null){
+            return getSimpleName();
+        }
+
+        if (!localized.localeName().isEmpty()){
+            return localized.localeName();
+        }
+
+        Localized.NameFocus focus = localized.nameFocus();
+        switch (focus) {
+            case ELEMENT:
+                return getSimpleName();
+            case CLASS_DECLARE:
+                return getDeclareClassName();
+            case FULL_PATH:
+                return getFullName();
+            default:
+                return null;
         }
     }
 
@@ -376,29 +398,6 @@ public class ExtendedWebElement implements IWebElement {
      */
     public String getText() {
         return (String) doAction(ACTION_NAME.GET_TEXT, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
-    }
-
-    @Override
-    public String getLocalizedName() {
-        if (localized == null){
-            return getName();
-        }
-
-        if (!localized.localeName().isEmpty()){
-            return localized.localeName();
-        }
-
-        Localized.NameFocus focus = localized.nameFocus();
-        switch (focus) {
-            case ELEMENT:
-                return getName();
-            case CLASS_DECLARE:
-                return getDeclareClassName();
-            case FULL_PATH:
-                return getFullName();
-            default:
-                return null;
-        }
     }
 
     /**
