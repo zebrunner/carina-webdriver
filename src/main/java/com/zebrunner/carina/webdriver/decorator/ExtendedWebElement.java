@@ -351,7 +351,7 @@ public class ExtendedWebElement implements IWebElement {
 
         //replace element's name with custom name from @Localized annotation.
         //do not replace last digits of this.name because it could be a list's element
-        if (!this.localized.localeName().isEmpty()) {
+        if (this.isSingleElement && !this.localized.localeName().isEmpty()) {
             name = name.replace(name.replaceAll("\\d*$", ""), this.localized.localeName());
         }
 
