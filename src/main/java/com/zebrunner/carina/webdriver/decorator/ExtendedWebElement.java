@@ -345,13 +345,13 @@ public class ExtendedWebElement implements IWebElement {
 
     public String getName() {
         String name = getSimpleName();
-        if (localized == null){
+        if (localized == null || !R.CONFIG.getBoolean(Parameter.LOCALIZATION_TESTING.getKey())){
             return name;
         }
 
         //replace element's name with custom name from @Localized annotation.
         //do not replace last digits of this.name because it could be a list's element
-        if (this.isSingleElement && !this.localized.localeName().isEmpty()) {
+        if (!this.isSingleElement && !this.localized.localeName().isEmpty()) {
             name = name.replace(name.replaceAll("\\d*$", ""), this.localized.localeName());
         }
 

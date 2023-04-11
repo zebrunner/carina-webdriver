@@ -104,18 +104,11 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                 }
 
                 ExtendedWebElement webElement;
-                if (locator instanceof ExtendedElementLocator){
-                    ExtendedElementLocator extLocator = (ExtendedElementLocator) locator;
-                    webElement = new ExtendedWebElement(elementProxy,
-                            String.format("%s%d", extLocator.getElementName(), extLocator.getListCount()),
-                            locatorBy);
-                    uiObject.setName(String.format("%s%d", extLocator.getElementName(), extLocator.getListCount()));
-                    extLocator.increaseListCount();
-                } else {
-                    webElement = new ExtendedWebElement(elementProxy, String.format("%s%d", name, index), locatorBy);
-                    uiObject.setName(String.format("%s%d", name, index));
+                if (locator instanceof ExtendedElementLocator) {
+                    ((ExtendedElementLocator) locator).setListCount(index);
                 }
 
+                webElement = new ExtendedWebElement(elementProxy, String.format("%s%d", name, index), locatorBy);
                 webElement.setIsSingle(false);
                 if (isByForListSupported) {
                     webElement.setIsRefreshSupport(true);
@@ -124,6 +117,7 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                     webElement.setIsRefreshSupport(false);
                 }
                 uiObject.setRootExtendedElement(webElement);
+                uiObject.setName(String.format("%s%d", name, index));
                 uiObject.setRootElement(element);
                 uiObject.setRootBy(locatorBy);
                 uIObjects.add(uiObject);

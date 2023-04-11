@@ -246,8 +246,8 @@ public class ExtendedElementLocator implements ElementLocator {
         return listCount;
     }
 
-    public void increaseListCount() {
-        ++listCount;
+    public void setListCount(int index) {
+        listCount = index;
     }
 
     public boolean isForList() {
