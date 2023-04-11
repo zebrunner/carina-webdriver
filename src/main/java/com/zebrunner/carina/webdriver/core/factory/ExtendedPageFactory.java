@@ -8,7 +8,9 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.support.PageFactory;
+import org.openqa.selenium.support.pagefactory.FieldDecorator;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -19,6 +21,21 @@ import java.util.List;
 import java.util.Objects;
 
 public class ExtendedPageFactory extends PageFactory {
+
+    public static void initElements(FieldDecorator decorator, Object page) {
+        Class<?> proxyIn = page.getClass();
+        while (proxyIn != AbstractUIObject.class) {
+            try {
+                Method proxyFields = PageFactory.class.getDeclaredMethod("proxyFields", FieldDecorator.class, Object.class, Class.class);
+                proxyFields.setAccessible(true);
+                proxyFields.invoke(null, decorator, page, proxyIn);
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+            proxyIn = proxyIn.getSuperclass();
+        }
+    }
+
     public static void initElementsContext(Object page) {
         Class<?> proxyIn = page.getClass();
         while (proxyIn != AbstractUIObject.class) {
@@ -61,18 +78,18 @@ public class ExtendedPageFactory extends PageFactory {
             }
         }
 
-        if (contextField == null){
+        if (contextField == null) {
             throw new RuntimeException("Cannot find context element: " + context.dependsOn());
         }
 
         try {
             contextField.setAccessible(true);
             ExtendedWebElement element = null;
-            if (contextField.getType().isAssignableFrom(AbstractUIObject.class)){
+            if (contextField.getType().isAssignableFrom(AbstractUIObject.class)) {
                 element = ((AbstractUIObject) contextField.get(page)).getRootExtendedElement();
-            } else if (contextField.getType().isAssignableFrom(ExtendedWebElement.class)){
+            } else if (contextField.getType().isAssignableFrom(ExtendedWebElement.class)) {
                 element = ((ExtendedWebElement) contextField.get(page));
-            } else if (contextField.getType().isAssignableFrom(List.class)){
+            } else if (contextField.getType().isAssignableFrom(List.class)) {
                 throw new RuntimeException("List couldn't be passed as context element");
             }
 
@@ -133,7 +150,7 @@ public class ExtendedPageFactory extends PageFactory {
         if (ExtendedWebElement.class.isAssignableFrom((Class<?>) genericType)) {
 
             Object elementsList = getParamByField(field, page);
-            if (elementsList instanceof Proxy){
+            if (elementsList instanceof Proxy) {
 
                 InvocationHandler innerProxy = Proxy.getInvocationHandler(elementsList);
                 ExtendedElementLocator locator;
