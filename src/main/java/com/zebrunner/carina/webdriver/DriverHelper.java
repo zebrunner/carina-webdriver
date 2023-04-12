@@ -25,12 +25,17 @@ import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -42,7 +47,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import com.google.gson.Gson;
+import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.JavascriptException;
@@ -90,12 +98,14 @@ import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 /**
  * DriverHelper - WebDriver wrapper for logging and reporting features. Also it
  * contains some complex operations with UI.
- * 
+ *
  * @author Alex Khursevich
  */
 public class DriverHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final String REDUX_STORE_STATE_BASE_PATH = "window.store.getState()";
+    private static final String REDUX_STORE_STATE_DISPATCH_PATH = "window.store.dispatch";
     private static final String CRYPTO_PATTERN = Configuration.get(Parameter.CRYPTO_PATTERN);
     protected static final long EXPLICIT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT);
     protected static final long SHORT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT) / 3;
@@ -118,7 +128,7 @@ public class DriverHelper {
         Objects.requireNonNull(driver, "WebDriver not initialized, check log files for details!");
         this.driver = driver;
     }
-    
+
     /**
      * Opens page according to specified in constructor URL.
      */
@@ -148,7 +158,7 @@ public class DriverHelper {
 
         setPageLoadTimeout(drv, timeout);
         DriverListener.setMessages(Messager.OPENED_URL.getMessage(url), Messager.NOT_OPENED_URL.getMessage(url));
-        
+
         // [VD] there is no sense to use fluent wait here as selenium just don't return something until page is ready!
         // explicitly limit time for the openURL operation
         try {
@@ -184,7 +194,7 @@ public class DriverHelper {
 
     public String getPageURL() {
         return this.pageURL;
-    }    
+    }
 
     // --------------------------------------------------------------------------
     // Base UI interaction operations
@@ -375,7 +385,7 @@ public class DriverHelper {
 
     /**
      * Check that element not present on page.
-     * 
+     *
      * @param extWebElement to check if element is not present
      * @return element non-existence status.
      */
@@ -385,7 +395,7 @@ public class DriverHelper {
 
     /**
      * Check that element not present on page.
-     * 
+     *
      * @param extWebElement to check if element is not present
      * @param timeout to wait
      * @return element non-existence status.
@@ -397,7 +407,7 @@ public class DriverHelper {
 
     /**
      * Check that element not present on page.
-     * 
+     *
      * @param element to check if element is not present
      * @param controlInfo String
      * @return element non-existence status.
@@ -409,7 +419,7 @@ public class DriverHelper {
 
     /**
      * Clicks on element.
-     * 
+     *
      * @param elements ExtendedWebElements to click
      */
 
@@ -419,7 +429,7 @@ public class DriverHelper {
 
     /**
      * Clicks on element.
-     * 
+     *
      * @param elements ExtendedWebElements to click
      * @param timeout to wait
      */
@@ -454,7 +464,7 @@ public class DriverHelper {
         searchableElement.get()
                 .click();
     }
-    
+
     /*
      * Get and return the source of the last loaded page.
      * @return String
@@ -476,7 +486,7 @@ public class DriverHelper {
         Messager.GET_PAGE_SOURCE.info();
         return res;
     }
-    
+
     /*
      * Add cookie object into the driver
      * @param Cookie
@@ -494,6 +504,192 @@ public class DriverHelper {
             drv.manage().addCookie(cookie);
             return true;
         });
+    }
+
+    /**
+     * add a cookie object into the driver
+     *
+     * @param name name of the cookie
+     * @param value the value of the cookie
+     * @param domain the domain of the cookie
+     * @param path the path of the cookie
+     * @param expiry when the cookie expires
+     */
+    public void addCookie(String name, String value, String domain, String path, Date expiry) {
+        addCookie(new Cookie(name, value, domain, path, expiry));
+    }
+
+    /**
+     * add a cookie object into the driver
+     *
+     * @param name name of the cookie
+     * @param value the value of the cookie
+     * @param domain the domain of the cookie
+     * @param path the path of the cookie
+     * @param expiry when the cookie expires
+     * @param isSecure if the cookie is secure or not
+     * @param isHttpOnly if it is on http or https
+     */
+    public void addCookie(String name, String value, String domain, String path, Date expiry, boolean isSecure, boolean isHttpOnly) {
+        addCookie(new Cookie(name, value, domain, path, expiry, isSecure, isHttpOnly));
+    }
+
+    /**
+     * gets a specific cookie
+     *
+     * @param name the cookie being targeted
+     * @return cookie with the given name
+     * @see WebDriver.Options#getCookieNamed(String)
+     */
+    public Cookie getCookieNamed(String name) {
+        return getDriver().manage().getCookieNamed(name);
+    }
+
+    /**
+     * get the value of a cookie that was a URL-encoded Map.
+     *
+     * @param name the cookie being targeted
+     * @return decoded cookie value
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, String> getDecodedValueOfCookieNamed(String name) {
+        String cookieJsonString = null;
+        try {
+            cookieJsonString = URLDecoder.decode(getCookieNamed(name).getValue(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            LOGGER.error("Error caught while decoding the cookie with the name: " + name, e);
+        }
+        return new Gson().fromJson(cookieJsonString, HashMap.class);
+    }
+
+    public Set<Cookie> getAllCookies() {
+        return getDriver().manage().getCookies();
+    }
+
+    /**
+     * Return a cookie String similar to document.cookie in the browser console
+     * Includes the cookie name and value, and doesn't include the path, domain, etc for each cookie
+     * @return String with all the cookie names and their values
+     */
+    public String getAllCookiesString() {
+        return getAllCookies().stream()
+                .map(cookie -> cookie.getName() + "=" + cookie.getValue() + ";")
+                .collect(Collectors.joining());
+    }
+
+    /**
+     * delete a specific cookie
+     *
+     * @param name the name of the cookie being deleted
+     */
+    public void deleteCookieNamed(String name) {
+        getDriver().manage().deleteCookieNamed(name);
+    }
+
+    /**
+     * delete all cookies in the driver session
+     */
+    public void deleteAllCookies() {
+        getDriver().manage().deleteAllCookies();
+    }
+
+    /**
+     * add an item to local storage
+     *
+     * @param name the name of the item to save
+     * @param value the value of the item to save
+     */
+    public void addToLocalStorage(String name, String value) {
+        ((JavascriptExecutor) getDriver()).executeScript(String.format("window.localStorage.setItem('%s','%s');", name, value));
+    }
+
+    /**
+     * add an item to local storage
+     *
+     * @param name the name of the item to save
+     * @param value the value of the item to save
+     */
+    public void addToLocalStorage(String name, Boolean value) {
+        addToLocalStorage(name, String.valueOf(value));
+    }
+
+    /**
+     * check to see if the item is present in local storage
+     *
+     * @param name the name of the item being stored
+     * @return boolean for if the item is present or not
+     */
+    public boolean isItemPresentInLocalStorage(String name) {
+        return ((JavascriptExecutor) getDriver()).executeScript(String.format("return window.localStorage.getItem('%s');", name)) != null;
+    }
+
+    /**
+     * gets the value of the stored item
+     *
+     * @param name the item that is stored
+     * @return value of the item
+     */
+    public String getValueFromLocalStorage(String name) {
+        return (String) ((JavascriptExecutor) getDriver()).executeScript(String.format("return window.localStorage.getItem('%s');", name));
+    }
+
+    /**
+     * gets the name of a stored item via an index
+     *
+     * @param index the position of where the item is stored
+     * @return name of the stored item
+     */
+    public String getNameFromLocalStorage(int index) {
+        return (String) ((JavascriptExecutor) getDriver()).executeScript(String.format("return window.localStorage.key('%s');", index));
+    }
+
+    /**
+     * remove an item from local storage
+     *
+     * @param name the name of the item to remove
+     */
+    public void removeFromLocalStorage(String name) {
+        ((JavascriptExecutor) getDriver()).executeScript(String.format("window.localStorage.removeItem('%s');", name));
+    }
+
+    /**
+     * clears the local storage
+     */
+    public void clearAllFromLocalStorage() {
+        ((JavascriptExecutor) getDriver()).executeScript("return window.localStorage.clear();");
+    }
+
+    /**
+     * gets the states of the redux store
+     * @return all store states
+     */
+    public JSONObject getStoreStates() {
+        String script = String.format("return JSON.stringify(%s);", REDUX_STORE_STATE_BASE_PATH);
+        String response = (String)((JavascriptExecutor) getDriver()).executeScript(script);
+        return new JSONObject(response);
+    }
+
+    /**
+     * gets the state for a specific redux path
+     *
+     * @param path redux path you want a state for
+     * @return redux store state
+     */
+    public JSONObject getStoreStateFor(String path) {
+        String script = String.format("return JSON.stringify(%s).%s;", REDUX_STORE_STATE_BASE_PATH, path);
+        String response = (String)((JavascriptExecutor) getDriver()).executeScript(script);
+        return new JSONObject(response);
+    }
+
+    /**
+     * update a redux store with a particular state
+     *
+     * @param action the type of action you want to update
+     * @param payload the payload to be updated
+     */
+    public void updateStoreStateWith(String action, JSONObject payload) {
+        String script = String.format("%s({type: '%s', payload: '%s'})", REDUX_STORE_STATE_DISPATCH_PATH, action, payload);
+        ((JavascriptExecutor) getDriver()).executeScript(script);
     }
 
     /**
@@ -547,7 +743,7 @@ public class DriverHelper {
      * @return validation result.
      */
     public boolean isUrlAsExpected(String expectedURL) {
-        return isUrlAsExpected(expectedURL, Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));      
+        return isUrlAsExpected(expectedURL, Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
     }
 
     /**
@@ -777,7 +973,7 @@ public class DriverHelper {
         if (result) {
             Messager.TITLE_CORRECT.info(actual);
         } else {
-            Messager.TITLE_NOT_CORRECT.error(expectedPattern, actual);   
+            Messager.TITLE_NOT_CORRECT.error(expectedPattern, actual);
         }
         return result;
     }
@@ -983,7 +1179,7 @@ public class DriverHelper {
 
     /**
      * Checks that alert modal is shown.
-     * 
+     *
      * @return whether the alert modal present.
      */
     public boolean isAlertPresent() {
