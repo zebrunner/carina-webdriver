@@ -85,6 +85,9 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
         int index = 0;
         if (elements != null) {
             for (WebElement element : elements) {
+                if (locator instanceof ExtendedElementLocator) {
+                    ((ExtendedElementLocator) locator).setListCount(index);
+                }
                 InvocationHandler elementHandler = new LocatingListsElementHandler(element, locator);
                 WebElement elementProxy = (WebElement) Proxy.newProxyInstance(loader,
                         new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
@@ -103,12 +106,7 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                             e);
                 }
 
-                ExtendedWebElement webElement;
-                if (locator instanceof ExtendedElementLocator) {
-                    ((ExtendedElementLocator) locator).setListCount(index);
-                }
-
-                webElement = new ExtendedWebElement(elementProxy, String.format("%s%d", name, index), locatorBy);
+                ExtendedWebElement webElement = new ExtendedWebElement(elementProxy, String.format("%s%d", name, index), locatorBy);
                 webElement.setIsSingle(false);
                 if (isByForListSupported) {
                     webElement.setIsRefreshSupport(true);

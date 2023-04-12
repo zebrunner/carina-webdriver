@@ -66,7 +66,7 @@ public class ExtendedElementLocator implements ElementLocator {
     private boolean caseInsensitive = false;
     private Localized localized;
     private boolean isList;
-    private int listCount = 0;
+    private int listCount;
 
     private final LinkedList<LocatorConverter> locatorConverters = new LinkedList<>();
 
