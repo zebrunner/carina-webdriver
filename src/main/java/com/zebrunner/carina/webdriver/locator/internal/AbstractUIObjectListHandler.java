@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
+import com.zebrunner.carina.webdriver.locator.ImmutableUIList;
 import com.zebrunner.carina.webdriver.locator.LocatorType;
 import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 
@@ -52,14 +53,16 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
     private final String name;
 
     private final By locatorBy;
+    private final Field field;
 
-    public AbstractUIObjectListHandler(ClassLoader loader, Class<?> clazz, WebDriver webDriver, ElementLocator locator, String name) {
+    public AbstractUIObjectListHandler(ClassLoader loader, Class<?> clazz, WebDriver webDriver, ElementLocator locator, String name, Field field) {
         this.loader = loader;
         this.clazz = clazz;
         this.webDriver = webDriver;
         this.locator = locator;
         this.name = name;
         this.locatorBy = getLocatorBy(locator);
+        this.field = field;
     }
 
     @SuppressWarnings("unchecked")
@@ -85,10 +88,23 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
         if (elements != null) {
             for (WebElement element : elements) {
                 T uiObject;
+
+                if (field.isAnnotationPresent(ImmutableUIList.class) && !isByForListSupported) {
+                    throw new RuntimeException("You can  use ImmutableUIList annotation only with list that use xpath as locator!");
+                }
+                AbstractUIObjectListElementHandler handler = new AbstractUIObjectListElementHandler(element, locator,
+                        field.isAnnotationPresent(ImmutableUIList.class));
+
+                if (field.isAnnotationPresent(ImmutableUIList.class)) {
+                    handler.setByForListElement(locatorType.get().buildLocatorWithIndex(locatorAsString, index));
+                }
+                WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,
+                        new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
+                        handler);
                 try {
                     uiObject = (T) clazz.getConstructor(WebDriver.class, SearchContext.class)
                             .newInstance(
-                                    webDriver, element);
+                                    webDriver, proxy);
                 } catch (NoSuchMethodException e) {
                     LOGGER.error("Implement appropriate AbstractUIObject constructor for auto-initialization: "
                             + e.getMessage());
@@ -98,10 +114,7 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                             e);
                 }
 
-                InvocationHandler handler = new LocatingListsElementHandler(element, locator);
-                WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,
-                        new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
-                        handler);
+
                 ExtendedWebElement webElement = new ExtendedWebElement(proxy, String.format("%s - %d", name, index), locatorBy);
                 webElement.setIsSingle(false);
                 if (isByForListSupported) {
