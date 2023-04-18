@@ -1,27 +1,30 @@
 package com.zebrunner.carina.webdriver.core.factory;
 
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
-import com.zebrunner.carina.webdriver.locator.Context;
-import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
-import org.apache.commons.lang3.reflect.FieldUtils;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.SearchContext;
-import org.openqa.selenium.support.PageFactory;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.openqa.selenium.SearchContext;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.PageFactory;
+
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.gui.AbstractPage;
+import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
+import com.zebrunner.carina.webdriver.locator.Context;
+import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
+
+// todo investigate how it will work after refactor
 public class ExtendedPageFactory extends PageFactory {
     public static void initElementsContext(Object page) {
         Class<?> proxyIn = page.getClass();
-        while (proxyIn != AbstractUIObject.class) {
+        while (proxyIn != AbstractUIObject.class && proxyIn != AbstractPage.class) {
             Field[] contextFields = Arrays.stream(proxyIn.getDeclaredFields())
                     .filter(field -> !Objects.isNull(field.getDeclaredAnnotation(Context.class)))
                     .toArray(Field[]::new);
@@ -35,12 +38,9 @@ public class ExtendedPageFactory extends PageFactory {
         for (Field field : fields) {
             WebElement contextElement = getElement(field, page);
 
-            if (ExtendedWebElement.class.isAssignableFrom(field.getType())) {
-                setContextForWebElement((ExtendedWebElement) getParamByField(field, page), contextElement);
-            }
 
             if (AbstractUIObject.class.isAssignableFrom(field.getType())) {
-                setContextForAbstractUIObject((AbstractUIObject) getParamByField(field, page), contextElement);
+                setContextForAbstractUIObject((AbstractUIObject<?>) getParamByField(field, page), contextElement);
             }
 
             if (List.class.isAssignableFrom(field.getType())) {
@@ -67,13 +67,11 @@ public class ExtendedPageFactory extends PageFactory {
 
         try {
             contextField.setAccessible(true);
-            ExtendedWebElement element = null;
-            if (contextField.getType().isAssignableFrom(AbstractUIObject.class)){
-                element = ((AbstractUIObject) contextField.get(page)).getRootExtendedElement();
-            } else if (contextField.getType().isAssignableFrom(ExtendedWebElement.class)){
-                element = ((ExtendedWebElement) contextField.get(page));
+            AbstractUIObject<?> element = null;
+            if (contextField.getType().isAssignableFrom(AbstractUIObject.class)) {
+                element = ((AbstractUIObject<?>) contextField.get(page));
             } else if (contextField.getType().isAssignableFrom(List.class)){
-                throw new RuntimeException("List couldn't be passed as context element");
+                throw new IllegalArgumentException("List couldn't be passed as context element");
             }
 
             if (element != null && element.getElement() != null) {
@@ -97,11 +95,9 @@ public class ExtendedPageFactory extends PageFactory {
         return param;
     }
 
-    private static void setContextForWebElement(ExtendedWebElement param, SearchContext contextElement) {
+    private static void setContextForAbstractUIObject(AbstractUIObject<?> param, SearchContext contextElement) {
         if (param.getElement() instanceof Proxy) {
-            WebElement paramWeb = param.getElement();
-
-            InvocationHandler innerProxy = Proxy.getInvocationHandler(paramWeb);
+            InvocationHandler innerProxy = Proxy.getInvocationHandler(param.getElement());
             ExtendedElementLocator locator;
             try {
                 locator = (ExtendedElementLocator) (FieldUtils.getDeclaredField(innerProxy.getClass(), "locator", true))
@@ -112,15 +108,17 @@ public class ExtendedPageFactory extends PageFactory {
 
             locator.setSearchContext(contextElement);
         }
-        param.setSearchContext(contextElement);
-    }
-
-    private static void setContextForAbstractUIObject(AbstractUIObject param, SearchContext contextElement) {
-        setContextForWebElement(param.getRootExtendedElement(), contextElement);
+        try {
+            FieldUtils.getDeclaredField(AbstractUIObject.class, "searchContext", true)
+                    .set(param, contextElement);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot find searchContext field", e);
+        }
         Class<?> clazz = param.getClass().getSuperclass();
         if (clazz != AbstractUIObject.class) {
             setContext(clazz, clazz.getDeclaredFields());
         }
+
     }
 
     private static void setContextForWebElementsList(Field field, SearchContext contextElement, Object page) {

@@ -53,6 +53,7 @@ import com.zebrunner.carina.utils.android.IAndroidUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.webdriver.DriverHelper;
+import com.zebrunner.carina.webdriver.IDriverHelper;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 
@@ -82,9 +83,11 @@ import io.appium.java_client.screenrecording.BaseStopScreenRecordingOptions;
 import io.appium.java_client.screenrecording.CanRecordScreen;
 
 /**
- * Contains utility methods for working with android and ios
+ * Contains utility methods for working with android and ios.<br>
+ * We inherit IDriverHelper because if a class implements the IMobileUtils interface,
+ * it means that methods from it take precedence over IDriverHelper methods.
  */
-public interface IMobileUtils extends IDriverPool {
+public interface IMobileUtils extends IDriverPool, IDriverHelper {
 
     Logger UTILS_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     // TODO: [VD] make private after migration to java 9+

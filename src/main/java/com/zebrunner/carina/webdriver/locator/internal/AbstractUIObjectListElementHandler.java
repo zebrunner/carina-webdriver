@@ -1,5 +1,6 @@
 package com.zebrunner.carina.webdriver.locator.internal;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -7,63 +8,44 @@ import java.util.List;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.pagefactory.ElementLocator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
 
 public class AbstractUIObjectListElementHandler implements InvocationHandler {
-    private WebElement element;
-    private final ExtendedElementLocator locator;
-    private final boolean isImmutable;
-    private By listElementLocator = null;
 
-    public AbstractUIObjectListElementHandler(WebElement element, ElementLocator locator, boolean isImmutable) {
-        this.element = element;
-        this.locator = (ExtendedElementLocator) locator;
-        this.isImmutable = isImmutable;
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private final SearchContext searchContext;
+    private final By xpathWithIndex;
+
+    public AbstractUIObjectListElementHandler(SearchContext searchContext, By byXpathWithIndex) {
+        this.searchContext = searchContext;
+        this.xpathWithIndex = byXpathWithIndex;
     }
 
     public Object invoke(Object object, Method method, Object[] objects) throws Throwable {
 
         if ("toString".equals(method.getName())) {
-            return "Proxy element for: " + element.toString();
+            return "Proxy element for: " + xpathWithIndex.toString();
         }
 
-        if ("getWrappedElement".equals(method.getName())) {
-            return element;
-        }
-
-        if (isImmutable) {
-            if (listElementLocator == null) {
-                throw new NullPointerException("listElementLocator cannot be null");
-            }
-
-            // TODO: test how findElements work for web and android
-            // maybe migrate to the latest appium java driver and reuse original findElement!
-            List<WebElement> elements = locator.getSearchContext().findElements(listElementLocator);
-
+        List<WebElement> elements = this.searchContext.findElements(xpathWithIndex);
             WebElement findElement = null;
             if (elements.size() >= 1) {
                 findElement = elements.get(0);
             }
-
             if (findElement == null) {
-                throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + listElementLocator);
+                throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + xpathWithIndex);
             }
-            element = findElement;
-        }
 
         try {
-            return method.invoke(element, objects);
+            return method.invoke(findElement, objects);
         } catch (InvocationTargetException e) {
             // Unwrap the underlying exception
             throw e.getCause();
         }
-    }
-
-    public void setByForListElement(By by) {
-        this.listElementLocator = by;
     }
 }

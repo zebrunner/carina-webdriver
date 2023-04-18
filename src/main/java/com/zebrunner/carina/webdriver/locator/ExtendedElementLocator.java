@@ -61,6 +61,7 @@ public class ExtendedElementLocator implements ElementLocator {
     private boolean caseInsensitive = false;
     private boolean localized = false;
     private final LinkedList<LocatorConverter> locatorConverters = new LinkedList<>();
+    private final Field field;
 
     /**
      * Creates a new element locator.
@@ -70,6 +71,7 @@ public class ExtendedElementLocator implements ElementLocator {
      *            value
      */
     public ExtendedElementLocator(WebDriver driver, SearchContext searchContext, Field field, AbstractAnnotations annotations) {
+        this.field = field;
         this.driver = driver;
         this.searchContext = searchContext;
         String[] classPath = field.getDeclaringClass().toString().split("\\.");
@@ -109,6 +111,10 @@ public class ExtendedElementLocator implements ElementLocator {
                 .findFirst()
                 .orElseThrow()
                 .buildLocatorFromString(byAsString);
+    }
+
+    public Field getField() {
+        return field;
     }
 
     /**

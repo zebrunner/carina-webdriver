@@ -17,6 +17,7 @@ package com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.tz
 
 import java.lang.invoke.MethodHandles;
 
+import com.zebrunner.carina.webdriver.IDriverHelper;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.FindBy;
 import org.slf4j.Logger;
@@ -124,6 +125,6 @@ public class TZChangerPage extends MobileAbstractPage {
 
     @Override
     public boolean isOpened() {
-        return isOpened(DriverHelper.EXPLICIT_TIMEOUT);
+        return isOpened(IDriverHelper.EXPLICIT_TIMEOUT);
     }
 }

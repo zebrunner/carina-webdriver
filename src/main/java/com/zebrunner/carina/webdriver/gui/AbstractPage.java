@@ -19,11 +19,17 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.time.Duration;
 import java.util.Optional;
+import java.util.function.Function;
 
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.UnhandledAlertException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.ui.ExpectedCondition;
+import org.openqa.selenium.support.ui.Wait;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -36,10 +42,16 @@ import com.itextpdf.text.RectangleReadOnly;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.CryptoUtils;
+import com.zebrunner.carina.utils.LogicUtils;
 import com.zebrunner.carina.utils.factory.ICustomTypePageFactory;
+import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.webdriver.AbstractContext;
 import com.zebrunner.carina.webdriver.Screenshot;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.decorator.PageOpeningStrategy;
+import com.zebrunner.carina.webdriver.listener.DriverListener;
 import com.zebrunner.carina.webdriver.screenshot.ExplicitFullSizeScreenshotRule;
 
 /**
@@ -47,13 +59,23 @@ import com.zebrunner.carina.webdriver.screenshot.ExplicitFullSizeScreenshotRule;
  *
  * @author Alex Khursevich
  */
-public abstract class AbstractPage extends AbstractUIObject implements ICustomTypePageFactory {
+public abstract class AbstractPage extends AbstractContext implements ICustomTypePageFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private PageOpeningStrategy pageOpeningStrategy = PageOpeningStrategy.valueOf(Configuration.get(Parameter.PAGE_OPENING_STRATEGY));
+    protected String pageURL = getUrl();
+    protected ExtendedWebElement uiLoadedMarker;
 
     protected AbstractPage(WebDriver driver) {
-        super(driver);
+        super(driver, driver);
+    }
+
+    public ExtendedWebElement getUiLoadedMarker() {
+        return uiLoadedMarker;
+    }
+
+    public void setUiLoadedMarker(ExtendedWebElement uiLoadedMarker) {
+        this.uiLoadedMarker = uiLoadedMarker;
     }
 
     public PageOpeningStrategy getPageOpeningStrategy() {
@@ -64,6 +86,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
         this.pageOpeningStrategy = pageOpeningStrategy;
     }
 
+
     public boolean isPageOpened() {
         return isPageOpened(EXPLICIT_TIMEOUT);
     }
@@ -71,14 +94,14 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
     public boolean isPageOpened(long timeout) {
         switch (pageOpeningStrategy) {
         case BY_URL:
-            return super.isPageOpened(this, timeout);
+            return isPageOpened(this, timeout);
         case BY_ELEMENT:
             if (uiLoadedMarker == null) {
                 throw new RuntimeException("Please specify uiLoadedMarker for the page/screen to validate page opened state");
             }
             return uiLoadedMarker.isElementPresent(timeout);
         case BY_URL_AND_ELEMENT:
-            boolean isOpened = super.isPageOpened(this, timeout);
+            boolean isOpened = isPageOpened(this, timeout);
             if (!isOpened) {
                 return false;
             }
@@ -94,6 +117,27 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
         default:
             throw new RuntimeException("Page opening strategy was not applied properly");
         }
+    }
+
+    public boolean isPageOpened(final AbstractPage page) {
+        return isPageOpened(page, EXPLICIT_TIMEOUT);
+    }
+
+    public boolean isPageOpened(final AbstractPage page, long timeout) {
+        boolean result;
+        long retryInterval = getRetryInterval(timeout);
+        Wait<WebDriver> wait = new WebDriverWait(getDriver(), Duration.ofSeconds(timeout), Duration.ofMillis(retryInterval));
+        try {
+            wait.until((Function<WebDriver, Object>) dr -> LogicUtils.isURLEqual(page.getPageURL(), dr.getCurrentUrl()));
+            result = true;
+        } catch (Exception e) {
+            result = false;
+        }
+        if (!result) {
+            I_DRIVER_HELPER_LOGGER.warn("Actual URL differs from expected one. Expected '{}' but found '{}'",
+                    page.getPageURL(), getDriver().getCurrentUrl());
+        }
+        return result;
     }
 
     /**
@@ -113,7 +157,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
     public void assertPageOpened(long timeout) {
         switch (pageOpeningStrategy) {
         case BY_URL:
-            Assert.assertTrue(super.isPageOpened(this, timeout), String.format("%s not loaded: url is not as expected", getPageClassName()));
+            Assert.assertTrue(isPageOpened(this, timeout), String.format("%s not loaded: url is not as expected", getPageClassName()));
             break;
         case BY_ELEMENT:
             if (uiLoadedMarker == null) {
@@ -123,7 +167,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
                     getPageClassName(), uiLoadedMarker.getBy().toString()));
             break;
         case BY_URL_AND_ELEMENT:
-            if (!super.isPageOpened(this, timeout)) {
+            if (!isPageOpened(this, timeout)) {
                 Assert.fail(String.format("%s not loaded: url is not as expected", getPageClassName()));
             }
 
@@ -201,7 +245,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
      */
     public void waitForJSToLoad(long timeout) {
         // wait for jQuery to load
-        JavascriptExecutor executor = (JavascriptExecutor) driver;
+        JavascriptExecutor executor = (JavascriptExecutor) getDriver();
         ExpectedCondition<Boolean> jQueryLoad = driver -> {
             try {
                 return ((Long) executor.executeScript("return jQuery.active") == 0);
@@ -217,5 +261,82 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
         } else {
             Assert.assertTrue(waitUntil(jsLoad, timeout), errMsg);
         }
+    }
+
+    private String getUrl() {
+        String url = "";
+        if (Configuration.isNull(Parameter.ENV) || Configuration.getEnvArg(Parameter.URL.getKey()).isEmpty()) {
+            url = Configuration.get(Parameter.URL);
+        } else {
+            url = Configuration.getEnvArg(Parameter.URL.getKey());
+        }
+        return url;
+    }
+
+    /**
+     * Opens page according to specified in constructor URL.
+     */
+    public void open() {
+        openURL(this.pageURL);
+    }
+
+    /**
+     * Open URL.
+     *
+     * @param url to open.
+     */
+    public void openURL(String url) {
+        openURL(url, Configuration.getInt(Configuration.Parameter.EXPLICIT_TIMEOUT));
+    }
+
+    /**
+     * Open URL.
+     *
+     * @param url to open.
+     * @param timeout long
+     */
+    public void openURL(String url, long timeout) {
+        final String decryptedURL = getEnvArgURL(CryptoUtils.INSTANCE.decryptIfEncrypted(url));
+        this.pageURL = decryptedURL;
+        WebDriver drv = getDriver();
+
+        setPageLoadTimeout(drv, timeout);
+        DriverListener.setMessages(Messager.OPENED_URL.getMessage(url), Messager.NOT_OPENED_URL.getMessage(url));
+
+        // [VD] there is no sense to use fluent wait here as selenium just don't return something until page is ready!
+        // explicitly limit time for the openURL operation
+        try {
+            Messager.OPENING_URL.info(url);
+            drv.get(decryptedURL);
+        } catch (UnhandledAlertException e) {
+            drv.switchTo().alert().accept();
+        } catch (TimeoutException e) {
+            trigger("window.stop();"); // try to cancel page loading
+            Assert.fail("Unable to open url during " + timeout + "sec!");
+        } catch (Exception e) {
+            Assert.fail("Undefined error on open url detected: " + e.getMessage(), e);
+        } finally {
+            // restore default pageLoadTimeout driver timeout
+            setPageLoadTimeout(drv, getPageLoadTimeout());
+            LOGGER.debug("finished driver.get call.");
+        }
+    }
+
+    protected void setPageURL(String relURL) {
+        String baseURL;
+        if (!Configuration.get(Parameter.ENV).isEmpty()) {
+            baseURL = Configuration.getEnvArg("base");
+        } else {
+            baseURL = Configuration.get(Parameter.URL);
+        }
+        this.pageURL = baseURL + relURL;
+    }
+
+    protected void setPageAbsoluteURL(String url) {
+        this.pageURL = url;
+    }
+
+    public String getPageURL() {
+        return this.pageURL;
     }
 }

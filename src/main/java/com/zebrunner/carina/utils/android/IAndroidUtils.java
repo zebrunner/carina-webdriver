@@ -59,6 +59,7 @@ import com.zebrunner.carina.utils.mobile.IMobileUtils;
 import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
 
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.ExecutesMethod;
@@ -460,7 +461,6 @@ public interface IAndroidUtils extends IMobileUtils {
         ExtendedWebElement extendedWebElement = null;
         long startTime = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         // TODO: support multi threaded WebDriver's removing DriverPool usage
-        WebDriver drv = getDriver();
 
         // workaorund for appium issue: https://github.com/appium/appium/issues/10159
         if (scrollToEle.contains(",")) {
@@ -478,11 +478,16 @@ public interface IAndroidUtils extends IMobileUtils {
                         + containerInstance + "))" + ".setMaxSearchSwipes(" + SCROLL_MAX_SEARCH_SWIPES + ")"
                         + ".scrollIntoView(" + getScrollToElementSelector(scrollToEle, eleSelectorType) + ")");
 
-                WebElement ele = drv.findElement(scrollBy);
+                WebElement ele = getDriver().findElement(scrollBy);
                 if (ele.isDisplayed()) {
                     UTILS_LOGGER.info("Element found!!!");
                     // initializing with driver context because scrollBy consists from container and element selectors
-                    extendedWebElement = new ExtendedWebElement(scrollBy, scrollToEle, drv, drv);
+                    extendedWebElement = AbstractUIObject.Builder.getInstance()
+                            .setBy(scrollBy)
+                            .setName(scrollToEle)
+                            .setDriver(getDriver())
+                            .setSearchContext(getDriver())
+                            .build(ExtendedWebElement.class);
                     break;
                 }
             } catch (NoSuchElementException noSuchElement) {
@@ -518,10 +523,10 @@ public interface IAndroidUtils extends IMobileUtils {
      *         AndroidUtils.SelectorType.CLASS_NAME, 1,
      *         AndroidUtils.SelectorType.TEXT, 2);
      **/
-    default ExtendedWebElement scroll(String scrollToEle, ExtendedWebElement scrollableContainer,
+    default <T extends AbstractUIObject<T>> T scroll(String scrollToEle, T scrollableContainer,
             SelectorType containerSelectorType, int containerInstance, SelectorType eleSelectorType,
             int eleSelectorInstance) {
-        ExtendedWebElement extendedWebElement = null;
+        T extendedWebElement = null;
         long startTime = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         // TODO: support multi threaded WebDriver's removing DriverPool usage
         WebDriver drv = getDriver();
@@ -547,7 +552,12 @@ public interface IAndroidUtils extends IMobileUtils {
                 if (ele.isDisplayed()) {
                     UTILS_LOGGER.info("Element found!!!");
                     // initializing with driver context because scrollBy consists from container and element selectors
-                    extendedWebElement = new ExtendedWebElement(scrollBy, scrollToEle, drv, drv);
+                    extendedWebElement = AbstractUIObject.Builder.getInstance()
+                            .setBy(scrollBy)
+                            .setName(scrollToEle)
+                            .setDriver(getDriver())
+                            .setSearchContext(getDriver())
+                            .build(scrollableContainer.getClazz());
                     break;
                 }
             } catch (NoSuchElementException noSuchElement) {
@@ -582,9 +592,9 @@ public interface IAndroidUtils extends IMobileUtils {
      *         example of usage: {@code ExtendedWebElement res = AndroidUtils.scroll("News", newsListContainer, AndroidUtils.SelectorType.CLASS_NAME,
      *         AndroidUtils.SelectorType.TEXT);}
      **/
-    default ExtendedWebElement scroll(String scrollToEle, ExtendedWebElement scrollableContainer, SelectorType containerSelectorType,
+    default <T extends AbstractUIObject<T>> T scroll(String scrollToEle, T scrollableContainer, SelectorType containerSelectorType,
             SelectorType eleSelectorType) {
-        ExtendedWebElement extendedWebElement = null;
+        T extendedWebElement = null;
         long startTime = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         // TODO: support multi threaded WebDriver's removing DriverPool usage
         WebDriver drv = getDriver();
@@ -605,11 +615,16 @@ public interface IAndroidUtils extends IMobileUtils {
                                 + ")" + ".setMaxSearchSwipes(" + SCROLL_MAX_SEARCH_SWIPES + ")" + ".scrollIntoView("
                                 + getScrollToElementSelector(scrollToEle, eleSelectorType) + ")");
 
-                WebElement ele = drv.findElement(scrollBy);
+                WebElement ele = getDriver().findElement(scrollBy);
                 if (ele.isDisplayed()) {
                     UTILS_LOGGER.info("Element found!!!");
                     // initializing with driver context because scrollBy consists from container and element selectors
-                    extendedWebElement = new ExtendedWebElement(scrollBy, scrollToEle, drv, drv);
+                    extendedWebElement = AbstractUIObject.Builder.getInstance()
+                            .setBy(scrollBy)
+                            .setName(scrollToEle)
+                            .setDriver(getDriver())
+                            .setSearchContext(getDriver())
+                            .build(scrollableContainer.getClazz());
                     break;
                 }
             } catch (NoSuchElementException noSuchElement) {
@@ -636,8 +651,8 @@ public interface IAndroidUtils extends IMobileUtils {
      * @return scrollViewContainerFinder String
      *
      **/
-    default String getScrollContainerSelector(ExtendedWebElement scrollableContainer, SelectorType containerSelectorType) {
-        UTILS_LOGGER.debug(scrollableContainer.getBy().toString());
+    default <T extends AbstractUIObject<T>> String getScrollContainerSelector(T scrollableContainer, SelectorType containerSelectorType) {
+        UTILS_LOGGER.debug(String.valueOf(scrollableContainer.getBy()));
         String scrollableContainerBy;
         String scrollViewContainerFinder = "";
 
@@ -1187,8 +1202,12 @@ public interface IAndroidUtils extends IMobileUtils {
         executeAdbCommand("shell am start -a android.settings.APPLICATION_SETTINGS");
 
         // initializing appItem with ExtendedWebElement constructor that initialize search context
-        ExtendedWebElement appItem = new ExtendedWebElement(By.xpath(String.format("//*[contains(@text, '%s')]", appName)), "notifications",
-                getDriver(), getDriver());
+        ExtendedWebElement appItem = AbstractUIObject.Builder.getInstance()
+                .setBy(By.xpath(String.format("//*[contains(@text, '%s')]", appName)))
+                .setName("notifications")
+                .setDriver(getDriver())
+                .setSearchContext(getDriver())
+                .build(ExtendedWebElement.class);
         swipe(appItem);
 
         appItem.click();
@@ -1205,13 +1224,21 @@ public interface IAndroidUtils extends IMobileUtils {
 
         WebDriver driver = getDriver();
         // initializing with driver context
-        ExtendedWebElement element = new ExtendedWebElement(By.xpath("//*[contains(@text, 'Notifications') or contains(@text, 'notifications')]"),
-                "notifications", driver, driver);
+        ExtendedWebElement element = AbstractUIObject.Builder.getInstance()
+                .setBy(By.xpath("//*[contains(@text, 'Notifications') or contains(@text, 'notifications')]"))
+                .setName("notifications")
+                .setDriver(getDriver())
+                .setSearchContext(getDriver())
+                .build(ExtendedWebElement.class);
         element.click();
 
         // initializing with driver context
-        element = new ExtendedWebElement(By.xpath("//*[@resource-id='com.android.settings:id/switch_text']/following-sibling::android.widget.Switch"),
-                "toggle", driver, driver);
+        element = AbstractUIObject.Builder.getInstance()
+                .setBy(By.xpath("//*[@resource-id='com.android.settings:id/switch_text']/following-sibling::android.widget.Switch"))
+                .setName("toggle")
+                .setDriver(getDriver())
+                .setSearchContext(getDriver())
+                .build(ExtendedWebElement.class);
         if (Boolean.parseBoolean(element.getAttribute("checked")) != setValue) {
             element.click();
         }
