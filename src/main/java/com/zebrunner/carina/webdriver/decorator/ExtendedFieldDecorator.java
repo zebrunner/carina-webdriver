@@ -167,7 +167,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
     protected <T extends AbstractUIObject> List<T> proxyForListUIObjects(ClassLoader loader, Field field,
             ElementLocator locator) {
         InvocationHandler handler = new AbstractUIObjectListHandler<T>(loader, (Class<?>) getListType(field), webDriver,
-                locator, field.getName());
+                locator, field.getName(), field);
         return (List<T>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
     }
 
