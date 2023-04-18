@@ -22,10 +22,10 @@ import org.openqa.selenium.WebDriver;
  * 
  * @author Alex Khursevich
  */
-public abstract class AbstractScreen extends AbstractUIObject {
-    public AbstractScreen(WebDriver driver) {
+@Deprecated(forRemoval = true, since = "1.0.3")
+public abstract class AbstractScreen extends AbstractPage {
+
+    protected AbstractScreen(WebDriver driver) {
         super(driver);
     }
-
-    public abstract boolean isOpened();
 }

@@ -20,47 +20,36 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.openqa.selenium.By;
-import org.openqa.selenium.SearchContext;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.WrapsDriver;
-import org.openqa.selenium.WrapsElement;
-import org.openqa.selenium.interactions.Locatable;
 import org.openqa.selenium.support.pagefactory.ElementLocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
 import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
+import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
 import com.zebrunner.carina.webdriver.locator.ImmutableUIList;
 import com.zebrunner.carina.webdriver.locator.LocatorType;
 import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 
-public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements InvocationHandler {
+public class AbstractUIObjectListHandler<T extends AbstractUIObject<T>> implements InvocationHandler {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
-    private final ClassLoader loader;
-    private final Class<?> clazz;
+    private final Class<T> clazz;
     private final WebDriver webDriver;
-    private final ElementLocator locator;
-    private final String name;
-
+    private final ExtendedElementLocator locator;
     private final By locatorBy;
     private final Field field;
 
-    public AbstractUIObjectListHandler(ClassLoader loader, Class<?> clazz, WebDriver webDriver, ElementLocator locator, String name, Field field) {
-        this.loader = loader;
+    public AbstractUIObjectListHandler(ClassLoader loader, Class<T> clazz, WebDriver webDriver, ElementLocator locator, Field field) {
         this.clazz = clazz;
         this.webDriver = webDriver;
-        this.locator = locator;
-        this.name = name;
+        this.locator = (ExtendedElementLocator) locator;
         this.locatorBy = getLocatorBy(locator);
         this.field = field;
     }
@@ -79,55 +68,52 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
 //    	waitUntil(ExpectedConditions.and(ExpectedConditions.presenceOfElementLocated(locatorBy),
 //    			ExpectedConditions.visibilityOfElementLocated(locatorBy)));
 
-    	List<WebElement> elements = locator.findElements();
-        Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(locatorBy);
-        boolean isByForListSupported = locatorType.isPresent() && locatorType.get().isIndexSupport();
-        String locatorAsString = locatorBy.toString();
-        List<T> uIObjects = new ArrayList<T>();
+        AbstractUIObject.Builder tmpBld =  AbstractUIObject.Builder.getInstance()
+                .setDriver(webDriver)
+                .setSearchContext(locator.getSearchContext())
+                .setBy(locatorBy);
+
+        LocatorUtils.getL10NLocatorConverter(locatorBy)
+                .ifPresent(converter -> tmpBld.getLocatorConverters().add(converter));
+
+        LocatorUtils.getCaseInsensitiveLocatorConverter(webDriver, field.getAnnotation(CaseInsensitiveXPath.class))
+                .ifPresent(converter -> tmpBld.getLocatorConverters().addLast(converter));
+
+    	List<WebElement> elements = locator.getSearchContext().findElements(tmpBld.build(clazz)
+                .getBy()
+                .orElseThrow());
+        List<T> uIObjects = new ArrayList<>();
         int index = 0;
         if (elements != null) {
             for (WebElement element : elements) {
-                T uiObject;
+                AbstractUIObject.Builder builder = AbstractUIObject.Builder.getInstance()
+                        .setDriver(webDriver)
+                        .setSearchContext(locator.getSearchContext())
+                        .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
+                                .setFieldName(locator.getFieldName())
+                                .setClassName(clazz.getSimpleName())
+                                .setIndex(String.valueOf(index))
+                                .build())
+                        .setElement(element);
 
-                if (field.isAnnotationPresent(ImmutableUIList.class) && !isByForListSupported) {
-                    throw new RuntimeException("You can  use ImmutableUIList annotation only with list that use xpath as locator!");
-                }
-                AbstractUIObjectListElementHandler handler = new AbstractUIObjectListElementHandler(element, locator,
-                        field.isAnnotationPresent(ImmutableUIList.class));
+                LocatorUtils.getL10NLocatorConverter(locatorBy)
+                        .ifPresent(converter -> builder.getLocatorConverters().add(converter));
+
+                LocatorUtils.getCaseInsensitiveLocatorConverter(webDriver, field.getAnnotation(CaseInsensitiveXPath.class))
+                        .ifPresent(converter -> builder.getLocatorConverters().addLast(converter));
+
+                int finalIndex = index;
+                locator.getLocalizeName().ifPresent(key -> builder.setLocalizationKey(key + finalIndex));
 
                 if (field.isAnnotationPresent(ImmutableUIList.class)) {
-                    handler.setByForListElement(locatorType.get().buildLocatorWithIndex(locatorAsString, index));
-                }
-                WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,
-                        new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
-                        handler);
-                try {
-                    uiObject = (T) clazz.getConstructor(WebDriver.class, SearchContext.class)
-                            .newInstance(
-                                    webDriver, proxy);
-                } catch (NoSuchMethodException e) {
-                    LOGGER.error("Implement appropriate AbstractUIObject constructor for auto-initialization: "
-                            + e.getMessage());
-                    throw new RuntimeException(
-                            "Implement appropriate AbstractUIObject constructor for auto-initialization: "
-                                    + e.getMessage(),
-                            e);
+                    if (!(this.locatorBy instanceof By.ByXPath)) {
+                        throw new UnsupportedOperationException(
+                                "Dynamic re-creation of a list item is only available for an item created with Xpath.");
+                    }
+                    builder.setBy(LocatorType.BY_XPATH.buildLocatorWithIndex(this.locator.getBy().toString(), index));
                 }
 
-
-                ExtendedWebElement webElement = new ExtendedWebElement(proxy, String.format("%s - %d", name, index), locatorBy);
-                webElement.setIsSingle(false);
-                if (isByForListSupported) {
-                    webElement.setIsRefreshSupport(true);
-                    webElement.setBy(locatorType.get().buildLocatorWithIndex(locatorAsString, index));
-                } else {
-                    webElement.setIsRefreshSupport(false);
-                }
-                uiObject.setRootExtendedElement(webElement);
-                uiObject.setName(String.format("%s - %d", name, index));
-                uiObject.setRootElement(element);
-                uiObject.setRootBy(locatorBy);
-                uIObjects.add(uiObject);
+                uIObjects.add(builder.build(clazz));
                 index++;
             }
         }

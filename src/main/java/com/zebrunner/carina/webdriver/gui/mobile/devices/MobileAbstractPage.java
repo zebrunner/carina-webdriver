@@ -25,8 +25,6 @@ public abstract class MobileAbstractPage extends AbstractPage implements IMobile
 
     protected static final long DELAY = 10;
 
-    protected static final long SHORT_TIMEOUT = Configuration.getLong(Configuration.Parameter.EXPLICIT_TIMEOUT) / 20;
-
     protected static final long ONE_SEC_TIMEOUT = 1;
 
     protected static final long DEFAULT_TRIES = 10;
