@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.MutablePair;
+import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.remote.CapabilityType;
 import org.slf4j.Logger;
@@ -46,6 +47,14 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final Pattern CAPABILITY_WITH_TYPE_PATTERN = Pattern.compile("^(?<name>.+)(?<type>\\[.+\\])$");
+    private static final List<String> STRING_CAPABILITIES = List.of(CapabilityType.BROWSER_NAME,
+            CapabilityType.BROWSER_VERSION, CapabilityType.PLATFORM_NAME,
+            CapabilityType.PAGE_LOAD_STRATEGY, CapabilityType.UNHANDLED_PROMPT_BEHAVIOUR);
+
+    private static final List<String> BOOLEAN_CAPABILITIES = List.of(CapabilityType.ACCEPT_INSECURE_CERTS, CapabilityType.SET_WINDOW_RECT,
+            CapabilityType.STRICT_FILE_INTERACTABILITY);
+
+    private static final List<String> NUMERIC_CAPABILITIES = List.of();
 
     /**
      * Get capabilities from the configuration ({@link R#CONFIG}).
@@ -178,7 +187,21 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
             pair.setRight(value);
         } else {
             pair.setLeft(capabilityName);
-            if (isNumber(capabilityValue)) {
+            String startCapabilityName = capabilityName.split("\\.")[0];
+           if(STRING_CAPABILITIES.contains(startCapabilityName)) {
+               pair.setRight(capabilityValue);
+           } else if(NUMERIC_CAPABILITIES.contains(startCapabilityName)) {
+               pair.setRight(Integer.parseInt(capabilityValue));
+           } else if(BOOLEAN_CAPABILITIES.contains(startCapabilityName)) {
+               if ("true".equalsIgnoreCase(capabilityValue)) {
+                   pair.setRight(true);
+               } else if ("false".equalsIgnoreCase(capabilityValue)) {
+                   pair.setRight(false);
+               } else {
+                   throw new InvalidArgumentException(String.format("Invalid value '%s' for '%s' capability. It should be true or false.",
+                           capabilityValue, capabilityName));
+               }
+           } else if (isNumber(capabilityValue)) {
                 pair.setRight(Integer.parseInt(capabilityValue));
             } else if ("true".equalsIgnoreCase(capabilityValue)) {
                 pair.setRight(true);
