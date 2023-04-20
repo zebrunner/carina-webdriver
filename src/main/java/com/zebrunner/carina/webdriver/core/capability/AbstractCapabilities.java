@@ -189,12 +189,11 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
             pair.setRight(value);
         } else {
             pair.setLeft(capabilityName);
-            String startCapabilityName = capabilityName.split("\\.")[0];
-           if(STRING_CAPABILITIES.contains(startCapabilityName)) {
+            if (STRING_CAPABILITIES.contains(capabilityName)) {
                pair.setRight(capabilityValue);
-           } else if(NUMERIC_CAPABILITIES.contains(startCapabilityName)) {
+           } else if (NUMERIC_CAPABILITIES.contains(capabilityName)) {
                pair.setRight(Integer.parseInt(capabilityValue));
-           } else if(BOOLEAN_CAPABILITIES.contains(startCapabilityName)) {
+           } else if (BOOLEAN_CAPABILITIES.contains(capabilityName)) {
                if ("true".equalsIgnoreCase(capabilityValue)) {
                    pair.setRight(true);
                } else if ("false".equalsIgnoreCase(capabilityValue)) {
