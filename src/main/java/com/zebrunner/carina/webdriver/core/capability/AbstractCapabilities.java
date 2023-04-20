@@ -49,12 +49,14 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     private static final Pattern CAPABILITY_WITH_TYPE_PATTERN = Pattern.compile("^(?<name>.+)(?<type>\\[.+\\])$");
     private static final List<String> STRING_CAPABILITIES = List.of(CapabilityType.BROWSER_NAME,
             CapabilityType.BROWSER_VERSION, CapabilityType.PLATFORM_NAME,
-            CapabilityType.PAGE_LOAD_STRATEGY, CapabilityType.UNHANDLED_PROMPT_BEHAVIOUR);
+            CapabilityType.PAGE_LOAD_STRATEGY, CapabilityType.UNHANDLED_PROMPT_BEHAVIOUR, MobileCapabilityType.AUTOMATION_NAME,
+            MobileCapabilityType.APP, MobileCapabilityType.DEVICE_NAME, MobileCapabilityType.PLATFORM_VERSION);
 
     private static final List<String> BOOLEAN_CAPABILITIES = List.of(CapabilityType.ACCEPT_INSECURE_CERTS, CapabilityType.SET_WINDOW_RECT,
-            CapabilityType.STRICT_FILE_INTERACTABILITY);
+            CapabilityType.STRICT_FILE_INTERACTABILITY, MobileCapabilityType.NO_RESET, MobileCapabilityType.FULL_RESET,
+            MobileCapabilityType.EVENT_TIMINGS, MobileCapabilityType.PRINT_PAGE_SOURCE_ON_FIND_FAILURE);
 
-    private static final List<String> NUMERIC_CAPABILITIES = List.of();
+    private static final List<String> NUMERIC_CAPABILITIES = List.of(MobileCapabilityType.NEW_COMMAND_TIMEOUT);
 
     /**
      * Get capabilities from the configuration ({@link R#CONFIG}).
