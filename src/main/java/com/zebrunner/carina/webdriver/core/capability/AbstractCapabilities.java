@@ -47,16 +47,11 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final Pattern CAPABILITY_WITH_TYPE_PATTERN = Pattern.compile("^(?<name>.+)(?<type>\\[.+\\])$");
-    private static final List<String> STRING_CAPABILITIES = List.of(CapabilityType.BROWSER_NAME,
+    private static final List<String> W3C_STRING_CAPABILITIES = List.of(CapabilityType.BROWSER_NAME,
             CapabilityType.BROWSER_VERSION, CapabilityType.PLATFORM_NAME,
-            CapabilityType.PAGE_LOAD_STRATEGY, CapabilityType.UNHANDLED_PROMPT_BEHAVIOUR, MobileCapabilityType.AUTOMATION_NAME,
-            MobileCapabilityType.APP, MobileCapabilityType.DEVICE_NAME, MobileCapabilityType.PLATFORM_VERSION);
-
-    private static final List<String> BOOLEAN_CAPABILITIES = List.of(CapabilityType.ACCEPT_INSECURE_CERTS, CapabilityType.SET_WINDOW_RECT,
-            CapabilityType.STRICT_FILE_INTERACTABILITY, MobileCapabilityType.NO_RESET, MobileCapabilityType.FULL_RESET,
-            MobileCapabilityType.EVENT_TIMINGS, MobileCapabilityType.PRINT_PAGE_SOURCE_ON_FIND_FAILURE);
-
-    private static final List<String> NUMERIC_CAPABILITIES = List.of(MobileCapabilityType.NEW_COMMAND_TIMEOUT);
+            CapabilityType.PAGE_LOAD_STRATEGY, CapabilityType.UNHANDLED_PROMPT_BEHAVIOUR);
+    private static final List<String> W3C_BOOLEAN_CAPABILITIES = List.of(CapabilityType.ACCEPT_INSECURE_CERTS, CapabilityType.SET_WINDOW_RECT,
+            CapabilityType.STRICT_FILE_INTERACTABILITY);
 
     /**
      * Get capabilities from the configuration ({@link R#CONFIG}).
@@ -189,11 +184,9 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
             pair.setRight(value);
         } else {
             pair.setLeft(capabilityName);
-            if (STRING_CAPABILITIES.contains(capabilityName)) {
+            if (W3C_STRING_CAPABILITIES.contains(capabilityName)) {
                pair.setRight(capabilityValue);
-           } else if (NUMERIC_CAPABILITIES.contains(capabilityName)) {
-               pair.setRight(Integer.parseInt(capabilityValue));
-           } else if (BOOLEAN_CAPABILITIES.contains(capabilityName)) {
+           } else if (W3C_BOOLEAN_CAPABILITIES.contains(capabilityName)) {
                if ("true".equalsIgnoreCase(capabilityValue)) {
                    pair.setRight(true);
                } else if ("false".equalsIgnoreCase(capabilityValue)) {
