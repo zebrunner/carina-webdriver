@@ -701,25 +701,45 @@ public interface IDriverHelper extends IDriverPool, ICommonUtils {
 
     /**
      * Refresh browser.
-     *
-     * todo rename to refreshPage
+     * 
+     * @deprecated use {@link #refreshPage()} instead
      */
+    @Deprecated
     default void refresh() {
-        refresh(Configuration.getInt(Configuration.Parameter.EXPLICIT_TIMEOUT));
+        refreshPage();
     }
 
     /**
      * Refresh browser.
+     * 
+     * @deprecated use {@link #refreshPage(long)} instead
      *
      * @param timeout long
      */
+    @Deprecated
     default void refresh(long timeout) {
+        refreshPage(timeout);
+    }
+
+    /**
+     * Refresh the current page
+     */
+    default void refreshPage() {
+        refreshPage(Configuration.getInt(Configuration.Parameter.EXPLICIT_TIMEOUT));
+    }
+
+    /**
+     * Refresh the current page
+     * 
+     * @param timeout in seconds
+     */
+    default void refreshPage(long timeout) {
         Wait<WebDriver> wait = new FluentWait<>(getDriver())
                 .pollingEvery(Duration.ofMillis(5000)) // there is no sense to refresh url address too often
                 .withTimeout(Duration.ofSeconds(timeout))
                 .ignoring(WebDriverException.class)
                 .ignoring(JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0
-                                                // characters read
+        // characters read
         try {
             wait.until((Function<WebDriver, Void>) drv -> {
                 drv.navigate().refresh();
@@ -748,19 +768,17 @@ public interface IDriverHelper extends IDriverPool, ICommonUtils {
             WebDriver drv = getDriver();
             if (!drv.toString().contains("safari")) {
                 Actions builder = new Actions(drv);
-                Action dragAndDrop = builder.clickAndHold(from.getElement()).moveToElement(to.getElement())
-                        .release(to.getElement()).build();
+                Action dragAndDrop = builder.clickAndHold(from).moveToElement(to)
+                        .release(to).build();
                 dragAndDrop.perform();
             } else {
-                WebElement locatorfrom = from.getElement();
-                WebElement locatorTo = to.getElement();
-                String xto = Integer.toString(locatorTo.getLocation().x);
-                String yto = Integer.toString(locatorTo.getLocation().y);
+                String xto = Integer.toString(((WebElement) to).getLocation().x);
+                String yto = Integer.toString(((WebElement) to).getLocation().y);
                 ((JavascriptExecutor) getDriver())
                         .executeScript(
                                 "function simulate(f,c,d,e){var b,a=null;for(b in eventMatchers)if(eventMatchers[b].test(c)){a=b;break}if(!a)return!1;document.createEvent?(b=document.createEvent(a),a==\"HTMLEvents\"?b.initEvent(c,!0,!0):b.initMouseEvent(c,!0,!0,document.defaultView,0,d,e,d,e,!1,!1,!1,!1,0,null),f.dispatchEvent(b)):(a=document.createEventObject(),a.detail=0,a.screenX=d,a.screenY=e,a.clientX=d,a.clientY=e,a.ctrlKey=!1,a.altKey=!1,a.shiftKey=!1,a.metaKey=!1,a.button=1,f.fireEvent(\"on\"+c,a));return!0} var eventMatchers={HTMLEvents:/^(?:load|unload|abort|error|select|change|submit|reset|focus|blur|resize|scroll)$/,MouseEvents:/^(?:click|dblclick|mouse(?:down|up|over|move|out))$/}; "
                                         + "simulate(arguments[0],\"mousedown\",0,0); simulate(arguments[0],\"mousemove\",arguments[1],arguments[2]); simulate(arguments[0],\"mouseup\",arguments[1],arguments[2]); ",
-                                locatorfrom, xto, yto);
+                                from, xto, yto);
             }
             Messager.ELEMENTS_DRAGGED_AND_DROPPED.info(from.getName(), to.getName());
         } else {
@@ -852,7 +870,7 @@ public interface IDriverHelper extends IDriverPool, ICommonUtils {
         // TODO: SZ migrate to FluentWaits
         if (slider.isElementPresent()) {
             WebDriver drv = getDriver();
-            (new Actions(drv)).moveToElement(slider.getElement()).dragAndDropBy(slider.getElement(), moveX, moveY)
+            (new Actions(drv)).moveToElement(slider).dragAndDropBy(slider, moveX, moveY)
                     .build().perform();
             Messager.SLIDER_MOVED.info(slider.getNameWithLocator(), String.valueOf(moveX), String.valueOf(moveY));
         } else {

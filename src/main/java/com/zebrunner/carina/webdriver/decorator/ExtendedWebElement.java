@@ -42,7 +42,6 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
         super(driver, searchContext);
     }
 
-
     /**
      * Reinitialize the element according to its locator.
      * If the element is part of the list, then its update will be performed only if the locator is XPath.
@@ -61,7 +60,6 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
             throw new UnsupportedOperationException(
                     String.format("Refresh is not supported for this element:%n name: %s%n", getName()));
         }
-        LOGGER.debug("Performing refresh of the element with name '{}' and locator: {}", getName(), getBy());
         findElement();
     }
 

@@ -62,12 +62,23 @@ import com.zebrunner.carina.webdriver.screenshot.ExplicitFullSizeScreenshotRule;
 public abstract class AbstractPage extends AbstractContext implements ICustomTypePageFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private PageOpeningStrategy pageOpeningStrategy = PageOpeningStrategy.valueOf(Configuration.get(Parameter.PAGE_OPENING_STRATEGY));
-    protected String pageURL = getUrl();
+    private PageOpeningStrategy pageOpeningStrategy;
+    /**
+     * @deprecated will be hided. Use {@link #getPageURL()} / {@link #setPageURL(String)} / {@link #setPageAbsoluteURL(String)} instead
+     */
+    @Deprecated(forRemoval = true, since = "1.0.3")
+    protected String pageURL;
+    /**
+     * @deprecated will be hided. Use {@link #getUiLoadedMarker()} / {@link #setUiLoadedMarker(ExtendedWebElement)} instead
+     */
+    @Deprecated(forRemoval = true, since = "1.0.3")
     protected ExtendedWebElement uiLoadedMarker;
 
     protected AbstractPage(WebDriver driver) {
         super(driver, driver);
+        pageOpeningStrategy = PageOpeningStrategy.valueOf(Configuration.get(Parameter.PAGE_OPENING_STRATEGY));
+        pageURL = getUrl();
+        uiLoadedMarker = null;
     }
 
     public ExtendedWebElement getUiLoadedMarker() {
@@ -289,6 +300,7 @@ public abstract class AbstractPage extends AbstractContext implements ICustomTyp
         openURL(url, Configuration.getInt(Configuration.Parameter.EXPLICIT_TIMEOUT));
     }
 
+
     /**
      * Open URL.
      *
@@ -296,11 +308,21 @@ public abstract class AbstractPage extends AbstractContext implements ICustomTyp
      * @param timeout long
      */
     public void openURL(String url, long timeout) {
+        openURL(url, Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Open URL.
+     *
+     * @param url to open.
+     * @param timeout timeout, see {@link Duration}
+     */
+    public void openURL(String url, Duration timeout) {
         final String decryptedURL = getEnvArgURL(CryptoUtils.INSTANCE.decryptIfEncrypted(url));
         this.pageURL = decryptedURL;
         WebDriver drv = getDriver();
 
-        setPageLoadTimeout(drv, timeout);
+        setPageLoadTimeout(drv, timeout.toSeconds());
         DriverListener.setMessages(Messager.OPENED_URL.getMessage(url), Messager.NOT_OPENED_URL.getMessage(url));
 
         // [VD] there is no sense to use fluent wait here as selenium just don't return something until page is ready!

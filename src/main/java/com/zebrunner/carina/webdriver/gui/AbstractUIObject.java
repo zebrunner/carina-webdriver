@@ -34,10 +34,14 @@ import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.NotFoundException;
+import org.openqa.selenium.OutputType;
 import org.openqa.selenium.Point;
+import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WrapsElement;
 import org.openqa.selenium.interactions.Actions;
@@ -85,7 +89,7 @@ import com.zebrunner.carina.webdriver.locator.internal.AbstractUIObjectListHandl
  * g
  * @param <T>
  */
-public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends AbstractContext implements IWebElement {
+public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends AbstractContext implements IWebElement, WebElement {
     // we should keep both properties: driver and searchContext obligatory
     // driver is used for actions, javascripts execution etc
     // searchContext is used for searching element by default
@@ -104,8 +108,6 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     @Deprecated(forRemoval = true, since = "1.0.3")
     protected String name = null;
     private Boolean isLocalized = null;
-    private Boolean isSingleElement = null;
-    private Boolean isRefreshSupport = null;
     // Converted array of objects to String for dynamic element locators
     private String formatValues = null;
     /**
@@ -140,8 +142,6 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
         private WebElement element;
         private String name;
         private Boolean isLocalized = false;
-        private Boolean isSingleElement = true;
-        private Boolean isRefreshSupport = true;
         private String formatValues = "";
 
         public static Builder getInstance() {
@@ -235,24 +235,6 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
             return this;
         }
 
-        public boolean isSingleElement() {
-            return isSingleElement;
-        }
-
-        public Builder setSingleElement(boolean singleElement) {
-            isSingleElement = singleElement;
-            return this;
-        }
-
-        public boolean isRefreshSupport() {
-            return isRefreshSupport;
-        }
-
-        public Builder setRefreshSupport(boolean refreshSupport) {
-            isRefreshSupport = refreshSupport;
-            return this;
-        }
-
         public String getFormatValues() {
             return formatValues;
         }
@@ -284,12 +266,6 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
                 if (object.isLocalized() == null) {
                     object.setLocalized(isLocalized);
                 }
-                if (object.isSingleElement() == null) {
-                    object.setIsSingleElement(isSingleElement);
-                }
-                if (object.isRefreshSupport() == null) {
-                    object.setRefreshSupport(isRefreshSupport);
-                }
                 if (object.getFormatValues() == null) {
                     object.setFormatValues(formatValues);
                 }
@@ -315,27 +291,27 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     // Getters / Setters
     // --------------------------------------------------------------------------
 
-    public Class<T> getClazz() {
+    public final Class<T> getClazz() {
         return clazz;
     }
 
-    protected void setClazz(Class<T> clazz) {
+    protected final void setClazz(Class<T> clazz) {
         this.clazz = clazz;
     }
 
-    public By getBy() {
+    public final By getBy() {
         return by;
     }
 
-    protected void setBy(By by) {
+    protected final void setBy(By by) {
         this.by = by;
     }
 
-    public WebElement getElement() {
+    protected final WebElement getElement() {
         return this.element;
     }
 
-    protected void setElement(WebElement element) {
+    protected final void setElement(WebElement element) {
         this.element = element;
     }
 
@@ -354,22 +330,6 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
 
     protected void setLocalized(boolean localized) {
         isLocalized = localized;
-    }
-
-    public Boolean isSingleElement() {
-        return isSingleElement;
-    }
-
-    protected void setIsSingleElement(boolean singleElement) {
-        isSingleElement = singleElement;
-    }
-
-    public Boolean isRefreshSupport() {
-        return isRefreshSupport;
-    }
-
-    protected void setRefreshSupport(boolean refreshSupport) {
-        isRefreshSupport = refreshSupport;
     }
 
     public String getFormatValues() {
@@ -396,6 +356,26 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     // --------------------------------------------------------------------------
     // Methods for checking presence / visibility of the element
     // --------------------------------------------------------------------------
+
+    @Override
+    public boolean isDisplayed() {
+        try {
+            return findElement().isDisplayed();
+        } catch (NotFoundException | StaleElementReferenceException e) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isEnabled() {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().isEnabled();
+    }
+
+    public boolean isSelected() {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().isSelected();
+    }
 
     /**
      * Check the presence of the {@link AbstractUIObject<T>} on the page.
@@ -513,6 +493,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
      * @param timeout - timeout.
      * @return element existence status.
      */
+    @Override
     public boolean isElementPresent(long timeout) {
         // perform at once super-fast single selenium call and only if nothing found move to waitAction
         if (element != null) {
@@ -792,9 +773,28 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     // Methods for interacting with the element
     // --------------------------------------------------------------------------
 
+    @Override
+    public void submit() {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        findElement().submit();
+    }
+
+    @Override
+    public void sendKeys(CharSequence... keysToSend) {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        findElement().sendKeys(keysToSend);
+    }
+
+    @Override
+    public void clear() {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        findElement().clear();
+    }
+
     /**
      * Click on element.
      */
+    @Override
     public void click() {
         click(EXPLICIT_TIMEOUT);
     }
@@ -1137,11 +1137,66 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     // Methods for getting data about element
     // --------------------------------------------------------------------------
 
+    @Override
+    public String getTagName() {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().getTagName();
+    }
+
+    @Override
+    public Rectangle getRect() {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().getRect();
+    }
+
+    @Override
+    public String getCssValue(String propertyName) {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().getCssValue(propertyName);
+    }
+
+    @Override
+    public <X> X getScreenshotAs(OutputType<X> target) throws WebDriverException {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().getScreenshotAs(target);
+    }
+
+    @Override
+    public String getDomProperty(String name) {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().getDomProperty(name);
+    }
+
+    @Override
+    public String getDomAttribute(String name) {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().getDomAttribute(name);
+    }
+
+    @Override
+    public String getAriaRole() {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().getAriaRole();
+    }
+
+    @Override
+    public String getAccessibleName() {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().getAccessibleName();
+    }
+
+    @Override
+    public SearchContext getShadowRoot() {
+        waitUntil(getDefaultCondition(), EXPLICIT_TIMEOUT);
+        return findElement().getShadowRoot();
+    }
+
     /**
      * Get element text.
      *
      * @return String text
      */
+    @Override
     public String getText() {
         return (String) doAction(ACTION_NAME.GET_TEXT, EXPLICIT_TIMEOUT, getDefaultCondition());
     }
@@ -1151,6 +1206,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
      *
      * @return Point location
      */
+    @Override
     public Point getLocation() {
         return (Point) doAction(ACTION_NAME.GET_LOCATION, EXPLICIT_TIMEOUT, getDefaultCondition());
     }
@@ -1160,6 +1216,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
      *
      * @return Dimension size
      */
+    @Override
     public Dimension getSize() {
         return (Dimension) doAction(ACTION_NAME.GET_SIZE, EXPLICIT_TIMEOUT, getDefaultCondition());
     }
@@ -1170,6 +1227,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
      * @param name of attribute
      * @return String attribute value
      */
+    @Override
     public String getAttribute(String name) {
         return (String) doAction(ACTION_NAME.GET_ATTRIBUTE, EXPLICIT_TIMEOUT, getDefaultCondition(), name);
     }
@@ -1205,6 +1263,16 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     // --------------------------------------------------------------------------
     // Methods for creating new elements
     // --------------------------------------------------------------------------
+
+    @Override
+    public List<WebElement> findElements(By by) {
+        return (List<WebElement>) findNestedExtendedWebElement(by);
+    }
+
+    @Override
+    public WebElement findElement(By by) {
+        return findNestedExtendedWebElement(by);
+    }
 
     /**
      * Get element with formatted locator.<br>
