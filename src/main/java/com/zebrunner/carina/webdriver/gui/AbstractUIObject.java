@@ -307,7 +307,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
         this.by = by;
     }
 
-    protected final WebElement getElement() {
+    public final WebElement getElement() {
         return this.element;
     }
 

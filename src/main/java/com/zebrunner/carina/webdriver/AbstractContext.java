@@ -9,6 +9,7 @@ import org.openqa.selenium.support.PageFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.zebrunner.carina.webdriver.core.factory.ExtendedPageFactory;
 import com.zebrunner.carina.webdriver.decorator.ExtendedFieldDecorator;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocatorFactory;
 
@@ -34,7 +35,7 @@ public abstract class AbstractContext implements IDriverHelper {
         ExtendedElementLocatorFactory factory = new ExtendedElementLocatorFactory(driver, searchContext);
         PageFactory.initElements(new ExtendedFieldDecorator(factory, driver), this);
         // todo and investigate and fix
-        // ExtendedPageFactory.initElementsContext(this);
+        ExtendedPageFactory.initElementsContext(this);
     }
 
     @Override
@@ -46,11 +47,11 @@ public abstract class AbstractContext implements IDriverHelper {
         this.driver = driver;
     }
 
-    protected SearchContext getSearchContext() {
+    public SearchContext getSearchContext() {
         return searchContext;
     }
 
-    protected void setSearchContext(SearchContext searchContext) {
+    public void setSearchContext(SearchContext searchContext) {
         this.searchContext = searchContext;
     }
 }
