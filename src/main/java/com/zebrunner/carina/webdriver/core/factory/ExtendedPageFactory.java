@@ -17,7 +17,7 @@ import org.openqa.selenium.support.PageFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.webdriver.gui.AbstractPage;
+import com.zebrunner.carina.webdriver.AbstractContext;
 import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
 import com.zebrunner.carina.webdriver.locator.Context;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
@@ -29,7 +29,7 @@ public class ExtendedPageFactory extends PageFactory {
     public static void initElementsContext(Object page) {
         Class<?> proxyIn = page.getClass();
 
-        while (proxyIn != AbstractUIObject.class && proxyIn != AbstractPage.class) {
+        while (proxyIn != AbstractContext.class) {
             if (proxyIn == Object.class) {
                 LOGGER.warn("Context is not inherited from either AbstractUIObject or AbstractPage! Investigate class: {}", proxyIn);
             }
@@ -58,36 +58,36 @@ public class ExtendedPageFactory extends PageFactory {
 
     private static WebElement getElement(Field field, Object page) {
         Context context = field.getAnnotation(Context.class);
-        Class<?> pageClass = field.getDeclaringClass();
+        Class<?> contextElClass = field.getDeclaringClass();
         Field contextField = null;
-        while (contextField == null && !pageClass.isAssignableFrom(AbstractUIObject.class)) {
+        while (contextField == null && !contextElClass.isAssignableFrom(AbstractContext.class)) {
             try {
-                contextField = pageClass.getDeclaredField(context.dependsOn());
+                contextField = contextElClass.getDeclaredField(context.dependsOn());
             } catch (NoSuchFieldException e) {
-                pageClass = pageClass.getSuperclass();
+                contextElClass = contextElClass.getSuperclass();
             }
         }
 
-        if (contextField == null){
+        if (contextField == null) {
             throw new IllegalArgumentException("Cannot find context element: " + context.dependsOn());
         }
 
         try {
             contextField.setAccessible(true);
             AbstractUIObject<?> element = null;
-            if (contextField.getType().isAssignableFrom(AbstractUIObject.class)) {
+            if (AbstractUIObject.class.isAssignableFrom(contextField.getType())) {
                 element = ((AbstractUIObject<?>) contextField.get(page));
-            } else if (contextField.getType().isAssignableFrom(List.class)){
+            } else if (List.class.isAssignableFrom(contextField.getType())) {
                 throw new IllegalArgumentException("List couldn't be passed as context element");
             }
 
             if (element != null && element.getElement() != null) {
                 return element.getElement();
             } else {
-                throw new RuntimeException("Context WebElement is null!");
+                throw new RuntimeException("Context WebElement for " + context.dependsOn() + " is null!");
             }
         } catch (IllegalAccessException | IllegalArgumentException e) {
-            throw new RuntimeException("Cannot get context field from " + pageClass.getName(), e);
+            throw new RuntimeException("Cannot get context field from " + contextElClass.getName(), e);
         }
     }
 
@@ -127,7 +127,7 @@ public class ExtendedPageFactory extends PageFactory {
         genericType = ((ParameterizedType) genericType).getActualTypeArguments()[0];
         if (AbstractUIObject.class.isAssignableFrom((Class<?>) genericType)) {
             Object elementsList = getParamByField(field, page);
-            if (elementsList instanceof Proxy){
+            if (elementsList instanceof Proxy) {
                 InvocationHandler innerProxy = Proxy.getInvocationHandler(elementsList);
                 ExtendedElementLocator locator;
                 try {
