@@ -85,8 +85,6 @@ import com.zebrunner.carina.webdriver.locator.internal.AbstractUIObjectListHandl
  * of locators don't support indexing.
  *
  * Broken changes:
- * 2
- * g
  * @param <T>
  */
 public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends AbstractContext implements IWebElement, WebElement {
@@ -96,22 +94,25 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private Class<T> clazz = null;
+
     /**
-     * @deprecated will be hided
+     * @deprecated will be hided. Use {@link #getBy()} or {@link #setBy(By)}
      */
     @Deprecated(forRemoval = true, since = "1.0.3")
     protected By by = null;
     private WebElement element = null;
+
     /**
-     * @deprecated will be hided
+     * @deprecated will be hided. Use {@link #setName(String)} or {@link #getName()}
      */
     @Deprecated(forRemoval = true, since = "1.0.3")
     protected String name = null;
     private Boolean isLocalized = null;
     // Converted array of objects to String for dynamic element locators
     private String formatValues = null;
+
     /**
-     * @deprecated will be hided
+     * @deprecated will be hided. use {@link #getLoadingStrategy()} or {@link #setLoadingStrategy(ElementLoadingStrategy)}
      */
     @Deprecated(forRemoval = true, since = "1.0.3")
     protected ElementLoadingStrategy loadingStrategy;
