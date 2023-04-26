@@ -133,6 +133,9 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
         this.loadingStrategy = ElementLoadingStrategy.valueOf(Configuration.get(Parameter.ELEMENT_LOADING_STRATEGY));
     }
 
+    /**
+     * The only supported way to correctly create an element object.
+     */
     public static class Builder {
 
         private WebDriver driver;
@@ -251,6 +254,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
                 T object = ConstructorUtils.invokeConstructor(clazz, driver, searchContext);
                 object.setClazz(clazz);
                 // we check for null before setting value because value that setted by user has more priority
+                // todo add validation of user's data (what added in constructor)
                 if (object.getBy() == null) {
                     object.setBy(by);
                 }
@@ -289,13 +293,14 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
 
     // --------------------------------------------------------------------------
     // Getters / Setters
+    // Must be final because the only data source is the current class.
     // --------------------------------------------------------------------------
 
     public final Class<T> getClazz() {
         return clazz;
     }
 
-    protected final void setClazz(Class<T> clazz) {
+    public final void setClazz(Class<T> clazz) {
         this.clazz = clazz;
     }
 
@@ -303,7 +308,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
         return by;
     }
 
-    protected final void setBy(By by) {
+    public final void setBy(By by) {
         this.by = by;
     }
 
@@ -311,40 +316,40 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
         return this.element;
     }
 
-    protected final void setElement(WebElement element) {
+    public final void setElement(WebElement element) {
         this.element = element;
     }
 
     @Override
-    public String getName() {
+    public final String getName() {
         return name;
     }
 
-    protected void setName(String name) {
+    public final void setName(String name) {
         this.name = name;
     }
 
-    public Boolean isLocalized() {
+    public final Boolean isLocalized() {
         return isLocalized;
     }
 
-    protected void setLocalized(boolean localized) {
+    public final void setLocalized(boolean localized) {
         isLocalized = localized;
     }
 
-    public String getFormatValues() {
+    public final String getFormatValues() {
         return formatValues;
     }
 
-    protected void setFormatValues(String formatValues) {
+    public final void setFormatValues(String formatValues) {
         this.formatValues = formatValues;
     }
 
-    public ElementLoadingStrategy getLoadingStrategy() {
+    public final ElementLoadingStrategy getLoadingStrategy() {
         return loadingStrategy;
     }
 
-    protected void setLoadingStrategy(ElementLoadingStrategy loadingStrategy) {
+    public final void setLoadingStrategy(ElementLoadingStrategy loadingStrategy) {
         this.loadingStrategy = loadingStrategy;
     }
 

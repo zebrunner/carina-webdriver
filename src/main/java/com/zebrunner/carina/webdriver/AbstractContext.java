@@ -39,19 +39,19 @@ public abstract class AbstractContext implements IDriverHelper {
     }
 
     @Override
-    public WebDriver getDriver() {
+    public final WebDriver getDriver() {
         return driver;
     }
 
-    public void setDriver(WebDriver driver) {
+    public final void setDriver(WebDriver driver) {
         this.driver = driver;
     }
 
-    public SearchContext getSearchContext() {
+    public final SearchContext getSearchContext() {
         return searchContext;
     }
 
-    public void setSearchContext(SearchContext searchContext) {
+    public final void setSearchContext(SearchContext searchContext) {
         this.searchContext = searchContext;
     }
 }

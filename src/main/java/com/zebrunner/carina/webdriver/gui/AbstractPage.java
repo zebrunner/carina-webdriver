@@ -62,13 +62,22 @@ import com.zebrunner.carina.webdriver.screenshot.ExplicitFullSizeScreenshotRule;
 public abstract class AbstractPage extends AbstractContext implements ICustomTypePageFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private PageOpeningStrategy pageOpeningStrategy;
+
+    /**
+     * @deprecated will be hided. Use {@link #getPageOpeningStrategy()}, {@link #setPageOpeningStrategy(PageOpeningStrategy)} instead
+     */
+    @Deprecated(forRemoval = true, since = "1.0.3")
+    protected PageOpeningStrategy pageOpeningStrategy;
+
     /**
      * @deprecated will be hided. Use {@link #getPageURL()} / {@link #setPageURL(String)} / {@link #setPageAbsoluteURL(String)} instead
      */
     @Deprecated(forRemoval = true, since = "1.0.3")
     protected String pageURL;
+
     /**
+     * todo wrap in Optional
+     * 
      * @deprecated will be hided. Use {@link #getUiLoadedMarker()} / {@link #setUiLoadedMarker(ExtendedWebElement)} instead
      */
     @Deprecated(forRemoval = true, since = "1.0.3")
@@ -81,19 +90,19 @@ public abstract class AbstractPage extends AbstractContext implements ICustomTyp
         uiLoadedMarker = null;
     }
 
-    public ExtendedWebElement getUiLoadedMarker() {
+    public final ExtendedWebElement getUiLoadedMarker() {
         return uiLoadedMarker;
     }
 
-    public void setUiLoadedMarker(ExtendedWebElement uiLoadedMarker) {
+    public final void setUiLoadedMarker(ExtendedWebElement uiLoadedMarker) {
         this.uiLoadedMarker = uiLoadedMarker;
     }
 
-    public PageOpeningStrategy getPageOpeningStrategy() {
+    public final PageOpeningStrategy getPageOpeningStrategy() {
         return pageOpeningStrategy;
     }
 
-    public void setPageOpeningStrategy(PageOpeningStrategy pageOpeningStrategy) {
+    public final void setPageOpeningStrategy(PageOpeningStrategy pageOpeningStrategy) {
         this.pageOpeningStrategy = pageOpeningStrategy;
     }
 
@@ -354,11 +363,11 @@ public abstract class AbstractPage extends AbstractContext implements ICustomTyp
         this.pageURL = baseURL + relURL;
     }
 
-    protected void setPageAbsoluteURL(String url) {
+    protected final void setPageAbsoluteURL(String url) {
         this.pageURL = url;
     }
 
-    public String getPageURL() {
+    public final String getPageURL() {
         return this.pageURL;
     }
 }
