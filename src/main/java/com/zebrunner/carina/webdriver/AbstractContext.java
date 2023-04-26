@@ -16,16 +16,18 @@ import com.zebrunner.carina.webdriver.locator.ExtendedElementLocatorFactory;
 public abstract class AbstractContext implements IDriverHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
     /**
-     * @deprecated will be hided
+     * @deprecated will be hided. Use {@link #getDriver()} or {@link #setDriver(WebDriver)} instead
      */
     @Deprecated(forRemoval = true, since = "1.0.3")
     protected WebDriver driver;
+
     /**
-     * @deprecated will be hided
+     * @deprecated will be hided. Use {@link #getSearchContext()} or {@link #setSearchContext(SearchContext)} instead.
      */
     @Deprecated(forRemoval = true, since = "1.0.3")
-    private SearchContext searchContext;
+    protected SearchContext searchContext;
 
     protected AbstractContext(WebDriver driver, SearchContext searchContext) {
         Objects.requireNonNull(driver);
@@ -34,7 +36,7 @@ public abstract class AbstractContext implements IDriverHelper {
         this.searchContext = searchContext;
         ExtendedElementLocatorFactory factory = new ExtendedElementLocatorFactory(driver, searchContext);
         PageFactory.initElements(new ExtendedFieldDecorator(factory, driver), this);
-        // todo and investigate and fix
+        // todo check is @Context annotation works correctly
         ExtendedPageFactory.initElementsContext(this);
     }
 
