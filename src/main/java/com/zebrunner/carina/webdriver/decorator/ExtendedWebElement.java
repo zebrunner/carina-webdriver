@@ -96,6 +96,7 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
         return findExtendedWebElement(by,
                 DescriptionBuilder.getInstance()
                         .setClassName(ExtendedWebElement.class.getSimpleName())
+                        .setContextDescription(toString())
                         .build(),
                 timeout);
     }
@@ -176,6 +177,7 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
             ExtendedWebElement extEl = AbstractUIObject.Builder.getInstance()
                     .setDescriptionName(DescriptionBuilder.getInstance()
                             .setClassName(ExtendedWebElement.class.getSimpleName())
+                            .setContextDescription(toString())
                             .setIndex(String.valueOf(i))
                             .build())
                     .setDriver(getDriver())

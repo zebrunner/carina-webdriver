@@ -92,6 +92,8 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject<T>> implemen
                         .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
                                 .setFieldName(locator.getFieldName())
                                 .setClassName(clazz.getSimpleName())
+                                // we cannot call toString for search context because at this moment there are no full seachContext object
+                                .setContextDescription(locator.getClassName())
                                 .setIndex(String.valueOf(index))
                                 .build())
                         .setElement(element);

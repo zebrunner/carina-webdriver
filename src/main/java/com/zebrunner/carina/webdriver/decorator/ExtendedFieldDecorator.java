@@ -115,7 +115,8 @@ public class ExtendedFieldDecorator implements FieldDecorator {
                 .setSearchContext(extendedElementLocator.getSearchContext())
                 .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
                         .setFieldName(extendedElementLocator.getFieldName())
-                        .setClassName(extendedElementLocator.getClassName())
+                        .setClassName(field.getType().getSimpleName())
+                        .setContextDescription(extendedElementLocator.getClassName())
                         .build());
         extendedElementLocator.getLocalizeName()
                 .ifPresent(builder::setLocalizationKey);

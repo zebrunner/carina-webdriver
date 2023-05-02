@@ -155,6 +155,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
         private String index = "";
         private String fieldName = "";
         private String className = "";
+        private String classContextName = "";
         private String description = "";
 
         public static DescriptionBuilder getInstance() {
@@ -213,6 +214,22 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
             return this;
         }
 
+        public String getClassContextName() {
+            return className;
+        }
+
+        /**
+         * Set the class name of the context from which element being created.<br>
+         *
+         * @param classContextName for example, {@code WebDriver}
+         * @return {@link DescriptionBuilder}
+         */
+        public DescriptionBuilder setContextDescription(@Nonnull String classContextName) {
+            Objects.requireNonNull(classContextName);
+            this.classContextName = classContextName;
+            return this;
+        }
+
         public String getDescription() {
             return description;
         }
@@ -233,8 +250,8 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
             validate();
             return String.format("%s%s%s%s",
                     fieldName,
-                    !index.isBlank() ? "[" + index + "]" : "",
-                    " [" + className + "]",
+                    !index.isBlank() ? " [" + index + "]" : "",
+                    " [" + className + (!classContextName.isBlank() ? (" <- " + classContextName) : "") + "]",
                     !description.isBlank() ? " {" + description + "}" : "");
         }
 
@@ -1606,6 +1623,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
                     // .setLocalizationKey(localizationKey)
                     .setDescriptionName(DescriptionBuilder.getInstance()
                             .setClassName(clazz.getSimpleName())
+                            .setContextDescription(searchContext.toString())
                             .setDescription("Format objects: " + Arrays.toString(objects))
                             .build())
                     .build(clazz);
@@ -1689,6 +1707,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
                     .setLoadingStrategy(loadingStrategy)
                     .setDescriptionName(DescriptionBuilder.getInstance()
                             .setClassName(clazz.getSimpleName())
+                            .setContextDescription(searchContext.toString())
                             .setDescription("Objects: " + Arrays.toString(objects))
                             .setIndex(String.valueOf(i))
                             .build())
@@ -1722,6 +1741,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
         return findNestedExtendedWebElement(by,
                 DescriptionBuilder.getInstance()
                         .setClassName(clazz.getSimpleName())
+                        .setContextDescription(toString())
                         .build(),
                 timeout);
     }
@@ -1789,6 +1809,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
             T extEl = AbstractUIObject.Builder.getInstance()
                     .setDescriptionName(DescriptionBuilder.getInstance()
                             .setClassName(clazz.getSimpleName())
+                            .setContextDescription(toString())
                             .setIndex(String.valueOf(i))
                             .build())
                     .setDriver(getDriver())
