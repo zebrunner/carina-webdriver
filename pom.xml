@@ -213,6 +213,17 @@
             </exclusions>
         </dependency>
 
+        <!-- For selenim-remote-driver:
+         Caused by: java.lang.NoClassDefFoundError: io/netty/handler/codec/DefaultHeaders$ValueValidator
+         todo remove netty from carina-api (carina-proxy)
+-->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+            <version>4.1.84.Final</version>
+        </dependency>
+
+
         <dependency>
             <groupId>ru.yandex.qatools.ashot</groupId>
             <artifactId>ashot</artifactId>
