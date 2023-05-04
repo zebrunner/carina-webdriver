@@ -59,7 +59,7 @@
         <appium.version>8.3.0</appium.version>
         <ashot.version>1.5.4</ashot.version>
         <itext.version>5.5.13.3</itext.version>
-        <reflections.version>0.9.10</reflections.version>
+        <reflections.version>0.10.2</reflections.version>
         <jersey.version>1.19.4</jersey.version>
         <commons-collections.version>3.2.2</commons-collections.version>
         <hamcrest.version>1.3</hamcrest.version>
