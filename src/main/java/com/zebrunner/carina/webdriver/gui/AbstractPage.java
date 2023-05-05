@@ -81,7 +81,7 @@ public abstract class AbstractPage extends AbstractContext implements ICustomTyp
      * @deprecated will be hided. Use {@link #getUiLoadedMarker()} / {@link #setUiLoadedMarker(AbstractUIObject)} instead
      */
     @Deprecated(forRemoval = true, since = "1.0.3")
-    protected AbstractUIObject<?> uiLoadedMarker;
+    protected AbstractUIObject uiLoadedMarker;
 
     /**
      * Initializes page using {@link PageFactory}. Browser area for internal elements initialization is bordered by
@@ -100,7 +100,7 @@ public abstract class AbstractPage extends AbstractContext implements ICustomTyp
         uiLoadedMarker = null;
     }
 
-    public final Optional<AbstractUIObject<?>> getUiLoadedMarker() {
+    public final Optional<AbstractUIObject> getUiLoadedMarker() {
         return Optional.ofNullable(uiLoadedMarker);
     }
 
@@ -110,7 +110,7 @@ public abstract class AbstractPage extends AbstractContext implements ICustomTyp
      * 
      * @param uiLoadedMarker see {@link AbstractUIObject}
      */
-    public final void setUiLoadedMarker(@Nullable AbstractUIObject<?> uiLoadedMarker) {
+    public final void setUiLoadedMarker(@Nullable AbstractUIObject uiLoadedMarker) {
         this.uiLoadedMarker = uiLoadedMarker;
     }
 

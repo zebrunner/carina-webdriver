@@ -523,7 +523,7 @@ public interface IAndroidUtils extends IMobileUtils {
      *         AndroidUtils.SelectorType.CLASS_NAME, 1,
      *         AndroidUtils.SelectorType.TEXT, 2);
      **/
-    default <T extends AbstractUIObject<T>> T scroll(String scrollToEle, T scrollableContainer,
+    default <T extends AbstractUIObject> T scroll(String scrollToEle, T scrollableContainer,
             SelectorType containerSelectorType, int containerInstance, SelectorType eleSelectorType,
             int eleSelectorInstance) {
         T extendedWebElement = null;
@@ -552,12 +552,12 @@ public interface IAndroidUtils extends IMobileUtils {
                 if (ele.isDisplayed()) {
                     UTILS_LOGGER.info("Element found!!!");
                     // initializing with driver context because scrollBy consists from container and element selectors
-                    extendedWebElement = AbstractUIObject.Builder.getInstance()
+                    extendedWebElement = (T) AbstractUIObject.Builder.getInstance()
                             .setBy(scrollBy)
                             .setDescriptionName(scrollToEle)
                             .setDriver(getDriver())
                             .setSearchContext(getDriver())
-                            .build(scrollableContainer.getClazz());
+                            .build(scrollableContainer.getClass());
                     break;
                 }
             } catch (NoSuchElementException noSuchElement) {
@@ -592,7 +592,7 @@ public interface IAndroidUtils extends IMobileUtils {
      *         example of usage: {@code ExtendedWebElement res = AndroidUtils.scroll("News", newsListContainer, AndroidUtils.SelectorType.CLASS_NAME,
      *         AndroidUtils.SelectorType.TEXT);}
      **/
-    default <T extends AbstractUIObject<T>> T scroll(String scrollToEle, T scrollableContainer, SelectorType containerSelectorType,
+    default <T extends AbstractUIObject> T scroll(String scrollToEle, T scrollableContainer, SelectorType containerSelectorType,
             SelectorType eleSelectorType) {
         T extendedWebElement = null;
         long startTime = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
@@ -619,12 +619,12 @@ public interface IAndroidUtils extends IMobileUtils {
                 if (ele.isDisplayed()) {
                     UTILS_LOGGER.info("Element found!!!");
                     // initializing with driver context because scrollBy consists from container and element selectors
-                    extendedWebElement = AbstractUIObject.Builder.getInstance()
+                    extendedWebElement = (T) AbstractUIObject.Builder.getInstance()
                             .setBy(scrollBy)
                             .setDescriptionName(scrollToEle)
                             .setDriver(getDriver())
                             .setSearchContext(getDriver())
-                            .build(scrollableContainer.getClazz());
+                            .build(scrollableContainer.getClass());
                     break;
                 }
             } catch (NoSuchElementException noSuchElement) {
@@ -651,7 +651,7 @@ public interface IAndroidUtils extends IMobileUtils {
      * @return scrollViewContainerFinder String
      *
      **/
-    default <T extends AbstractUIObject<T>> String getScrollContainerSelector(T scrollableContainer, SelectorType containerSelectorType) {
+    default <T extends AbstractUIObject> String getScrollContainerSelector(T scrollableContainer, SelectorType containerSelectorType) {
         UTILS_LOGGER.debug(String.valueOf(scrollableContainer.getBy()));
         String scrollableContainerBy;
         String scrollViewContainerFinder = "";

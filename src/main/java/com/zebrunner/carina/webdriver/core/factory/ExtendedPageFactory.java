@@ -47,7 +47,7 @@ public class ExtendedPageFactory extends PageFactory {
             WebElement contextElement = getElement(field, page);
 
             if (AbstractUIObject.class.isAssignableFrom(field.getType())) {
-                setContextForElement((AbstractUIObject<?>) getParamByField(field, page), contextElement);
+                setContextForElement((AbstractUIObject) getParamByField(field, page), contextElement);
             }
 
             if (List.class.isAssignableFrom(field.getType())) {
@@ -75,9 +75,9 @@ public class ExtendedPageFactory extends PageFactory {
 
         try {
             contextField.setAccessible(true);
-            AbstractUIObject<?> element = null;
+            AbstractUIObject element = null;
             if (AbstractUIObject.class.isAssignableFrom(contextField.getType())) {
-                element = ((AbstractUIObject<?>) contextField.get(page));
+                element = ((AbstractUIObject) contextField.get(page));
             } else if (List.class.isAssignableFrom(contextField.getType())) {
                 throw new IllegalArgumentException("List couldn't be passed as context element");
             }
@@ -103,7 +103,7 @@ public class ExtendedPageFactory extends PageFactory {
         return param;
     }
 
-    private static void setContextForElement(AbstractUIObject<?> param, SearchContext contextElement) {
+    private static void setContextForElement(AbstractUIObject param, SearchContext contextElement) {
         param.setSearchContext(contextElement);
     }
 

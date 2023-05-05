@@ -15,6 +15,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,8 +64,13 @@ import com.zebrunner.carina.utils.LogicUtils;
 import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.utils.retry.ActionPoller;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
+import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
+import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
 import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
 import com.zebrunner.carina.webdriver.listener.DriverListener;
+import com.zebrunner.carina.webdriver.locator.converter.FormatLocatorConverter;
+import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter;
+import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
 
 /**
  * Provides common methods for interacting with the page
@@ -1006,6 +1012,163 @@ public interface IDriverHelper extends IDriverPool, ICommonUtils {
     // --------------------------------------------------------------------------
     // Helpers
     // --------------------------------------------------------------------------
+
+    /**
+     * Get element with formatted locator.<br>
+     * <p>
+     * 1. If element created using {@link org.openqa.selenium.support.FindBy} or same annotations:<br>
+     * If parameters were passed to the method, the element will be recreated with a new locator,
+     * and if the format method with parameters was already called for this element, the element locator
+     * will be recreated based on the original.<br>
+     * <b>All original element statuses {@link CaseInsensitiveXPath},
+     * {@link Localized} are saved for new element</b>
+     *
+     * <p>
+     * 2. If element created using constructor (it is not recommended to create element by hands):<br>
+     * If parameters were passed to the method, the element will be recreated with a new locator.
+     *
+     * <p>
+     * For all cases: if the method is called with no parameters, no locator formatting is applied, but the element will be "recreated".<br>
+     *
+     * <b>This method does not change the object on which it is called</b>.
+     *
+     * @return new {@link ExtendedWebElement} with formatted locator
+     */
+    default <T extends AbstractUIObject> T formatElement(T element, Object... objects) {
+        if (Arrays.stream(objects).findAny().isPresent()) {
+            LinkedList<LocatorConverter> copyLocatorConverters = new LinkedList<>(element.getLocatorConverters());
+            // start of case when we have L10N only on this step
+            boolean isTextContainsL10N = Arrays.stream(objects)
+                    .map(String::valueOf)
+                    .anyMatch(text -> LocalizeLocatorConverter.getL10nPattern().matcher(text).find());
+            if (isTextContainsL10N) {
+                boolean isAlreadyContainsL10NConverter = element.getLocatorConverters()
+                        .stream()
+                        .anyMatch(LocalizeLocatorConverter.class::isInstance);
+                if (!isAlreadyContainsL10NConverter) {
+                    LocalizeLocatorConverter converter = new LocalizeLocatorConverter();
+                    copyLocatorConverters.addFirst(converter);
+                }
+            }
+            // end of case when we have L10N only on this step
+
+            if (copyLocatorConverters.stream()
+                    .anyMatch(FormatLocatorConverter.class::isInstance)) {
+                I_DRIVER_HELPER_LOGGER.debug(
+                        "Called format method of ExtendedWebElement class with parameters, but FormatLocatorConverter already exists "
+                                + "for element: '{}', so locator will be recreated from original locator with new format parameters.",
+                        element.getDescriptionName());
+                copyLocatorConverters.removeIf(FormatLocatorConverter.class::isInstance);
+            }
+
+            FormatLocatorConverter converter = new FormatLocatorConverter(objects);
+            copyLocatorConverters.addFirst(converter);
+            element.getOriginalBy().orElseThrow();
+
+            return (T) AbstractUIObject.Builder.getInstance()
+                    .setBy(element.getOriginalBy().get())
+                    .setDriver(element.getDriver())
+                    .setSearchContext(element.getSearchContext())
+                    .setLoadingStrategy(element.getLoadingStrategy())
+                    .setLocatorConverters(copyLocatorConverters)
+                    // .setLocalizationKey(localizationKey)
+                    .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
+                            .setClassName(element.getClass().getSimpleName())
+                            .setContextDescription(element.getSearchContext().toString())
+                            .setDescription("Format objects: " + Arrays.toString(objects))
+                            .build())
+                    .build(element.getClass());
+        }
+        return element;
+    }
+
+    /**
+     * Get list of elements with formatted locator.<br>
+     *
+     * <p>
+     * 1. If element created using {@link org.openqa.selenium.support.FindBy} or same annotations:<br>
+     * If parameters were passed to the method, the result elements will be created with a new locator,
+     * and if the format method with parameters was already called for this element, the element locator
+     * will be recreated based on the original.<br>
+     * <br>
+     * <b>All original element statuses {@link CaseInsensitiveXPath},
+     * {@link Localized} are saved for new elements</b>
+     *
+     * <p>
+     * 2. If element created using constructor (it is not recommended to create element by hands):<br>
+     * If parameters were passed to the method, the result elements will be created with a new locator.
+     *
+     * For all cases: if the method is called with no parameters, no locator formatting is applied, but elements will be created using original
+     * locator.<br>
+     *
+     * <b>This method does not change the object on which it is called</b>.
+     *
+     * @param objects parameters
+     * @return {@link List} of {@link ExtendedWebElement} if found, empty list otherwise
+     */
+    default <T extends AbstractUIObject> List<T> formatElementToList(T element, Object... objects) {
+        List<T> extendedWebElementList = new ArrayList<>();
+
+        LinkedList<LocatorConverter> copyLocatorConverters = new LinkedList<>(element.getLocatorConverters());
+
+        if (Arrays.stream(objects).findAny().isPresent()) {
+            // start of case when we have L10N only on this step
+            boolean isTextContainsL10N = Arrays.stream(objects)
+                    .map(String::valueOf)
+                    .anyMatch(text -> LocalizeLocatorConverter.getL10nPattern().matcher(text).find());
+            if (isTextContainsL10N) {
+                boolean isAlreadyContainsL10NConverter = copyLocatorConverters
+                        .stream()
+                        .anyMatch(LocalizeLocatorConverter.class::isInstance);
+                if (!isAlreadyContainsL10NConverter) {
+                    LocalizeLocatorConverter converter = new LocalizeLocatorConverter();
+                    copyLocatorConverters.addFirst(converter);
+                }
+            }
+            // end of case when we have L10N only on this step
+
+            if (copyLocatorConverters.stream().anyMatch(FormatLocatorConverter.class::isInstance)) {
+                I_DRIVER_HELPER_LOGGER.debug(
+                        "Called formatToList method of ExtendedWebElement class with parameters, but FormatLocatorConverter already exists "
+                                + "for element: '{}', so locator will be recreated from original locator with new format parameters.",
+                        element.getDescriptionName());
+                copyLocatorConverters.removeIf(FormatLocatorConverter.class::isInstance);
+            }
+            FormatLocatorConverter converter = new FormatLocatorConverter(objects);
+            copyLocatorConverters.addFirst(converter);
+        }
+
+        element.getOriginalBy()
+                .orElseThrow();
+
+        By finalBy = (By) AbstractUIObject.Builder.getInstance()
+                .setBy(element.getOriginalBy().get())
+                .setDriver(element.getDriver())
+                .setSearchContext(element.getSearchContext())
+                .setLocatorConverters(copyLocatorConverters)
+                .build(element.getClass())
+                .getBy()
+                .orElseThrow();
+
+        int i = 0;
+        for (WebElement el : element.getSearchContext().findElements(finalBy)) {
+            T extEl = (T) AbstractUIObject.Builder.getInstance()
+                    .setElement(el)
+                    .setDriver(element.getDriver())
+                    .setSearchContext(element.getSearchContext())
+                    .setLoadingStrategy(element.getLoadingStrategy())
+                    .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
+                            .setClassName(element.getClass().getSimpleName())
+                            .setContextDescription(element.getSearchContext().toString())
+                            .setDescription("Objects: " + Arrays.toString(objects))
+                            .setIndex(String.valueOf(i))
+                            .build())
+                    .build(element.getClass());
+            // getLocalizationKey().ifPresent(key -> builder.setLocalizationKey(key + i));
+            extendedWebElementList.add(extEl);
+        }
+        return extendedWebElementList;
+    }
 
     /**
      * Find element on the page<br>

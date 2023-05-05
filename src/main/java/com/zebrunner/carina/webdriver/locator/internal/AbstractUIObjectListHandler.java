@@ -37,7 +37,7 @@ import com.zebrunner.carina.webdriver.locator.ImmutableUIList;
 import com.zebrunner.carina.webdriver.locator.LocatorType;
 import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 
-public class AbstractUIObjectListHandler<T extends AbstractUIObject<T>> implements InvocationHandler {
+public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements InvocationHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final Class<T> clazz;

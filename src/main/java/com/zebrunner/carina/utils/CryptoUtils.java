@@ -8,12 +8,14 @@ import org.testng.SkipException;
 import com.zebrunner.carina.crypto.Algorithm;
 import com.zebrunner.carina.crypto.CryptoTool;
 import com.zebrunner.carina.crypto.CryptoToolBuilder;
+import com.zebrunner.carina.utils.annotations.Internal;
 
 /**
  * Utility that allow to easy crypt/decrypt data<br>
  * 
  * todo move to carina-utils module
  */
+@Internal
 public enum CryptoUtils {
 
     INSTANCE;

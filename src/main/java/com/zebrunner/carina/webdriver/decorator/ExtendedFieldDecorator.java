@@ -106,7 +106,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends AbstractUIObject<T>> T proxyForAbstractUIObject(ClassLoader loader, Field field, ElementLocator locator) {
+    private <T extends AbstractUIObject> T proxyForAbstractUIObject(ClassLoader loader, Field field, ElementLocator locator) {
         ExtendedElementLocator extendedElementLocator = (ExtendedElementLocator) locator;
         AbstractUIObject.Builder builder = AbstractUIObject.Builder.getInstance()
                 .setBy(extendedElementLocator.getBy())
@@ -129,7 +129,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
     }
 
     @SuppressWarnings("unchecked")
-    protected <T extends AbstractUIObject<T>> List<T> proxyForListUIObjects(ClassLoader loader, Field field, ElementLocator locator) {
+    protected <T extends AbstractUIObject> List<T> proxyForListUIObjects(ClassLoader loader, Field field, ElementLocator locator) {
         return (List<T>) Proxy.newProxyInstance(loader,
                 new Class[] { List.class },
                 new AbstractUIObjectListHandler<T>(loader, (Class<T>) getListType(field), webDriver, locator, field));

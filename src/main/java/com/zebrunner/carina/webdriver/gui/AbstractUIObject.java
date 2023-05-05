@@ -70,13 +70,8 @@ import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.utils.resources.L10N;
 import com.zebrunner.carina.webdriver.AbstractContext;
 import com.zebrunner.carina.webdriver.decorator.ElementLoadingStrategy;
-import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
-import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
-import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
 import com.zebrunner.carina.webdriver.listener.DriverListener;
 import com.zebrunner.carina.webdriver.locator.LocatorType;
-import com.zebrunner.carina.webdriver.locator.converter.FormatLocatorConverter;
-import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter;
 import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
 
 import io.appium.java_client.pagefactory.bys.ContentMappedBy;
@@ -94,14 +89,12 @@ import io.appium.java_client.pagefactory.bys.ContentMappedBy;
  * 4. If values are specified in child constructors using setters, they will take precedence when creating an element than those that are passed
  * through the builder. This is necessary for those cases when the component is created by the user and, for example, in order not to constantly
  * specify its locator in the builder, you can specify it in the constructor using {@link #setBy(By)}<br>
- * 5. The main method for relocating an element to perform actions/updates is the method {@link #findElement()}
- * 
- * @param <T>
+ * 5. The main method for finding an element to perform actions/updates is the method {@link #findElement()}
  */
-public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends AbstractContext implements IWebElement, WebElement {
+public abstract class AbstractUIObject extends AbstractContext implements IWebElement, WebElement {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private Class<T> clazz = null;
+    private Class<?> clazz = null;
     private By originalBy = null;
     private By by = null;
     private WebElement element = null;
@@ -423,7 +416,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
          * @param <T> {@link AbstractUIObject}
          * @return {@link T}
          */
-        public <T extends AbstractUIObject<T>> T build(Class<T> clazz) {
+        public <T extends AbstractUIObject> T build(Class<T> clazz) {
             Objects.requireNonNull(clazz);
             try {
                 T object;
@@ -483,7 +476,7 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
             }
         }
 
-        private void validate(AbstractUIObject<?> uiObject) {
+        private void validate(AbstractUIObject uiObject) {
             if (uiObject.getBy().isEmpty() && uiObject.getElement().isEmpty()) {
                 throw new IllegalArgumentException("By and WebElement must not be null at the same time.");
             }
@@ -537,16 +530,21 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     // Must be final because the only data source is the current class.
     // --------------------------------------------------------------------------
 
-    public final Class<T> getClazz() {
+    public final Class<?> getClazz() {
         return clazz;
     }
 
-    public final void setClazz(Class<T> clazz) {
+    public final <T extends AbstractUIObject> void setClazz(Class<T> clazz) {
         this.clazz = clazz;
     }
 
     public final Optional<By> getBy() {
         return Optional.ofNullable(by);
+    }
+
+    @Internal
+    public final Optional<By> getOriginalBy() {
+        return Optional.ofNullable(originalBy);
     }
 
     public final void setBy(@Nullable By by) {
@@ -1536,7 +1534,6 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     @Override
     public List<WebElement> findElements(By by) {
         List<WebElement> elements = new ArrayList<>();
-
         try {
             elements = findElement().findElements(getBy(by, searchContext));
         } catch (NoSuchElementException e) {
@@ -1565,180 +1562,28 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     }
 
     /**
-     * Get element with formatted locator.<br>
-     * <p>
-     * 1. If element created using {@link org.openqa.selenium.support.FindBy} or same annotations:<br>
-     * If parameters were passed to the method, the element will be recreated with a new locator,
-     * and if the format method with parameters was already called for this element, the element locator
-     * will be recreated based on the original.<br>
-     * <b>All original element statuses {@link CaseInsensitiveXPath},
-     * {@link Localized} are saved for new element</b>
-     *
-     * <p>
-     * 2. If element created using constructor (it is not recommended to create element by hands):<br>
-     * If parameters were passed to the method, the element will be recreated with a new locator.
-     *
-     * <p>
-     * For all cases: if the method is called with no parameters, no locator formatting is applied, but the element will be "recreated".<br>
-     *
-     * <b>This method does not change the object on which it is called</b>.
-     *
-     * @return new {@link ExtendedWebElement} with formatted locator
-     */
-    public T format(Object... objects) {
-        if (Arrays.stream(objects).findAny().isPresent()) {
-            LinkedList<LocatorConverter> copyLocatorConverters = new LinkedList<>(locatorConverters);
-            // start of case when we have L10N only on this step
-            boolean isTextContainsL10N = Arrays.stream(objects)
-                    .map(String::valueOf)
-                    .anyMatch(text -> LocalizeLocatorConverter.getL10nPattern().matcher(text).find());
-            if (isTextContainsL10N) {
-                boolean isAlreadyContainsL10NConverter = getLocatorConverters()
-                        .stream()
-                        .anyMatch(LocalizeLocatorConverter.class::isInstance);
-                if (!isAlreadyContainsL10NConverter) {
-                    LocalizeLocatorConverter converter = new LocalizeLocatorConverter();
-                    copyLocatorConverters.addFirst(converter);
-                }
-            }
-            // end of case when we have L10N only on this step
-
-            if (copyLocatorConverters.stream()
-                    .anyMatch(FormatLocatorConverter.class::isInstance)) {
-                LOGGER.debug("Called format method of ExtendedWebElement class with parameters, but FormatLocatorConverter already exists "
-                                + "for element: '{}', so locator will be recreated from original locator with new format parameters.",
-                        name);
-                copyLocatorConverters.removeIf(FormatLocatorConverter.class::isInstance);
-            }
-
-            FormatLocatorConverter converter = new FormatLocatorConverter(objects);
-            copyLocatorConverters.addFirst(converter);
-
-            return AbstractUIObject.Builder.getInstance()
-                    .setBy(originalBy)
-                    .setDriver(getDriver())
-                    .setSearchContext(searchContext)
-                    .setLoadingStrategy(loadingStrategy)
-                    .setLocatorConverters(copyLocatorConverters)
-                    // .setLocalizationKey(localizationKey)
-                    .setDescriptionName(DescriptionBuilder.getInstance()
-                            .setClassName(clazz.getSimpleName())
-                            .setContextDescription(searchContext.toString())
-                            .setDescription("Format objects: " + Arrays.toString(objects))
-                            .build())
-                    .build(clazz);
-        }
-        return (T) this;
-    }
-
-    /**
-     * Get list of elements with formatted locator.<br>
-     *
-     * <p>
-     * 1. If element created using {@link org.openqa.selenium.support.FindBy} or same annotations:<br>
-     * If parameters were passed to the method, the result elements will be created with a new locator,
-     * and if the format method with parameters was already called for this element, the element locator
-     * will be recreated based on the original.<br>
-     * <br>
-     * <b>All original element statuses {@link CaseInsensitiveXPath},
-     * {@link Localized} are saved for new elements</b>
-     *
-     * <p>
-     * 2. If element created using constructor (it is not recommended to create element by hands):<br>
-     * If parameters were passed to the method, the result elements will be created with a new locator.
-     *
-     * For all cases: if the method is called with no parameters, no locator formatting is applied, but elements will be created using original
-     * locator.<br>
-     *
-     * <b>This method does not change the object on which it is called</b>.
-     *
-     * @param objects parameters
-     * @return {@link List} of {@link ExtendedWebElement} if found, empty list otherwise
-     */
-    public List<T> formatToList(Object... objects) {
-        List<T> extendedWebElementList = new ArrayList<>();
-
-        LinkedList<LocatorConverter> copyLocatorConverters = new LinkedList<>(locatorConverters);
-
-        if (Arrays.stream(objects).findAny().isPresent()) {
-            // start of case when we have L10N only on this step
-            boolean isTextContainsL10N = Arrays.stream(objects)
-                    .map(String::valueOf)
-                    .anyMatch(text -> LocalizeLocatorConverter.getL10nPattern().matcher(text).find());
-            if (isTextContainsL10N) {
-                boolean isAlreadyContainsL10NConverter = copyLocatorConverters
-                        .stream()
-                        .anyMatch(LocalizeLocatorConverter.class::isInstance);
-                if (!isAlreadyContainsL10NConverter) {
-                    LocalizeLocatorConverter converter = new LocalizeLocatorConverter();
-                    copyLocatorConverters.addFirst(converter);
-                }
-            }
-            // end of case when we have L10N only on this step
-
-            if (copyLocatorConverters.stream().anyMatch(FormatLocatorConverter.class::isInstance)) {
-                LOGGER.debug(
-                        "Called formatToList method of ExtendedWebElement class with parameters, but FormatLocatorConverter already exists "
-                                + "for element: '{}', so locator will be recreated from original locator with new format parameters.",
-                        name);
-                copyLocatorConverters.removeIf(FormatLocatorConverter.class::isInstance);
-            }
-            FormatLocatorConverter converter = new FormatLocatorConverter(objects);
-            copyLocatorConverters.addFirst(converter);
-        }
-
-        Objects.requireNonNull(originalBy);
-
-        By finalBy = AbstractUIObject.Builder.getInstance()
-                .setBy(originalBy)
-                .setDriver(getDriver())
-                .setSearchContext(searchContext)
-                .setLocatorConverters(copyLocatorConverters)
-                .build(clazz)
-                .getBy()
-                .orElseThrow();
-
-        int i = 0;
-        for (WebElement el : searchContext.findElements(finalBy)) {
-            T extEl = AbstractUIObject.Builder.getInstance()
-                    .setElement(el)
-                    .setDriver(getDriver())
-                    .setSearchContext(searchContext)
-                    .setLoadingStrategy(loadingStrategy)
-                    .setDescriptionName(DescriptionBuilder.getInstance()
-                            .setClassName(clazz.getSimpleName())
-                            .setContextDescription(searchContext.toString())
-                            .setDescription("Objects: " + Arrays.toString(objects))
-                            .setIndex(String.valueOf(i))
-                            .build())
-                    .build(clazz);
-            // getLocalizationKey().ifPresent(key -> builder.setLocalizationKey(key + i));
-            extendedWebElementList.add(extEl);
-        }
-        return extendedWebElementList;
-    }
-
-    /**
      * Find {@link T} on page using {@link By} starting search from current element
      *
+     * @param clazz class of element that will be created
      * @param by see {@link By}
      * @return {@link T}
      * @throws NoSuchElementException if element was not found
      */
-    public T findNestedExtendedWebElement(By by) {
-        return findNestedExtendedWebElement(by, by.toString(), EXPLICIT_TIMEOUT);
+    public <T extends AbstractUIObject> T findNestedElement(Class<T> clazz, By by) {
+        return findNestedElement(clazz, by, by.toString(), EXPLICIT_TIMEOUT);
     }
 
     /**
      * Find {@link T} on page using {@link By} starting search from current element.
      *
+     * @param clazz class of element that will be created
      * @param by see {@link By}
      * @param timeout timeout, in seconds
      * @return {@link T}
      * @throws NoSuchElementException if element was not found
      */
-    public T findNestedExtendedWebElement(By by, long timeout) {
-        return findNestedExtendedWebElement(by,
+    public <T extends AbstractUIObject> T findNestedElement(Class<T> clazz, By by, long timeout) {
+        return findNestedElement(clazz, by,
                 DescriptionBuilder.getInstance()
                         .setClassName(clazz.getSimpleName())
                         .setContextDescription(toString())
@@ -1749,25 +1594,27 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     /**
      * Find {@link T} on page using By starting search from current element
      *
+     * @param clazz class of element that will be created
      * @param by see {@link By}
      * @param name name of an element
      * @return {@link T}
      * @throws NoSuchElementException is element was not found
      */
-    public T findNestedExtendedWebElement(final By by, String name) {
-        return findNestedExtendedWebElement(by, name, EXPLICIT_TIMEOUT);
+    public <T extends AbstractUIObject> T findNestedElement(Class<T> clazz, final By by, String name) {
+        return findNestedElement(clazz, by, name, EXPLICIT_TIMEOUT);
     }
 
     /**
      * Find {@link T} on page using {@link By} starting search from current element.
      *
+     * @param clazz class of element that will be created
      * @param by see {@link By}
      * @param name name of the element
      * @param timeout timeout in seconds
      * @return {@link T}
      * @throws NoSuchElementException if element was not found
      */
-    public T findNestedExtendedWebElement(final By by, String name, long timeout) {
+    public <T extends AbstractUIObject> T findNestedElement(Class<T> clazz, final By by, String name, long timeout) {
         T el = AbstractUIObject.Builder.getInstance()
                 .setBy(by)
                 .setDescriptionName(name)
@@ -1780,18 +1627,19 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
         return el;
     }
 
-    public List<T> findNestedExtendedWebElements(By by) {
-        return findNestedExtendedWebElements(by, EXPLICIT_TIMEOUT);
+    public <T extends AbstractUIObject> List<T> findNestedElements(Class<T> clazz, By by) {
+        return findNestedElements(clazz, by, EXPLICIT_TIMEOUT);
     }
 
     /**
      * Get list of {@link T}s. Search of elements starts from current element.
      *
+     * @param clazz class of elements that will be created
      * @param by see {@link By}
      * @param timeout timeout of checking the presence of the element(s)
      * @return list of {@link T} if found, empty list otherwise
      */
-    public List<T> findNestedExtendedWebElements(final By by, long timeout) {
+    public <T extends AbstractUIObject> List<T> findNestedElements(Class<T> clazz, final By by, long timeout) {
         List<T> extendedWebElements = new ArrayList<>();
         T tempElement = AbstractUIObject.Builder.getInstance()
                 .setBy(by)
@@ -1884,16 +1732,23 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
     }
 
     /**
-     * Used for getting/updating element for action.
+     * Used for getting/finding current element for action.
      * 
      * @return see {@link WebElement}
+     * @throws NoSuchElementException if element was not found
+     * @throws IllegalStateException if {@link #by} and {@link #element} null at the same time
+     * @throws StaleElementReferenceException if element is Stale and we cannot update it (there are no locator for updating)
      */
     protected WebElement findElement() {
         // if there is no by, then we simply return the element
         if (by == null) {
             if (element == null) {
-                throw new IllegalStateException("WebElement and By both must not be null.");
+                throw new IllegalStateException("WebElement and By cannot be null at the same time.");
             }
+            // try to throw StaleElementReferenceException if element is Stale
+            element.isDisplayed();
+            // if there is no locator, then we cannot try to update the element,
+            // so we return the element as is
             return element;
         }
 
@@ -1903,8 +1758,8 @@ public abstract class AbstractUIObject<T extends AbstractUIObject<T>> extends Ab
                 // we call this method to check if it exists. if not, we got an exception
                 element.isDisplayed();
                 return element;
-            } catch (Exception e) {
-                // do nothing as element is not found as expected here
+            } catch (StaleElementReferenceException e) {
+                // do nothing as element is stale. We will try to update it
             }
         }
 

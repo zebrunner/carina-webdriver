@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.annotations.Internal;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
+import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
 import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
 
 /**
@@ -36,7 +38,7 @@ import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
  * It is recommended to use in cases where there is no need to redefine the logic of the AbstractUIObject class
  * and when the element does not (will not) contain nested elements.
  */
-public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElement> {
+public final class ExtendedWebElement extends AbstractUIObject {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -70,12 +72,9 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
      * Find Extended Web Element on page using By starting search from this
      * object.
      * 
-     * @deprecated use {@link #findNestedExtendedWebElement(By)}
-     *
      * @param by Selenium By locator
      * @return ExtendedWebElement if exists otherwise null.
      */
-    @Deprecated
     @Override
     public ExtendedWebElement findExtendedWebElement(By by) {
         return findExtendedWebElement(by, by.toString(), EXPLICIT_TIMEOUT);
@@ -85,12 +84,10 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
      * Find Extended Web Element on page using By starting search from this
      * object.
      * 
-     * @deprecated use {@link #findNestedExtendedWebElement(By, long)}
      * @param by Selenium By locator
      * @param timeout to wait
      * @return ExtendedWebElement if exists otherwise null.
      */
-    @Deprecated
     @Override
     public ExtendedWebElement findExtendedWebElement(By by, long timeout) {
         return findExtendedWebElement(by,
@@ -105,12 +102,10 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
      * Find Extended Web Element on page using By starting search from this
      * object.
      * 
-     * @deprecated use {@link #findNestedExtendedWebElement(By, String)}
      * @param by Selenium By locator
      * @param name Element name
      * @return ExtendedWebElement if exists otherwise null.
      */
-    @Deprecated
     @Override
     public ExtendedWebElement findExtendedWebElement(final By by, String name) {
         return findExtendedWebElement(by, name, EXPLICIT_TIMEOUT);
@@ -120,13 +115,11 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
      * Find Extended Web Element on page using By starting search from this
      * object.
      * 
-     * @deprecated use {@link #findNestedExtendedWebElement(By, String, long)}
      * @param by Selenium By locator
      * @param name Element name
      * @param timeout Timeout to find
      * @return ExtendedWebElement if exists otherwise null.
      */
-    @Deprecated
     @Override
     public ExtendedWebElement findExtendedWebElement(final By by, String name, long timeout) {
         ExtendedWebElement el = AbstractUIObject.Builder.getInstance()
@@ -141,11 +134,6 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
         return el;
     }
 
-    /**
-     * @deprecated use {@link #findNestedExtendedWebElements(By)}
-     */
-    @Deprecated
-    @Override
     public List<ExtendedWebElement> findExtendedWebElements(By by) {
         return findExtendedWebElements(by, EXPLICIT_TIMEOUT);
     }
@@ -153,12 +141,10 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
     /**
      * Get list of {@link ExtendedWebElement}s. Search of elements starts from current {@link ExtendedWebElement}
      * 
-     * @deprecated use {@link #findNestedExtendedWebElements(By, long)}
      * @param by see {@link By}
      * @param timeout timeout of checking the presence of the element(s)
      * @return list of ExtendedWebElements if found, empty list otherwise
      */
-    @Deprecated
     public List<ExtendedWebElement> findExtendedWebElements(final By by, long timeout) {
         List<ExtendedWebElement> extendedWebElements = new ArrayList<>();
         ExtendedWebElement tempElement = AbstractUIObject.Builder.getInstance()
@@ -188,6 +174,59 @@ public final class ExtendedWebElement extends AbstractUIObject<ExtendedWebElemen
             i++;
         }
         return extendedWebElements;
+    }
+
+    /**
+     * Get element with formatted locator.<br>
+     * <p>
+     * 1. If element created using {@link org.openqa.selenium.support.FindBy} or same annotations:<br>
+     * If parameters were passed to the method, the element will be recreated with a new locator,
+     * and if the format method with parameters was already called for this element, the element locator
+     * will be recreated based on the original.<br>
+     * <b>All original element statuses {@link CaseInsensitiveXPath},
+     * {@link Localized} are saved for new element</b>
+     *
+     * <p>
+     * 2. If element created using constructor (it is not recommended to create element by hands):<br>
+     * If parameters were passed to the method, the element will be recreated with a new locator.
+     *
+     * <p>
+     * For all cases: if the method is called with no parameters, no locator formatting is applied, but the element will be "recreated".<br>
+     *
+     * <b>This method does not change the object on which it is called</b>.
+     *
+     * @return new {@link ExtendedWebElement} with formatted locator
+     */
+    public ExtendedWebElement format(Object... objects) {
+        return formatElement(this, objects);
+    }
+
+    /**
+     * Get list of elements with formatted locator.<br>
+     *
+     * <p>
+     * 1. If element created using {@link org.openqa.selenium.support.FindBy} or same annotations:<br>
+     * If parameters were passed to the method, the result elements will be created with a new locator,
+     * and if the format method with parameters was already called for this element, the element locator
+     * will be recreated based on the original.<br>
+     * <br>
+     * <b>All original element statuses {@link CaseInsensitiveXPath},
+     * {@link Localized} are saved for new elements</b>
+     *
+     * <p>
+     * 2. If element created using constructor (it is not recommended to create element by hands):<br>
+     * If parameters were passed to the method, the result elements will be created with a new locator.
+     *
+     * For all cases: if the method is called with no parameters, no locator formatting is applied, but elements will be created using original
+     * locator.<br>
+     *
+     * <b>This method does not change the object on which it is called</b>.
+     *
+     * @param objects parameters
+     * @return {@link List} of {@link ExtendedWebElement} if found, empty list otherwise
+     */
+    public List<ExtendedWebElement> formatToList(Object... objects) {
+        return formatElementToList(this, objects);
     }
 
 }
