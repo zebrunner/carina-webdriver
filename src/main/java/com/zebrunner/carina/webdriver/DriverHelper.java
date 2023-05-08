@@ -25,17 +25,12 @@ import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -47,9 +42,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import com.google.gson.Gson;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
@@ -507,140 +500,37 @@ public class DriverHelper {
     }
 
     /**
-     * add a cookie object into the driver
-     *
-     * @param name name of the cookie
-     * @param value the value of the cookie
-     * @param domain the domain of the cookie
-     * @param path the path of the cookie
-     * @param expiry when the cookie expires
-     */
-    public void addCookie(String name, String value, String domain, String path, Date expiry) {
-        addCookie(new Cookie(name, value, domain, path, expiry));
-    }
-
-    /**
-     * add a cookie object into the driver
-     *
-     * @param name name of the cookie
-     * @param value the value of the cookie
-     * @param domain the domain of the cookie
-     * @param path the path of the cookie
-     * @param expiry when the cookie expires
-     * @param isSecure if the cookie is secure or not
-     * @param isHttpOnly if it is on http or https
-     */
-    public void addCookie(String name, String value, String domain, String path, Date expiry, boolean isSecure, boolean isHttpOnly) {
-        addCookie(new Cookie(name, value, domain, path, expiry, isSecure, isHttpOnly));
-    }
-
-    /**
-     * gets a specific cookie
-     *
-     * @param name the cookie being targeted
-     * @return cookie with the given name
-     * @see WebDriver.Options#getCookieNamed(String)
-     */
-    public Cookie getCookieNamed(String name) {
-        return getDriver().manage().getCookieNamed(name);
-    }
-
-    /**
-     * get the value of a cookie that was a URL-encoded Map.
-     *
-     * @param name the cookie being targeted
-     * @return decoded cookie value
-     */
-    @SuppressWarnings("unchecked")
-    public Map<String, String> getDecodedValueOfCookieNamed(String name) {
-        String cookieJsonString = null;
-        try {
-            cookieJsonString = URLDecoder.decode(getCookieNamed(name).getValue(), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            LOGGER.error("Error caught while decoding the cookie with the name: " + name, e);
-        }
-        return new Gson().fromJson(cookieJsonString, HashMap.class);
-    }
-
-    public Set<Cookie> getAllCookies() {
-        return getDriver().manage().getCookies();
-    }
-
-    /**
-     * Return a cookie String similar to document.cookie in the browser console
-     * Includes the cookie name and value, and doesn't include the path, domain, etc for each cookie
-     * @return String with all the cookie names and their values
-     */
-    public String getAllCookiesString() {
-        return getAllCookies().stream()
-                .map(cookie -> cookie.getName() + "=" + cookie.getValue() + ";")
-                .collect(Collectors.joining());
-    }
-
-    /**
-     * delete a specific cookie
-     *
-     * @param name the name of the cookie being deleted
-     */
-    public void deleteCookieNamed(String name) {
-        getDriver().manage().deleteCookieNamed(name);
-    }
-
-    /**
-     * delete all cookies in the driver session
-     */
-    public void deleteAllCookies() {
-        getDriver().manage().deleteAllCookies();
-    }
-
-    /**
      * add an item to local storage
      *
      * @param name the name of the item to save
      * @param value the value of the item to save
      */
     public void addToLocalStorage(String name, String value) {
-        ((JavascriptExecutor) getDriver()).executeScript(String.format("window.localStorage.setItem('%s','%s');", name, value));
-    }
-
-    /**
-     * add an item to local storage
-     *
-     * @param name the name of the item to save
-     * @param value the value of the item to save
-     */
-    public void addToLocalStorage(String name, Boolean value) {
-        addToLocalStorage(name, String.valueOf(value));
-    }
-
-    /**
-     * check to see if the item is present in local storage
-     *
-     * @param name the name of the item being stored
-     * @return boolean for if the item is present or not
-     */
-    public boolean isItemPresentInLocalStorage(String name) {
-        return ((JavascriptExecutor) getDriver()).executeScript(String.format("return window.localStorage.getItem('%s');", name)) != null;
+        ((JavascriptExecutor) getDriver())
+                .executeScript("window.localStorage.setItem(arguments[0], arguments[0]);", name, value);
     }
 
     /**
      * gets the value of the stored item
      *
      * @param name the item that is stored
-     * @return value of the item
+     * @return an optional containing the value of the stored item or an empty optional if nothing is stored.
      */
-    public String getValueFromLocalStorage(String name) {
-        return (String) ((JavascriptExecutor) getDriver()).executeScript(String.format("return window.localStorage.getItem('%s');", name));
+    public Optional<String> getValueFromLocalStorage(String name) {
+        return Optional.ofNullable((String) ((JavascriptExecutor) getDriver())
+                .executeScript("return window.localStorage.getItem(arguments[0]);", name));
     }
 
     /**
      * gets the name of a stored item via an index
      *
      * @param index the position of where the item is stored
-     * @return name of the stored item
+     * @return an optional containing the name of the stored item for the index or an empty optional if
+     * nothing is at the given index.
      */
-    public String getNameFromLocalStorage(int index) {
-        return (String) ((JavascriptExecutor) getDriver()).executeScript(String.format("return window.localStorage.key('%s');", index));
+    public Optional<String> getNameFromLocalStorage(int index) {
+        return Optional.ofNullable((String) ((JavascriptExecutor) getDriver())
+                .executeScript("return window.localStorage.key(arguments[0]);", index));
     }
 
     /**
@@ -649,35 +539,41 @@ public class DriverHelper {
      * @param name the name of the item to remove
      */
     public void removeFromLocalStorage(String name) {
-        ((JavascriptExecutor) getDriver()).executeScript(String.format("window.localStorage.removeItem('%s');", name));
+        ((JavascriptExecutor) getDriver()).executeScript("window.localStorage.removeItem(arguments[0]);", name);
     }
 
     /**
      * clears the local storage
      */
-    public void clearAllFromLocalStorage() {
-        ((JavascriptExecutor) getDriver()).executeScript("return window.localStorage.clear();");
+    public void clearLocalStorage() {
+        ((JavascriptExecutor) getDriver()).executeScript("window.localStorage.clear();");
     }
 
     /**
-     * gets the states of the redux store
+     * Get the current states for the Redux stores
+     *
      * @return all store states
      */
-    public JSONObject getStoreStates() {
-        String script = String.format("return JSON.stringify(%s);", REDUX_STORE_STATE_BASE_PATH);
-        String response = (String)((JavascriptExecutor) getDriver()).executeScript(script);
+    public JSONObject getReduxStoreStates() {
+        String response = (String)((JavascriptExecutor) getDriver())
+                .executeScript("return JSON.stringify(arguments[0]);", REDUX_STORE_STATE_BASE_PATH);
         return new JSONObject(response);
     }
 
     /**
-     * gets the state for a specific redux path
+     * Get the Redux store state for the specific path. For example, if the desired store state would be accessed
+     * via:
+     *
+     * {@code window.store.getState().foo}
+     *
+     * then this method would return the value with a path of {@code foo}
      *
      * @param path redux path you want a state for
      * @return redux store state
      */
-    public JSONObject getStoreStateFor(String path) {
-        String script = String.format("return JSON.stringify(%s).%s;", REDUX_STORE_STATE_BASE_PATH, path);
-        String response = (String)((JavascriptExecutor) getDriver()).executeScript(script);
+    public JSONObject getReduxStoreStateFor(String path) {
+        String response = (String)((JavascriptExecutor) getDriver())
+                .executeScript("return JSON.stringify(arguments[0].arguments[1]);", REDUX_STORE_STATE_BASE_PATH, path);
         return new JSONObject(response);
     }
 
@@ -687,9 +583,9 @@ public class DriverHelper {
      * @param action the type of action you want to update
      * @param payload the payload to be updated
      */
-    public void updateStoreStateWith(String action, JSONObject payload) {
-        String script = String.format("%s({type: '%s', payload: '%s'})", REDUX_STORE_STATE_DISPATCH_PATH, action, payload);
-        ((JavascriptExecutor) getDriver()).executeScript(script);
+    public void updateReduxStoreStateWith(String action, JSONObject payload) {
+        ((JavascriptExecutor) getDriver())
+                .executeScript("arguments[0]({type: arguments[1], payload: arguments[2]});");
     }
 
     /**
