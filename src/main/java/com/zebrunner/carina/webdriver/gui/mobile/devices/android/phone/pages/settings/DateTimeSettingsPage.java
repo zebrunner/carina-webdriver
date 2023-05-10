@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.android.IAndroidUtils;
-import com.zebrunner.carina.webdriver.DriverHelper;
+import com.zebrunner.carina.webdriver.IDriverHelper;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
@@ -222,7 +222,7 @@ public class DateTimeSettingsPage extends MobileAbstractPage implements IAndroid
 
     @Override
     public boolean isOpened() {
-        return isOpened(DriverHelper.EXPLICIT_TIMEOUT);
+        return isOpened(IDriverHelper.EXPLICIT_TIMEOUT);
     }
 
 }

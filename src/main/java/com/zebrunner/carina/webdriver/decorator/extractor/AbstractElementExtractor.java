@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 
+@Deprecated(forRemoval = false, since = "1.0.3")
 public abstract class AbstractElementExtractor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -75,12 +76,5 @@ public abstract class AbstractElementExtractor {
      */
     public List<WebElement> getEndLevelElements(WebDriver driver) {
         return driver.findElements(By.xpath("//*[count(./*)=0]"));
-    }
-
-    public ExtendedWebElement generateExtenedElement(List<WebElement> elements, String name) {
-        if (elements.size() != 1) {
-            throw new RuntimeException("Zero or more than 1 element was found using coordinates.");
-        }
-        return new ExtendedWebElement(elements.get(0), name);
     }
 }

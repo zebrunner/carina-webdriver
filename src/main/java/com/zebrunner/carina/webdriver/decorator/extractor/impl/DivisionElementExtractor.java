@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.openqa.selenium.Rectangle;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,41 +28,14 @@ import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.decorator.extractor.AbstractElementExtractor;
 
+@Deprecated(forRemoval = true, since = "1.0.3")
 public class DivisionElementExtractor extends AbstractElementExtractor implements IDriverPool {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @Override
     public ExtendedWebElement getElementsByCoordinates(int x, int y) {
-        String elementName = String.format("Element founded by x:%d - y:%d", x, y);
-        WebDriver driver = getDriver();
-        List<WebElement> elements = getEndLevelElements(driver);
-        WebElement tempElement;
-        int index = 0;
-        int isLower;
-        Rectangle tempRect;
-        while (elements.size() != 1) {
-            index = Math.round(elements.size() / 2f);
-            tempElement = elements.get(index);
-            tempRect = getRect(tempElement);
-            isLower = isLower(tempRect, y);
-            LOGGER.debug("Is Lower: {}", isLower);
-            if (isInside(tempRect, x, y) || isLower == 0) {
-                break;
-            }
-            if (isLower == 1) {
-                elements = elements.subList(index, elements.size());
-            } else {
-                elements = elements.subList(0, index);
-            }
-        }
-        LOGGER.debug("Index: {}", index);
-
-        if (elements.size() == 1) {
-            return generateExtenedElement(elements, elementName);
-        }
-
-        return generateExtenedElement(checkBoundaryElements(elements, x, y, index), elementName);
+        throw new UnsupportedOperationException();
     }
 
     /**

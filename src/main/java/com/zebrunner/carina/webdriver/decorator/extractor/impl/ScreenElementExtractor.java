@@ -15,37 +15,16 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.decorator.extractor.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.openqa.selenium.Rectangle;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.decorator.extractor.AbstractElementExtractor;
 
+@Deprecated(forRemoval = true, since = "1.0.3")
 public class ScreenElementExtractor extends AbstractElementExtractor implements IDriverPool {
 
     @Override
     public ExtendedWebElement getElementsByCoordinates(int x, int y) {
-        String elementName = String.format("Element founded by x:%d - y:%d", x, y);
-        WebDriver driver = getDriver();
-        List<WebElement> elements = getEndLevelElements(driver);
-        List<WebElement> result = new ArrayList<>();
-        Rectangle rect;
-        for (WebElement webElement : elements) {
-            try {
-                rect = getRect(webElement);
-            } catch (Exception e) {
-                continue;
-            }
-            if (isInside(rect, x, y)) {
-                result.add(webElement);
-            }
-        }
-        return generateExtenedElement(result, elementName);
+        throw new UnsupportedOperationException();
     }
 
 }

@@ -1,5 +1,7 @@
 package com.zebrunner.carina.webdriver.decorator;
 
+import java.util.List;
+
 import org.mockito.Mockito;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
@@ -9,7 +11,7 @@ import org.openqa.selenium.WebElement;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.List;
+import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
 
 public class ExtendedWebElementTest {
 
@@ -23,7 +25,12 @@ public class ExtendedWebElementTest {
         Mockito.when(driver.findElement(by)).thenReturn(foundElement);
         Mockito.when(foundElement.isDisplayed()).thenReturn(true);
         // Execute the test
-        ExtendedWebElement element = new ExtendedWebElement(by, "testElementName", driver, driver);
+        ExtendedWebElement element = AbstractUIObject.Builder.getInstance()
+                .setBy(by)
+                .setDescriptionName("testElementName")
+                .setDriver(driver)
+                .setSearchContext(driver)
+                .build(ExtendedWebElement.class);
         Assert.assertTrue(element.isElementPresent());
     }
 
@@ -37,7 +44,12 @@ public class ExtendedWebElementTest {
         Mockito.when(driver.findElement(by)).thenReturn(foundElement);
         Mockito.when(foundElement.isDisplayed()).thenReturn(false);
         // Execute the test
-        ExtendedWebElement element = new ExtendedWebElement(by, "testElementName", driver, driver);
+        ExtendedWebElement element = AbstractUIObject.Builder.getInstance()
+                .setBy(by)
+                .setDescriptionName("testElementName")
+                .setDriver(driver)
+                .setSearchContext(driver)
+                .build(ExtendedWebElement.class);
         Assert.assertFalse(element.isElementPresent(0L));
     }
 
@@ -49,7 +61,12 @@ public class ExtendedWebElementTest {
         // Define the behavior for the mocks
         Mockito.when(driver.findElement(by)).thenThrow(new NoSuchElementException("noElementFound"));
         // Execute the test
-        ExtendedWebElement element = new ExtendedWebElement(by, "testElementName", driver, driver);
+        ExtendedWebElement element = AbstractUIObject.Builder.getInstance()
+                .setBy(by)
+                .setDescriptionName("testElementName")
+                .setDriver(driver)
+                .setSearchContext(driver)
+                .build(ExtendedWebElement.class);
         Assert.assertFalse(element.isElementPresent(0L));
     }
 
@@ -63,7 +80,12 @@ public class ExtendedWebElementTest {
         Mockito.when(driver.findElement(by)).thenReturn(foundElement);
         Mockito.when(foundElement.isDisplayed()).thenThrow(new StaleElementReferenceException("staleFoundElement"));
         // Execute the test
-        ExtendedWebElement element = new ExtendedWebElement(by, "testElementName", driver, driver);
+        ExtendedWebElement element = AbstractUIObject.Builder.getInstance()
+                .setBy(by)
+                .setDescriptionName("testElementName")
+                .setDriver(driver)
+                .setSearchContext(driver)
+                .build(ExtendedWebElement.class);
         Assert.assertFalse(element.isElementPresent(0L));
     }
 
@@ -78,7 +100,12 @@ public class ExtendedWebElementTest {
         Mockito.when(context.findElements(by)).thenReturn(List.of(foundElement));
         Mockito.when(foundElement.isDisplayed()).thenReturn(true);
         // Execute the test
-        ExtendedWebElement element = new ExtendedWebElement(by, "testElementName", driver, context);
+        ExtendedWebElement element = AbstractUIObject.Builder.getInstance()
+                .setBy(by)
+                .setDescriptionName("testElementName")
+                .setDriver(driver)
+                .setSearchContext(context)
+                .build(ExtendedWebElement.class);
         Assert.assertTrue(element.isElementPresent());
     }
 
@@ -91,7 +118,12 @@ public class ExtendedWebElementTest {
         // Define the behavior for the mocks
         Mockito.when(context.findElements(by)).thenThrow(new StaleElementReferenceException("staleSearchContext"));
         // Execute the test
-        ExtendedWebElement element = new ExtendedWebElement(by, "testElementName", driver, context);
+        ExtendedWebElement element = AbstractUIObject.Builder.getInstance()
+                .setBy(by)
+                .setDescriptionName("testElementName")
+                .setDriver(driver)
+                .setSearchContext(context)
+                .build(ExtendedWebElement.class);
         Assert.assertFalse(element.isElementPresent());
     }
 }

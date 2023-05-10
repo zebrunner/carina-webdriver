@@ -18,6 +18,7 @@ package com.zebrunner.carina.webdriver.gui.mobile.devices.android.phone.pages.no
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 
+import com.zebrunner.carina.webdriver.IDriverHelper;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.FindAll;
@@ -247,6 +248,6 @@ public class NotificationPage extends MobileAbstractPage implements IAndroidUtil
 
     @Override
     public boolean isOpened() {
-        return isOpened(DriverHelper.EXPLICIT_TIMEOUT);
+        return isOpened(IDriverHelper.EXPLICIT_TIMEOUT);
     }
 }

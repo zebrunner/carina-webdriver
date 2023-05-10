@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
@@ -56,11 +57,13 @@ public class ExtendedElementLocator implements ElementLocator {
     private final WebDriver driver;
     private SearchContext searchContext;
     private final String className;
-    private final By originalBy;
     private By by;
     private boolean caseInsensitive = false;
-    private boolean localized = false;
     private final LinkedList<LocatorConverter> locatorConverters = new LinkedList<>();
+    private final Field field;
+    private String fieldName = null;
+
+    String localizationName = null;
 
     /**
      * Creates a new element locator.
@@ -70,45 +73,21 @@ public class ExtendedElementLocator implements ElementLocator {
      *            value
      */
     public ExtendedElementLocator(WebDriver driver, SearchContext searchContext, Field field, AbstractAnnotations annotations) {
+        this.fieldName = field.getName();
+        this.field = field;
         this.driver = driver;
         this.searchContext = searchContext;
         String[] classPath = field.getDeclaringClass().toString().split("\\.");
         this.className = classPath[classPath.length - 1];
         this.by = annotations.buildBy();
-        this.originalBy = this.by;
-        if (LocalizeLocatorConverter.getL10nPattern().matcher(this.by.toString()).find()) {
-            this.locatorConverters.add(new LocalizeLocatorConverter());
-        }
-        if (field.isAnnotationPresent(CaseInsensitiveXPath.class)) {
-            CaseInsensitiveXPath csx = field.getAnnotation(CaseInsensitiveXPath.class);
-            // [AS] do not try to use searchContext for getCurrentContentType method, because it may be a proxy and when we try to
-            // get driver from it, there will be 'org.openqa.selenium.NoSuchElementException' because on this moment page is not opened,
-            // so we just use driver instead
-            locatorConverters.add(new CaseInsensitiveConverter(csx, ContentType.NATIVE_MOBILE_SPECIFIC.equals(getCurrentContentType(driver))));
-            caseInsensitive = true;
-        }
+
         if (field.isAnnotationPresent(Localized.class)) {
-            this.localized = true;
+            localizationName = className + "." + field.getName();
         }
-        buildConvertedBy();
     }
 
-    public void buildConvertedBy() {
-        // do not do converting if there are no locator converters at all
-        if (locatorConverters.isEmpty()) {
-            return;
-        }
-        String byAsString = this.originalBy.toString();
-        for (LocatorConverter converter : locatorConverters) {
-            byAsString = converter.convert(byAsString);
-        }
-
-        String finalByAsString = byAsString;
-        this.by = Arrays.stream(LocatorType.values())
-                .filter(locatorType -> locatorType.is(finalByAsString))
-                .findFirst()
-                .orElseThrow()
-                .buildLocatorFromString(byAsString);
+    public Field getField() {
+        return field;
     }
 
     /**
@@ -186,10 +165,6 @@ public class ExtendedElementLocator implements ElementLocator {
         this.searchContext = searchContext;
     }
 
-    public boolean isLocalized() {
-        return this.localized;
-    }
-
     public boolean isCaseInsensitive() {
         return this.caseInsensitive;
     }
@@ -208,5 +183,13 @@ public class ExtendedElementLocator implements ElementLocator {
 
     public LinkedList<LocatorConverter> getLocatorConverters() {
         return this.locatorConverters;
+    }
+
+    public Optional<String> getLocalizeName() {
+        return Optional.ofNullable(localizationName);
+    }
+
+    public String getFieldName() {
+        return fieldName;
     }
 }

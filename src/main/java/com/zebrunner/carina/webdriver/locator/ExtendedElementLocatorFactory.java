@@ -30,6 +30,7 @@ import org.openqa.selenium.support.pagefactory.ElementLocatorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.zebrunner.carina.utils.annotations.Internal;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.annotations.AccessibilityId;
@@ -39,7 +40,9 @@ import com.zebrunner.carina.webdriver.decorator.annotations.Predicate;
 import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.remote.MobileCapabilityType;
 
+@Internal
 public final class ExtendedElementLocatorFactory implements ElementLocatorFactory, IDriverPool {
+
     static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final SearchContext searchContext;
     private final WebDriver webDriver;
