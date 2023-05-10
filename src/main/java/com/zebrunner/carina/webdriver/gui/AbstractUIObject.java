@@ -122,7 +122,9 @@ public abstract class AbstractUIObject extends AbstractContext implements IWebEl
      * @param searchContext ignored, deprecated
      */
     @Deprecated
-    protected AbstractUIObject(WebDriver driver, @Deprecated(forRemoval = true, since = "1.0.3") SearchContext searchContext) {
+    public AbstractUIObject(WebDriver driver, @Deprecated(forRemoval = true, since = "1.0.3") SearchContext searchContext) {
+        // the constructor must remain public, since when creating classes and inheriting
+        // from the current one, a constructor with the protected modifier is automatically created
         this(driver);
     }
 
@@ -135,7 +137,9 @@ public abstract class AbstractUIObject extends AbstractContext implements IWebEl
      *
      * @param driver {@link WebDriver} instance to initialize UI Object fields using PageFactory
      */
-    protected AbstractUIObject(WebDriver driver) {
+    public AbstractUIObject(WebDriver driver) {
+        // the constructor must remain public, since when creating classes and inheriting
+        // from the current one, a constructor with the protected modifier is automatically created
         super(driver, null);
     }
 

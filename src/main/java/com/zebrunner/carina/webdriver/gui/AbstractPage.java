@@ -92,7 +92,9 @@ public abstract class AbstractPage extends AbstractContext implements ICustomTyp
      *
      * @param driver {@link WebDriver}
      */
-    protected AbstractPage(WebDriver driver) {
+    public AbstractPage(WebDriver driver) {
+        // the constructor must remain public, since when creating classes and inheriting
+        // from the current one, a constructor with the protected modifier is automatically created
         super(driver, driver);
         pageOpeningStrategy = PageOpeningStrategy.valueOf(Configuration.get(Parameter.PAGE_OPENING_STRATEGY));
         pageURL = getUrl();
