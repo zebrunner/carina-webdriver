@@ -113,11 +113,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
 //                .setElement(proxy)
                 .setDriver(extendedElementLocator.getDriver())
                 .setSearchContext(extendedElementLocator.getSearchContext())
-                .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
-                        .setFieldName(extendedElementLocator.getFieldName())
-                        .setClassName(field.getType().getSimpleName())
-                        .setContextDescription(extendedElementLocator.getClassName())
-                        .build());
+                .setDescriptionName(extendedElementLocator.getFieldName());
         extendedElementLocator.getLocalizeName()
                 .ifPresent(builder::setLocalizationKey);
         LocatorUtils.getL10NLocatorConverter(extendedElementLocator.getBy())

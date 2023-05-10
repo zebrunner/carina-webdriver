@@ -90,12 +90,7 @@ public final class ExtendedWebElement extends AbstractUIObject {
      */
     @Override
     public ExtendedWebElement findExtendedWebElement(By by, long timeout) {
-        return findExtendedWebElement(by,
-                DescriptionBuilder.getInstance()
-                        .setClassName(ExtendedWebElement.class.getSimpleName())
-                        .setContextDescription(toString())
-                        .build(),
-                timeout);
+        return findExtendedWebElement(by, "ExtendedWebElement", timeout);
     }
 
     /**
@@ -161,11 +156,7 @@ public final class ExtendedWebElement extends AbstractUIObject {
         int i = 0;
         for (WebElement el : webElements) {
             ExtendedWebElement extEl = AbstractUIObject.Builder.getInstance()
-                    .setDescriptionName(DescriptionBuilder.getInstance()
-                            .setClassName(ExtendedWebElement.class.getSimpleName())
-                            .setContextDescription(toString())
-                            .setIndex(String.valueOf(i))
-                            .build())
+                    .setDescriptionName("ExtendedWebElement [" + i + "]")
                     .setDriver(getDriver())
                     .setSearchContext(this)
                     .setElement(el)

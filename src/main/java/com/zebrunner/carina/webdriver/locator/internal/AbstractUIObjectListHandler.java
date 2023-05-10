@@ -89,13 +89,7 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                 AbstractUIObject.Builder builder = AbstractUIObject.Builder.getInstance()
                         .setDriver(webDriver)
                         .setSearchContext(locator.getSearchContext())
-                        .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
-                                .setFieldName(locator.getFieldName())
-                                .setClassName(clazz.getSimpleName())
-                                // we cannot call toString for search context because at this moment there are no full seachContext object
-                                .setContextDescription(locator.getClassName())
-                                .setIndex(String.valueOf(index))
-                                .build())
+                        .setDescriptionName(locator.getFieldName() + " [" + index + "]")
                         .setElement(element);
 
                 LocatorUtils.getL10NLocatorConverter(locatorBy)

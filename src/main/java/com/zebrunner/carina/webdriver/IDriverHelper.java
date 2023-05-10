@@ -1072,11 +1072,7 @@ public interface IDriverHelper extends IDriverPool, ICommonUtils {
                     .setLoadingStrategy(element.getLoadingStrategy())
                     .setLocatorConverters(copyLocatorConverters)
                     // .setLocalizationKey(localizationKey)
-                    .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
-                            .setClassName(element.getClass().getSimpleName())
-                            .setContextDescription(element.getSearchContext().toString())
-                            .setDescription("Format objects: " + Arrays.toString(objects))
-                            .build())
+                    .setDescriptionName(element.getDescriptionName())
                     .build(element.getClass());
         }
         return element;
@@ -1157,12 +1153,7 @@ public interface IDriverHelper extends IDriverPool, ICommonUtils {
                     .setDriver(element.getDriver())
                     .setSearchContext(element.getSearchContext())
                     .setLoadingStrategy(element.getLoadingStrategy())
-                    .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
-                            .setClassName(element.getClass().getSimpleName())
-                            .setContextDescription(element.getSearchContext().toString())
-                            .setDescription("Objects: " + Arrays.toString(objects))
-                            .setIndex(String.valueOf(i))
-                            .build())
+                    .setDescriptionName(element.getName() + " [" + i + "]")
                     .build(element.getClass());
             // getLocalizationKey().ifPresent(key -> builder.setLocalizationKey(key + i));
             extendedWebElementList.add(extEl);
@@ -1220,10 +1211,7 @@ public interface IDriverHelper extends IDriverPool, ICommonUtils {
         }
         return AbstractUIObject.Builder.getInstance()
                 .setBy(by)
-                .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
-                        .setClassName(ExtendedWebElement.class.getSimpleName())
-                        .setContextDescription(getDriver().toString())
-                        .build())
+                .setDescriptionName(name)
                 .setDriver(getDriver())
                 .setSearchContext(getDriver())
                 .build(ExtendedWebElement.class);
@@ -1258,11 +1246,7 @@ public interface IDriverHelper extends IDriverPool, ICommonUtils {
         for (WebElement element : webElements) {
             ExtendedWebElement extEl = AbstractUIObject.Builder.getInstance()
                     .setElement(element)
-                    .setDescriptionName(AbstractUIObject.DescriptionBuilder.getInstance()
-                            .setClassName(ExtendedWebElement.class.getSimpleName())
-                            .setContextDescription(getDriver().toString())
-                            .setIndex(String.valueOf(i))
-                            .build())
+                    .setDescriptionName("ExtendedWebElement [" + i + "]")
                     .setDriver(getDriver())
                     .setSearchContext(getDriver())
                     .build(ExtendedWebElement.class);

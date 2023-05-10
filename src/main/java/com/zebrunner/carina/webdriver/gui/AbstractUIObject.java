@@ -140,122 +140,6 @@ public abstract class AbstractUIObject extends AbstractContext implements IWebEl
     }
 
     /**
-     * To create an element name in a consistent way.
-     */
-    @Beta
-    public static final class DescriptionBuilder {
-
-        private String index = "";
-        private String fieldName = "";
-        private String className = "";
-        private String classContextName = "";
-        private String description = "";
-
-        public static DescriptionBuilder getInstance() {
-            return new DescriptionBuilder();
-        }
-
-        @Internal
-        public String getFieldName() {
-            return fieldName;
-        }
-
-        /**
-         * Specify element field name.
-         * 
-         * @param fieldName name of the {@link java.lang.reflect.Field}
-         * @return {@link DescriptionBuilder}
-         */
-        @Internal
-        public DescriptionBuilder setFieldName(@Nonnull String fieldName) {
-            Objects.requireNonNull(fieldName);
-            this.fieldName = fieldName;
-            return this;
-        }
-
-        public String getIndex() {
-            return index;
-        }
-
-        /**
-         * Set the index of the element (if the element is part of a list).
-         * Count starts from 0.
-         * 
-         * @param index for example, {@code 100}
-         * @return {@link DescriptionBuilder}
-         */
-        public DescriptionBuilder setIndex(@Nonnull String index) {
-            Objects.requireNonNull(index);
-            this.index = index;
-            return this;
-        }
-
-        public String getClassName() {
-            return className;
-        }
-
-        /**
-         * Set the class name of the element being created.<br>
-         * <b>required parameter</b>
-         * 
-         * @param className for example, {@code ExtendedWebElement}
-         * @return {@link DescriptionBuilder}
-         */
-        public DescriptionBuilder setClassName(@Nonnull String className) {
-            Objects.requireNonNull(className);
-            this.className = className;
-            return this;
-        }
-
-        public String getClassContextName() {
-            return className;
-        }
-
-        /**
-         * Set the class name of the context from which element being created.<br>
-         *
-         * @param classContextName for example, {@code WebDriver}
-         * @return {@link DescriptionBuilder}
-         */
-        public DescriptionBuilder setContextDescription(@Nonnull String classContextName) {
-            Objects.requireNonNull(classContextName);
-            this.classContextName = classContextName;
-            return this;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        /**
-         * Specify an additional element description
-         * 
-         * @param description for example, {@code created by format method}
-         * @return {@link DescriptionBuilder}
-         */
-        public DescriptionBuilder setDescription(@Nonnull String description) {
-            Objects.requireNonNull(description);
-            this.description = description;
-            return this;
-        }
-
-        public String build() {
-            validate();
-            return String.format("%s%s%s%s",
-                    fieldName,
-                    !index.isBlank() ? " [" + index + "]" : "",
-                    " [" + className + (!classContextName.isBlank() ? (" <- " + classContextName) : "") + "]",
-                    !description.isBlank() ? " {" + description + "}" : "");
-        }
-
-        private void validate() {
-            if (className.isBlank()) {
-                throw new IllegalArgumentException("ClassName must not be empty or blank.");
-            }
-        }
-    }
-
-    /**
      * Builder for creating elements/components inheriting from {@link AbstractUIObject} class
      */
     public static final class Builder {
@@ -1583,12 +1467,7 @@ public abstract class AbstractUIObject extends AbstractContext implements IWebEl
      * @throws NoSuchElementException if element was not found
      */
     public <T extends AbstractUIObject> T findNestedElement(Class<T> clazz, By by, long timeout) {
-        return findNestedElement(clazz, by,
-                DescriptionBuilder.getInstance()
-                        .setClassName(clazz.getSimpleName())
-                        .setContextDescription(toString())
-                        .build(),
-                timeout);
+        return findNestedElement(clazz, by, clazz.getSimpleName(), timeout);
     }
 
     /**
@@ -1655,11 +1534,7 @@ public abstract class AbstractUIObject extends AbstractContext implements IWebEl
         int i = 0;
         for (WebElement el : webElements) {
             T extEl = AbstractUIObject.Builder.getInstance()
-                    .setDescriptionName(DescriptionBuilder.getInstance()
-                            .setClassName(clazz.getSimpleName())
-                            .setContextDescription(toString())
-                            .setIndex(String.valueOf(i))
-                            .build())
+                    .setDescriptionName(clazz.getSimpleName() + " [" + i + "]")
                     .setDriver(getDriver())
                     .setSearchContext(findElement())
                     .setElement(el)
