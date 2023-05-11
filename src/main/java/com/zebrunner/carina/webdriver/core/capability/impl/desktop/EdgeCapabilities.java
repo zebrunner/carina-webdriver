@@ -19,9 +19,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.openqa.selenium.chromium.ChromiumOptions;
-import org.openqa.selenium.remote.Browser;
-import org.openqa.selenium.remote.CapabilityType;
+import org.openqa.selenium.edge.EdgeOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,13 +29,13 @@ import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
-public class EdgeCapabilities extends AbstractCapabilities<ChromiumOptions<?>> {
+public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @Override
-    public ChromiumOptions<?> getCapability(String testName) {
-        ChromiumOptions<?> options = new ChromiumOptions<>(CapabilityType.BROWSER_NAME, Browser.EDGE.browserName(), "ms:edgeOptions");
+    public EdgeOptions getCapability(String testName) {
+        EdgeOptions options = new EdgeOptions();
         addProxy(options);
         addConfigurationCapabilities(options);
         addEdgeOptions(options);
@@ -46,7 +44,7 @@ public class EdgeCapabilities extends AbstractCapabilities<ChromiumOptions<?>> {
         return options;
     }
 
-    private void addEdgeOptions(ChromiumOptions<?> caps) {
+    private void addEdgeOptions(EdgeOptions caps) {
         Map<String, Object> prefs = new HashMap<>();
         boolean needsPrefs = false;
         // disable the "unsupported flag" prompt
