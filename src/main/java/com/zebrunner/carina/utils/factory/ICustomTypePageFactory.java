@@ -64,7 +64,7 @@ public interface ICustomTypePageFactory extends IDriverPool {
                         return c3;
                     }).orElseThrow())
                     .addScanners(new SubTypesScanner(false)))
-            : new Reflections("");
+            : new Reflections();
 
     default <T extends AbstractPage> T initPage(Class<T> parentClass, Object... parameters) {
         return initPage(getDriver(), parentClass, parameters);
