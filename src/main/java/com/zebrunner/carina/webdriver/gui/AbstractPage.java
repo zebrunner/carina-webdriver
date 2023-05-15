@@ -54,6 +54,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
 
     protected AbstractPage(WebDriver driver) {
         super(driver);
+        uiLoadedMarker = null;
     }
 
     public PageOpeningStrategy getPageOpeningStrategy() {
