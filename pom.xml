@@ -145,12 +145,6 @@
             <groupId>com.zebrunner</groupId>
             <artifactId>agent-testng-pluggable</artifactId>
             <version>${zebrunner-testng-pluggable.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.testng</groupId>
-                    <artifactId>testng</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
