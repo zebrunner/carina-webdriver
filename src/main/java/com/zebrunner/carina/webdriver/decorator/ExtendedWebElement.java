@@ -1165,6 +1165,7 @@ public class ExtendedWebElement implements IWebElement {
     public ExtendedWebElement format(Object... objects) {
         ExtendedWebElement formattedElement;
         // todo add support FindBys, FindAll and same annotations
+        String[] elementName = this.name.split("[.]");
         if (this.element instanceof Proxy) {
             /*
              * if element created using annotation (FindBy, ExtendedFindBy and so on), it will be proxy, so we get it and re-generate locator
@@ -1207,7 +1208,7 @@ public class ExtendedWebElement implements IWebElement {
                 WebElement proxy = (WebElement) Proxy.newProxyInstance(getClass().getClassLoader(),
                         new Class[] { WebElement.class, WrapsElement.class, Locatable.class },
                         innerProxy);
-                formattedElement = new ExtendedWebElement(proxy, this.name);
+                formattedElement = new ExtendedWebElement(proxy, elementName[elementName.length - 1]);
             } catch (Exception e) {
                 throw new RuntimeException("Something went wrong when try to format locator.", e);
             }
@@ -1225,10 +1226,9 @@ public class ExtendedWebElement implements IWebElement {
                         .buildLocatorFromString(locator, objects);
                 LOGGER.debug("Formatted locator is : {}", by);
             }
-            formattedElement = new ExtendedWebElement(by, name, this.driver, this.searchContext, objects);
+            formattedElement = new ExtendedWebElement(by, elementName[elementName.length - 1], this.driver, this.searchContext, objects);
         }
 
-        formattedElement.setName(this.name);
         return formattedElement;
     }
 
@@ -1258,6 +1258,7 @@ public class ExtendedWebElement implements IWebElement {
      */
     public List<ExtendedWebElement> formatToList(Object... objects) {
         List<ExtendedWebElement> extendedWebElementList = new ArrayList<>();
+        String[] elementName = this.name.split("[.]");
         try {
             if (this.element instanceof Proxy) {
                 /*
@@ -1303,7 +1304,7 @@ public class ExtendedWebElement implements IWebElement {
                 }
                 ClassLoader classLoader = getClass().getClassLoader();
 
-                InvocationHandler handler = new LocatingListHandler(classLoader, innerLocator, this.name);
+                InvocationHandler handler = new LocatingListHandler(classLoader, innerLocator, elementName[elementName.length - 1]);
                 extendedWebElementList = (List<ExtendedWebElement>) Proxy.newProxyInstance(classLoader, new Class[] { List.class }, handler);
             } else {
                 By by = this.by;
@@ -1320,7 +1321,7 @@ public class ExtendedWebElement implements IWebElement {
                 }
                 int i = 0;
                 for (WebElement el : this.searchContext.findElements(by)) {
-                    ExtendedWebElement extendedWebElement = new ExtendedWebElement(by, String.format("%s - [%s]", name, i++), driver, searchContext,
+                    ExtendedWebElement extendedWebElement = new ExtendedWebElement(by, String.format("%s - [%s]", elementName[elementName.length - 1], i++), driver, searchContext,
                             objects);
                     extendedWebElement.setElement(el);
                     extendedWebElement.setIsSingle(false);
