@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.List;
 
+import com.zebrunner.carina.webdriver.gui.AbstractPage;
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -61,6 +62,10 @@ public class ExtendedFieldDecorator implements FieldDecorator {
         if (!(ExtendedWebElement.class.isAssignableFrom(field.getType()) ||
                 AbstractUIObject.class.isAssignableFrom(field.getType()) ||
                 isDecoratableList(field))) {
+            return null;
+        }
+        //TODO: (hotfix) remove when AbstractPage will be separated from AbstractUIObject
+        if (AbstractPage.class.isAssignableFrom(field.getType())) {
             return null;
         }
 
@@ -162,7 +167,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
     protected <T extends AbstractUIObject> List<T> proxyForListUIObjects(ClassLoader loader, Field field,
             ElementLocator locator) {
         InvocationHandler handler = new AbstractUIObjectListHandler<T>(loader, (Class<?>) getListType(field), webDriver,
-                locator, field.getName());
+                locator, field.getName(), field);
         return (List<T>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
     }
 

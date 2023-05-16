@@ -29,7 +29,7 @@ import java.util.Set;
 
 import org.openqa.selenium.WebDriver;
 import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.Scanners;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
@@ -63,8 +63,10 @@ public interface ICustomTypePageFactory extends IDriverPool {
                         c3.addAll(c2);
                         return c3;
                     }).orElseThrow())
-                    .addScanners(new SubTypesScanner(false)))
-            : new Reflections("");
+                    .addScanners(Scanners.SubTypes))
+            : new Reflections(new ConfigurationBuilder()
+                    .setScanners(Scanners.SubTypes)
+                    .setUrls(ClasspathHelper.forJavaClassPath()));
 
     default <T extends AbstractPage> T initPage(Class<T> parentClass, Object... parameters) {
         return initPage(getDriver(), parentClass, parameters);
@@ -153,7 +155,11 @@ public interface ICustomTypePageFactory extends IDriverPool {
         } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException e) {
             PAGEFACTORY_LOGGER.debug(
                     "Discovered one of the InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | SecurityException");
-            throw new RuntimeException("Unable to instantiate page!", e);
+            if (e.getCause() == null) {
+                throw new RuntimeException("Unable to instantiate page!\n" + e.getMessage(), e);
+            } else {
+                throw new RuntimeException("Unable to instantiate page! " + e.getCause().getMessage(), e.getCause());
+            }
         }
     }
 
