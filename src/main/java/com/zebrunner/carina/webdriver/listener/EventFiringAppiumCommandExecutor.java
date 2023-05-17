@@ -288,6 +288,8 @@ public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
 
                         return new WebDriverException("The appium server has accidentally died!", rootCause);
                     }).orElseGet((Supplier<WebDriverException>) () -> new WebDriverException(rootCause.getMessage(), rootCause));
+                } else {
+                    throw new WebDriverException(t);
                 }
                 // [VD] never enable throwIfUnchecked as it generates RuntimeException and corrupt TestNG main thread!
                 // throwIfUnchecked(t);
