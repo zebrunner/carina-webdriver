@@ -16,11 +16,11 @@
 package com.zebrunner.carina.webdriver.listener;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.util.Optional.ofNullable;
 import static org.openqa.selenium.remote.DriverCommand.NEW_SESSION;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
@@ -39,7 +39,6 @@ import org.openqa.selenium.remote.CommandCodec;
 import org.openqa.selenium.remote.CommandExecutor;
 import org.openqa.selenium.remote.CommandInfo;
 import org.openqa.selenium.remote.Dialect;
-import org.openqa.selenium.remote.DriverCommand;
 import org.openqa.selenium.remote.HttpCommandExecutor;
 import org.openqa.selenium.remote.ProtocolHandshake;
 import org.openqa.selenium.remote.Response;
@@ -49,10 +48,14 @@ import org.openqa.selenium.remote.http.HttpClient;
 import org.openqa.selenium.remote.http.HttpRequest;
 import org.openqa.selenium.remote.http.HttpResponse;
 import org.openqa.selenium.remote.service.DriverService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.net.HttpHeaders;
+import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.common.CommonUtils;
 
 import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.AppiumUserAgentFilter;
@@ -69,6 +72,7 @@ import io.appium.java_client.remote.DirectConnect;
  */
 @SuppressWarnings({ "unchecked" })
 public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     // https://github.com/appium/appium-base-driver/pull/400
     private static final String IDEMPOTENCY_KEY_HEADER = "X-Idempotency-Key";
 
@@ -258,38 +262,39 @@ public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
         overrideServerUrl(newUrl);
     }
 
+    // Only custom logic in current class
     @Override
     public Response execute(Command command) throws WebDriverException {
-        if (DriverCommand.NEW_SESSION.equals(command.getName())) {
-            serviceOptional.ifPresent(driverService -> {
-                try {
-                    driverService.start();
-                } catch (IOException e) {
-                    throw new WebDriverException(e.getMessage(), e);
+        Response response = null;
+        int retry = 2; // extra retries to execute command
+        Number pause = Configuration.getInt(Configuration.Parameter.EXPLICIT_TIMEOUT) / retry;
+        while (retry >= 0) {
+            try {
+                response = NEW_SESSION.equals(command.getName()) ? createSession(command) : super.execute(command);
+            } catch (Throwable t) {
+                Throwable rootCause = Throwables.getRootCause(t);
+                if (rootCause instanceof ConnectException &&
+                        rootCause.getMessage().contains("connection timed out")) {
+                    LOGGER.warn("Enabled command executor retries: {}", rootCause.getMessage());
+                    CommonUtils.pause(pause);
+                } else if (rootCause instanceof ConnectException
+                        && rootCause.getMessage().contains("Connection refused")) {
+                    throw serviceOptional.map(service -> {
+                        if (service.isRunning()) {
+                            return new WebDriverException("The session is closed!", rootCause);
+                        }
+
+                        return new WebDriverException("The appium server has accidentally died!", rootCause);
+                    }).orElseGet((Supplier<WebDriverException>) () -> new WebDriverException(rootCause.getMessage(), rootCause));
                 }
-            });
-        }
-
-        try {
-            return NEW_SESSION.equals(command.getName()) ? createSession(command) : super.execute(command);
-        } catch (Throwable t) {
-            Throwable rootCause = Throwables.getRootCause(t);
-            if (rootCause instanceof ConnectException
-                    && rootCause.getMessage().contains("Connection refused")) {
-                throw serviceOptional.map(service -> {
-                    if (service.isRunning()) {
-                        return new WebDriverException("The session is closed!", rootCause);
-                    }
-
-                    return new WebDriverException("The appium server has accidentally died!", rootCause);
-                }).orElseGet((Supplier<WebDriverException>) () -> new WebDriverException(rootCause.getMessage(), rootCause));
-            }
-            throwIfUnchecked(t);
-            throw new WebDriverException(t);
-        } finally {
-            if (DriverCommand.QUIT.equals(command.getName())) {
-                serviceOptional.ifPresent(DriverService::stop);
+                // [VD] never enable throwIfUnchecked as it generates RuntimeException and corrupt TestNG main thread!
+                // throwIfUnchecked(t);
+                retry--;
+                if (retry < 0) {
+                    throw new WebDriverException(t);
+                }
             }
         }
+        return response;
     }
 }
