@@ -272,6 +272,7 @@ public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
         while (retry >= 0) {
             try {
                 response = NEW_SESSION.equals(command.getName()) ? createSession(command) : super.execute(command);
+                break;
             } catch (Throwable t) {
                 Throwable rootCause = Throwables.getRootCause(t);
                 if (rootCause instanceof ConnectException &&
