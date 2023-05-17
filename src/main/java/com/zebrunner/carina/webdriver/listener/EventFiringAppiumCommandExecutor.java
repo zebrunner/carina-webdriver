@@ -73,14 +73,15 @@ import io.appium.java_client.remote.DirectConnect;
 @SuppressWarnings({ "unchecked" })
 public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+    private static final String CONNECTION_TIMED_OUT_EXCEPTION = "connection timed out";
+
     // https://github.com/appium/appium-base-driver/pull/400
     private static final String IDEMPOTENCY_KEY_HEADER = "X-Idempotency-Key";
-
     private final Optional<DriverService> serviceOptional;
-
     private final HttpClient.Factory httpClientFactory;
-
     private final AppiumClientConfig appiumClientConfig;
+
 
     /**
      * Create an AppiumCommandExecutor instance.
@@ -274,7 +275,7 @@ public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
             } catch (Throwable t) {
                 Throwable rootCause = Throwables.getRootCause(t);
                 if (rootCause instanceof ConnectException &&
-                        rootCause.getMessage().contains("connection timed out")) {
+                        rootCause.getMessage().contains(CONNECTION_TIMED_OUT_EXCEPTION)) {
                     LOGGER.warn("Enabled command executor retries: {}", rootCause.getMessage());
                     CommonUtils.pause(pause);
                 } else if (rootCause instanceof ConnectException
