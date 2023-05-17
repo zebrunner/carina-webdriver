@@ -19,6 +19,8 @@ import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
+import java.util.HashMap;
 
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
@@ -26,10 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.webdriver.core.capability.impl.windows.WindowsCapabilities;
 import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
 import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 
+import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.windows.WindowsDriver;
 
 /**
@@ -54,7 +58,9 @@ public class WindowsFactory extends AbstractFactory {
         LOGGER.debug("Capabilities: {}", capabilities);
 
         try {
-            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
+            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new HashMap<>(0),
+                    AppiumClientConfig.defaultConfig().baseUrl(new URL(seleniumHost))
+                            .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout"))));
             return new WindowsDriver(ce, capabilities);
         } catch (MalformedURLException e) {
             throw new UncheckedIOException("Malformed appium URL!", e);

@@ -19,6 +19,8 @@ import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -48,6 +50,7 @@ import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
 import com.zebrunner.carina.webdriver.device.Device;
 import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 
+import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.ios.IOSDriver;
@@ -112,7 +115,9 @@ public class MobileFactory extends AbstractFactory {
 
         try {
             String mobilePlatformName = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
-            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
+            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new HashMap<>(0),
+                    AppiumClientConfig.defaultConfig().baseUrl(new URL(seleniumHost))
+                            .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout"))));
 
             if (SpecialKeywords.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
                 driver = new AndroidDriver(ce, capabilities);
