@@ -42,6 +42,8 @@ public class EventFiringSeleniumCommandExecutor extends HttpCommandExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    private static final String CONNECTION_TIMED_OUT_EXCEPTION = "connection timed out";
+
     public EventFiringSeleniumCommandExecutor(URL addressOfRemoteServer) {
         super(ClientConfig.defaultConfig()
                 .baseUrl(addressOfRemoteServer)
@@ -66,7 +68,8 @@ public class EventFiringSeleniumCommandExecutor extends HttpCommandExecutor {
                 String msg = response.getValue().toString();
                 if (msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED) ||
                         msg.contains(SpecialKeywords.DRIVER_CONNECTION_REFUSED2) ||
-                        msg.contains(SpecialKeywords.DRIVER_TARGET_FRAME_DETACHED)) {
+                        msg.contains(SpecialKeywords.DRIVER_TARGET_FRAME_DETACHED) ||
+                        msg.contains(CONNECTION_TIMED_OUT_EXCEPTION)) {
                     LOGGER.warn("Enabled command executor retries: {}", msg);
                     CommonUtils.pause(pause);
                 } else {
