@@ -44,7 +44,7 @@ public final class ArtifactProvider implements IArtifactManager {
                     return c3;
                 }).orElseThrow();
 
-        ConfigurationBuilder config = new ConfigurationBuilder().addUrls(allPackagePrefixes)
+        ConfigurationBuilder config = new ConfigurationBuilder()
                 .addUrls(allPackagePrefixes)
                 .setScanners(Scanners.TypesAnnotated);
 
