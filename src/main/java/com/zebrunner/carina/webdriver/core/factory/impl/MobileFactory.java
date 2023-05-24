@@ -41,7 +41,6 @@ import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
 import com.zebrunner.carina.utils.mobile.ArtifactProvider;
 import com.zebrunner.carina.webdriver.IDriverPool;
-import com.zebrunner.carina.webdriver.TVOSDriver;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.EspressoCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.UiAutomator2Capabilities;
@@ -121,10 +120,13 @@ public class MobileFactory extends AbstractFactory {
 
             if (SpecialKeywords.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
                 driver = new AndroidDriver(ce, capabilities);
-            } else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) &&
-                    SpecialKeywords.TVOS.equalsIgnoreCase(CapabilityHelpers.getCapability(capabilities, "deviceType", String.class))) {
-                driver = new TVOSDriver(ce, capabilities);
-            } else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName)) {
+                // todo do not create TVOSDriver for now
+                // }
+                // else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) &&
+                // SpecialKeywords.TVOS.equalsIgnoreCase(CapabilityHelpers.getCapability(capabilities, "deviceType", String.class))) {
+                // driver = new TVOSDriver(ce, capabilities);
+            } else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) ||
+                    SpecialKeywords.TVOS.equalsIgnoreCase(mobilePlatformName)) {
                 // can't create a SafariDriver as it has no advantages over IOSDriver, but needs revision in the future
                 // SafariDriver only limits functionality
                 driver = new IOSDriver(ce, capabilities);
