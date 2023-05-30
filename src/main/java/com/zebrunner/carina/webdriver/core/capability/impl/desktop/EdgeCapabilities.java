@@ -60,7 +60,7 @@ public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
 
         if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD)) {
             prefs.put("download.prompt_for_download", false);
-            if (!"zebrunner".equalsIgnoreCase(R.CONFIG.get(SpecialKeywords.PROVIDER))) {
+            if (!"zebrunner".equalsIgnoreCase(getProvider())) {
                 prefs.put("download.default_directory",
                         ReportContext.getArtifactsFolder().getAbsolutePath());
             }
@@ -78,8 +78,8 @@ public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
             caps.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
             // todo refactor with w3c rules or remove
             LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
-            caps.setCapability("enableVNC", false);
-            caps.setCapability("enableVideo", false);
+            caps.setCapability("zebrunner:enableVNC", false);
+            caps.setCapability("zebrunner:enableVideo", false);
         }
     }
 }
