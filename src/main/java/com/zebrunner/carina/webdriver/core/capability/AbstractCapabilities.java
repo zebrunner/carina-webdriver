@@ -25,6 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.MutableCapabilities;
@@ -38,6 +39,7 @@ import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
+import com.zebrunner.carina.webdriver.proxy.ZebrunnerProxyBuilder;
 
 import io.appium.java_client.remote.MobileCapabilityType;
 
@@ -53,6 +55,9 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     private static final List<String> W3C_BOOLEAN_CAPABILITIES = List.of(CapabilityType.ACCEPT_INSECURE_CERTS, CapabilityType.SET_WINDOW_RECT,
             CapabilityType.STRICT_FILE_INTERACTABILITY);
 
+    private static final String ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY = "zebrunner:Mitm";
+    private static final String ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY = "zebrunner:MitmArgs";
+
     /**
      * Get capabilities from the configuration ({@link R#CONFIG}).
      * Additional capabilities can also be added (depends on implementation).
@@ -67,8 +72,22 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
      * @param capabilities see {@link T}
      */
     protected void addProxy(T capabilities) {
-        ProxyUtils.getSeleniumProxy()
-                .ifPresent(proxy -> capabilities.setCapability(CapabilityType.PROXY, proxy));
+        String proxyTypeAsString = getConfigurationValue("proxy_type");
+        if (proxyTypeAsString.equalsIgnoreCase("Zebrunner")) {
+            capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, "true");
+            String args = getConfigurationValue(ZebrunnerProxyBuilder.PROXY_ARGUMENTS_PARAMETER);
+            if (!args.isBlank()) {
+                capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args);
+            }
+        } else {
+            if ("DYNAMIC".equalsIgnoreCase(proxyTypeAsString) || ("LEGACY".equalsIgnoreCase(proxyTypeAsString) &&
+                    Configuration.getBoolean(Configuration.Parameter.BROWSERUP_PROXY))) {
+                LOGGER.warn(
+                        "BrowserUp is deprecated and will be removed in the next release. This will also remove the LEGACY and DYNAMIC proxy modes.");
+            }
+            ProxyUtils.getSeleniumProxy()
+                    .ifPresent(proxy -> capabilities.setCapability(CapabilityType.PROXY, proxy));
+        }
     }
 
     protected final String getProvider() {
@@ -264,5 +283,11 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
             LOGGER.error("Undefined locale provided (ignoring for mobile capabilitites): {}", localeValue);
         }
         return caps;
+    }
+
+    // todo remove when params will be added to the Configuration class
+    private static String getConfigurationValue(String param) {
+        String value = R.CONFIG.get(param);
+        return !(value == null || value.equalsIgnoreCase(SpecialKeywords.NULL)) ? value : StringUtils.EMPTY;
     }
 }
