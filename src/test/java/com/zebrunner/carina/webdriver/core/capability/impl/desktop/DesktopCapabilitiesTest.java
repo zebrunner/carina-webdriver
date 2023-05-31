@@ -149,8 +149,8 @@ public class DesktopCapabilitiesTest {
         ChromeCapabilities chromeCapabilities = new ChromeCapabilities();
         ChromeOptions capabilities = chromeCapabilities.getCapability("chrome - getChromeCapabilityHeadlessTest");
 
-        Assert.assertFalse((Boolean) capabilities.getCapability("enableVNC"), "Returned capability value is not valid!");
-        Assert.assertFalse((Boolean) capabilities.getCapability("enableVideo"), "Returned capability value is not valid!");
+        Assert.assertFalse((Boolean) capabilities.getCapability("zebrunner:enableVNC"), "Returned capability value is not valid!");
+        Assert.assertFalse((Boolean) capabilities.getCapability("zebrunner:enableVideo"), "Returned capability value is not valid!");
     }
 
     @Test(groups = {"DesktopCapabilitiesTestClass"})

@@ -71,6 +71,14 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
                 .ifPresent(proxy -> capabilities.setCapability(CapabilityType.PROXY, proxy));
     }
 
+    protected final String getProvider() {
+        String provider = R.CONFIG.get(SpecialKeywords.PROVIDER);
+        if (provider.isEmpty()) {
+            provider = R.CONFIG.get("capabilities.zebrunner:provider");
+        }
+        return provider;
+    }
+
     /**
      * Add capabilities from configuration {@link R#CONFIG}.
      *

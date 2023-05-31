@@ -72,7 +72,7 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
 
         if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD)) {
             chromePrefs.put("download.prompt_for_download", false);
-            if (!"zebrunner".equalsIgnoreCase(R.CONFIG.get(SpecialKeywords.PROVIDER))) {
+            if (!"zebrunner".equalsIgnoreCase(getProvider())) {
                 // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
                 chromePrefs.put("download.default_directory", ReportContext.getArtifactsFolder().getAbsolutePath());
             }
@@ -149,8 +149,8 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
             options.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
             // todo refactor with w3c rules or remove
             LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
-            options.setCapability("enableVNC", false);
-            options.setCapability("enableVideo", false);
+            options.setCapability("zebrunner:enableVNC", false);
+            options.setCapability("zebrunner:enableVideo", false);
         }
     }
 }
