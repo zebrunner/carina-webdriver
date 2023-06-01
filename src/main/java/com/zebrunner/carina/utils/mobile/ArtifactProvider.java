@@ -15,7 +15,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.reflect.ConstructorUtils;
 import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.Scanners;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
@@ -44,8 +44,9 @@ public final class ArtifactProvider implements IArtifactManager {
                     return c3;
                 }).orElseThrow();
 
-        ConfigurationBuilder config = new ConfigurationBuilder().addUrls(allPackagePrefixes)
-                .addScanners(new SubTypesScanner(false));
+        ConfigurationBuilder config = new ConfigurationBuilder()
+                .addUrls(allPackagePrefixes)
+                .setScanners(Scanners.TypesAnnotated);
 
         Set<Class<?>> classes = new Reflections(config).getTypesAnnotatedWith(ArtifactManagerFactory.class);
 

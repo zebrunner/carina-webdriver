@@ -8,6 +8,8 @@ import java.util.Map;
 
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.ImmutableCapabilities;
+import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DriverCommand;
 import org.openqa.selenium.remote.HttpCommandExecutor;
 import org.openqa.selenium.remote.Response;
@@ -72,6 +74,7 @@ public class TVOSDriver extends AppiumDriver implements
 
     private StringWebSocketClient syslogClient;
 
+
     /**
      * Creates a new instance based on command {@code executor} and {@code capabilities}.
      *
@@ -82,6 +85,11 @@ public class TVOSDriver extends AppiumDriver implements
      */
     public TVOSDriver(HttpCommandExecutor executor, Capabilities capabilities) {
         super(executor, ensurePlatformName(capabilities, PLATFORM_NAME));
+    }
+
+    protected static Capabilities ensurePlatformName(
+            Capabilities originalCapabilities, String defaultName) {
+        return originalCapabilities.merge(new ImmutableCapabilities(CapabilityType.PLATFORM_NAME, defaultName));
     }
 
     @Override

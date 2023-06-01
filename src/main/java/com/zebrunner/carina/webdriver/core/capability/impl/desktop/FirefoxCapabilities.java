@@ -102,8 +102,8 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
             options.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
             // todo refactor with w3c rules or remove
             LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
-            options.setCapability("enableVNC", false);
-            options.setCapability("enableVideo", false);
+            options.setCapability("zebrunner:enableVNC", false);
+            options.setCapability("zebrunner:enableVideo", false);
         }
 
     }
@@ -148,7 +148,7 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
         if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD) && !(Configuration.isNull(Configuration.Parameter.AUTO_DOWNLOAD_APPS)
                 || "".equals(Configuration.get(Configuration.Parameter.AUTO_DOWNLOAD_APPS)))) {
             profile.setPreference("browser.download.folderList", 2);
-            if (!"zebrunner".equalsIgnoreCase(R.CONFIG.get(SpecialKeywords.PROVIDER))) {
+            if (!"zebrunner".equalsIgnoreCase(getProvider())) {
                 // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
                 profile.setPreference("browser.download.dir", ReportContext.getArtifactsFolder().getAbsolutePath());
             }

@@ -19,6 +19,8 @@ import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -39,7 +41,6 @@ import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
 import com.zebrunner.carina.utils.mobile.ArtifactProvider;
 import com.zebrunner.carina.webdriver.IDriverPool;
-import com.zebrunner.carina.webdriver.TVOSDriver;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.EspressoCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.UiAutomator2Capabilities;
@@ -48,6 +49,7 @@ import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
 import com.zebrunner.carina.webdriver.device.Device;
 import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 
+import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.ios.IOSDriver;
@@ -112,14 +114,19 @@ public class MobileFactory extends AbstractFactory {
 
         try {
             String mobilePlatformName = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
-            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new URL(seleniumHost));
+            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new HashMap<>(0),
+                    AppiumClientConfig.defaultConfig().baseUrl(new URL(seleniumHost))
+                            .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout"))));
 
             if (SpecialKeywords.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
                 driver = new AndroidDriver(ce, capabilities);
-            } else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) &&
-                    SpecialKeywords.TVOS.equalsIgnoreCase(CapabilityHelpers.getCapability(capabilities, "deviceType", String.class))) {
-                driver = new TVOSDriver(ce, capabilities);
-            } else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName)) {
+                // todo do not create TVOSDriver for now
+                // }
+                // else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) &&
+                // SpecialKeywords.TVOS.equalsIgnoreCase(CapabilityHelpers.getCapability(capabilities, "deviceType", String.class))) {
+                // driver = new TVOSDriver(ce, capabilities);
+            } else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) ||
+                    SpecialKeywords.TVOS.equalsIgnoreCase(mobilePlatformName)) {
                 // can't create a SafariDriver as it has no advantages over IOSDriver, but needs revision in the future
                 // SafariDriver only limits functionality
                 driver = new IOSDriver(ce, capabilities);
