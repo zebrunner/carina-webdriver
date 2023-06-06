@@ -1355,7 +1355,7 @@ public class DriverHelper {
     public ChromeDevToolsService getChromeDevTools() {
         try {
             WebSocketService webSocketService = WebSocketServiceImpl
-                    .create(new URI(getSelenoidDevToolsUrl(getDriver())));
+                    .create(new URI(getSelenoidDevToolsUrl()));
             CommandInvocationHandler commandInvocationHandler = new CommandInvocationHandler();
             Map<Method, Object> commandsCache = new ConcurrentHashMap<>();
             ChromeDevToolsService devtools = ProxyUtils.createProxyFromAbstract(
