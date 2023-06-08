@@ -20,7 +20,6 @@ import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -47,7 +46,6 @@ import com.zebrunner.carina.webdriver.core.capability.impl.mobile.UiAutomator2Ca
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.XCUITestCapabilities;
 import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
 import com.zebrunner.carina.webdriver.device.Device;
-import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 
 import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.android.AndroidDriver;
@@ -114,12 +112,12 @@ public class MobileFactory extends AbstractFactory {
 
         try {
             String mobilePlatformName = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
-            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new HashMap<>(0),
-                    AppiumClientConfig.defaultConfig().baseUrl(new URL(seleniumHost))
-                            .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout"))));
+            AppiumClientConfig clientConfig = AppiumClientConfig.defaultConfig()
+                    .baseUrl(new URL(seleniumHost))
+                    .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout")));
 
             if (SpecialKeywords.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
-                driver = new AndroidDriver(ce, capabilities);
+                driver = new AndroidDriver(clientConfig, capabilities);
                 // todo do not create TVOSDriver for now
                 // }
                 // else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) &&
@@ -129,7 +127,7 @@ public class MobileFactory extends AbstractFactory {
                     SpecialKeywords.TVOS.equalsIgnoreCase(mobilePlatformName)) {
                 // can't create a SafariDriver as it has no advantages over IOSDriver, but needs revision in the future
                 // SafariDriver only limits functionality
-                driver = new IOSDriver(ce, capabilities);
+                driver = new IOSDriver(clientConfig, capabilities);
             } else {
                 throw new InvalidConfigurationException("Unsupported mobile platform: " + mobilePlatformName);
             }

@@ -70,6 +70,7 @@ import io.appium.java_client.remote.DirectConnect;
  *
  * @author akhursevich
  */
+@Deprecated(forRemoval = true, since = "1.0.5")
 @SuppressWarnings({ "unchecked" })
 public class EventFiringAppiumCommandExecutor extends HttpCommandExecutor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
