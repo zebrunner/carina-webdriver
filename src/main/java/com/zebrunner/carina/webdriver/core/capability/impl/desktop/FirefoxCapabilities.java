@@ -45,7 +45,7 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
         addProxy(options);
         addConfigurationCapabilities(options);
         addFirefoxOptions(options);
-        FirefoxProfile profile = new FirefoxProfile();
+        FirefoxProfile profile = options.getProfile();
         profile.setPreference("media.eme.enabled", true);
         profile.setPreference("media.gmp-manager.updateEnabled", true);
         options.setProfile(profile);
