@@ -20,7 +20,6 @@ import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
-import java.util.HashMap;
 
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
@@ -31,7 +30,6 @@ import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.webdriver.core.capability.impl.mac.Mac2Capabilities;
 import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
-import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 
 import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.mac.Mac2Driver;
@@ -59,10 +57,10 @@ public class MacFactory extends AbstractFactory {
         LOGGER.debug("Capabilities: {}", capabilities);
 
         try {
-            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new HashMap<>(0),
-                    AppiumClientConfig.defaultConfig().baseUrl(new URL(seleniumHost))
-                            .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout"))));
-            return new Mac2Driver(ce, capabilities);
+            AppiumClientConfig config = AppiumClientConfig.defaultConfig()
+                    .baseUrl(new URL(seleniumHost))
+                    .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout")));
+            return new Mac2Driver(config, capabilities);
         } catch (MalformedURLException e) {
             throw new UncheckedIOException("Malformed appium URL!", e);
         }
