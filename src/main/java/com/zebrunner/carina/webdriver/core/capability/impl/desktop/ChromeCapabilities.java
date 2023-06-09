@@ -72,7 +72,10 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
 
         if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD)) {
             chromePrefs.put("download.prompt_for_download", false);
-            chromePrefs.put("download.default_directory", ReportContext.getArtifactsFolder().getAbsolutePath());
+            if (!"zebrunner".equalsIgnoreCase(getProvider())) {
+                // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
+                chromePrefs.put("download.default_directory", ReportContext.getArtifactsFolder().getAbsolutePath());
+            }
             chromePrefs.put("plugins.always_open_pdf_externally", true);
             needsPrefs = true;
         }
