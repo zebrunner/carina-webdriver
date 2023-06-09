@@ -148,7 +148,10 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
         if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD) && !(Configuration.isNull(Configuration.Parameter.AUTO_DOWNLOAD_APPS)
                 || "".equals(Configuration.get(Configuration.Parameter.AUTO_DOWNLOAD_APPS)))) {
             profile.setPreference("browser.download.folderList", 2);
-            profile.setPreference("browser.download.dir", ReportContext.getArtifactsFolder().getAbsolutePath());
+            if (!"zebrunner".equalsIgnoreCase(getProvider())) {
+                // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
+                profile.setPreference("browser.download.dir", ReportContext.getArtifactsFolder().getAbsolutePath());
+            }
             profile.setPreference("browser.helperApps.neverAsk.saveToDisk", Configuration.get(Configuration.Parameter.AUTO_DOWNLOAD_APPS));
             profile.setPreference("browser.download.manager.showWhenStarting", false);
             profile.setPreference("browser.download.saveLinkAsFilenameTimeout", 1);
