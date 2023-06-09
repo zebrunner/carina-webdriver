@@ -60,10 +60,8 @@ public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
 
         if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD)) {
             prefs.put("download.prompt_for_download", false);
-            if (!"zebrunner".equalsIgnoreCase(getProvider())) {
-                prefs.put("download.default_directory",
-                        ReportContext.getArtifactsFolder().getAbsolutePath());
-            }
+            prefs.put("download.default_directory",
+                    ReportContext.getArtifactsFolder().getAbsolutePath());
             needsPrefs = true;
         }
 
