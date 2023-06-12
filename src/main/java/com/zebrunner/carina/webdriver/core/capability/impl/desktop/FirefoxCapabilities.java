@@ -25,9 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.utils.report.SessionContext;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
 public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
@@ -150,7 +149,7 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
             profile.setPreference("browser.download.folderList", 2);
             if (!"zebrunner".equalsIgnoreCase(getProvider())) {
                 // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
-                profile.setPreference("browser.download.dir", ReportContext.getArtifactsFolder().getAbsolutePath());
+                profile.setPreference("browser.download.dir", SessionContext.getArtifactsFolder().toString());
             }
             profile.setPreference("browser.helperApps.neverAsk.saveToDisk", Configuration.get(Configuration.Parameter.AUTO_DOWNLOAD_APPS));
             profile.setPreference("browser.download.manager.showWhenStarting", false);

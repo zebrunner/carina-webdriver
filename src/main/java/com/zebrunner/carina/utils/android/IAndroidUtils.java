@@ -15,7 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.utils.android;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,6 +23,7 @@ import java.lang.invoke.MethodHandles;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
@@ -56,7 +56,7 @@ import com.zebrunner.carina.utils.android.recorder.utils.CmdLine;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.mobile.IMobileUtils;
-import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.utils.report.SessionContext;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 
@@ -382,36 +382,41 @@ public interface IAndroidUtils extends IMobileUtils {
     /**
      * Install android Apk by path to apk or by name in classpath
      *
-     * @param apkPath     path to apk
+     * @param apkPath path to apk
      * @param inClasspath whether to search for apk in classpath
      */
     default void installApk(final String apkPath, boolean inClasspath) {
-        String filePath = apkPath;
-        if (inClasspath) {
-            URL baseResource = ClassLoader.getSystemResource(apkPath);
-            if (baseResource == null) {
-                throw new UncheckedIOException(
-                        new FileNotFoundException("Unable to get resource from classpath: " + apkPath)
-                );
-            }
-            UTILS_LOGGER.debug("Resource was found: {}", baseResource.getPath());
+        try {
+            Path filePath = Path.of(apkPath);
+            if (!inClasspath) {
+                if (Files.notExists(filePath)) {
+                    throw new IOException(String.format("Apk is not exists. Path: '%s'", filePath));
+                }
+            } else {
+                URL baseResource = ClassLoader.getSystemResource(apkPath);
+                if (baseResource == null) {
+                    throw new UncheckedIOException(
+                            new FileNotFoundException(String.format("Apk is not exists in the classpath. Path: '%s'", apkPath)));
+                }
+                UTILS_LOGGER.debug("Resource was found: {}", baseResource.getPath());
 
-            String fileName = FilenameUtils.getBaseName(baseResource.getPath()) + "." + FilenameUtils.getExtension(baseResource.getPath());
-            // make temporary copy of resource in artifacts folder
-            filePath = ReportContext.getArtifactsFolder().getAbsolutePath() + File.separator + fileName;
+                String fileName = FilenameUtils.getBaseName(baseResource.getPath()) + "." + FilenameUtils.getExtension(baseResource.getPath());
+                // make temporary copy of resource in artifacts folder
+                filePath = SessionContext.getArtifactsFolder().resolve(fileName);
 
-            File file = new File(filePath);
-            if (!file.exists()) {
-                InputStream link = (ClassLoader.getSystemResourceAsStream(apkPath));
-                try {
-                    Files.copy(link, file.getAbsoluteFile().toPath());
-                } catch (IOException e) {
-                    UTILS_LOGGER.error("Unable to extract resource from ClassLoader!", e);
+                if (Files.notExists(filePath)) {
+                    InputStream link = (ClassLoader.getSystemResourceAsStream(apkPath));
+                    if (link == null) {
+                        throw new IOException("Cannot get apk using ClassLoader.");
+                    }
+                    Files.copy(link, filePath);
                 }
             }
-        }
+            executeAdbCommand("install " + filePath);
 
-        executeAdbCommand("install " + filePath);
+        } catch (IOException e) {
+            throw new UncheckedIOException(String.format("Cannot install Apk. Message: '%s'", e.getMessage()), e);
+        }
     }
 
     public enum SelectorType {
