@@ -24,9 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.utils.report.SessionContext;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
 public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
@@ -74,7 +73,7 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
             chromePrefs.put("download.prompt_for_download", false);
             if (!"zebrunner".equalsIgnoreCase(getProvider())) {
                 // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
-                chromePrefs.put("download.default_directory", ReportContext.getArtifactsFolder().getAbsolutePath());
+                chromePrefs.put("download.default_directory", SessionContext.getArtifactsFolder().toString());
             }
             chromePrefs.put("plugins.always_open_pdf_externally", true);
             needsPrefs = true;

@@ -20,10 +20,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -608,21 +611,21 @@ public class Device implements IDriverPool {
      * @param screenshotName - png file name to generate appropriate uix  
      * @return saved file
      */
-    public File generateUiDump(String screenshotName) {
+    public Optional<Path> generateUiDump(String screenshotName) {
         if (isNull()) {
-            return null;
+            return Optional.empty();
         }
         
 //        TODO: investigate with iOS: how does it work with iOS
 		if (!isConnected()) {
 		    LOGGER.debug("Device isConnected() returned false. Dump file won't be generated.");
 			//do not use new features if execution is not inside approved cloud
-			return null;
+            return Optional.empty();
 		}
         
         if (getDrivers().size() == 0) {
             LOGGER.debug("There is no active drivers in the pool.");
-            return null;
+            return Optional.empty();
         }
         // TODO: investigate how to connect screenshot with xml dump: screenshot
         // return File -> Zip png and uix or move this logic to zafira
@@ -631,28 +634,28 @@ public class Device implements IDriverPool {
             WebDriver driver = getDriver(this);
             if (driver == null) {
                 LOGGER.debug("There is no active driver for device: {}", getName());
-                return null;
+                return Optional.empty();
             }
             
             LOGGER.debug("UI dump generation...");
-            String fileName = ReportContext.getTestDir() + String.format("/%s.uix", screenshotName.replace(".png", ""));
+
             String pageSource = driver.getPageSource();
             pageSource = pageSource.replaceAll(SpecialKeywords.ANDROID_START_NODE, SpecialKeywords.ANDROID_START_UIX_NODE).
                     replaceAll(SpecialKeywords.ANDROID_END_NODE, SpecialKeywords.ANDROID_END_UIX_NODE);
-            
-            File file = null;
+            Path dumpFile = Path.of(ReportContext.getTestDir().getAbsolutePath())
+                    .resolve(String.format("%s.uix", screenshotName.replace(".png", "")));
+            Path file = null;
             try {
-                file = new File(fileName);
-                FileUtils.writeStringToFile(file, pageSource, StandardCharsets.US_ASCII);
+                file = Files.writeString(dumpFile, pageSource, StandardCharsets.US_ASCII);
             } catch (IOException e) {
                 LOGGER.warn("Error has been met during attempt to extract xml tree.", e);
             }
-            LOGGER.debug("XML file path: {}", fileName);
-            return file;
+            LOGGER.debug("XML file path: {}", dumpFile);
+            return Optional.ofNullable(file);
         } catch (Exception e) {
             LOGGER.error("Undefined failure during UiDump generation for Android device!", e);
         }
-        return null;
+        return Optional.empty();
     }
     
     private boolean isIOS() {

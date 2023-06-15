@@ -24,9 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.utils.report.SessionContext;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
 public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
@@ -61,14 +60,13 @@ public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
         if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD)) {
             prefs.put("download.prompt_for_download", false);
             if (!"zebrunner".equalsIgnoreCase(getProvider())) {
-                prefs.put("download.default_directory",
-                        ReportContext.getArtifactsFolder().getAbsolutePath());
+                prefs.put("download.default_directory", SessionContext.getArtifactsFolder().toString());
             }
             needsPrefs = true;
         }
 
         if (needsPrefs) {
-            caps.setCapability("prefs", prefs);
+            caps.setExperimentalOption("prefs", prefs);
         }
         caps.setCapability("ms:edgeChrominum", true);
 

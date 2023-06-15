@@ -15,12 +15,13 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.listener;
 
-import java.io.File;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Alert;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.zebrunner.agent.core.registrar.Artifact;
 import com.zebrunner.carina.utils.FileManager;
 import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.utils.report.SessionContext;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.Screenshot;
 import com.zebrunner.carina.webdriver.ScreenshotType;
@@ -223,22 +225,21 @@ public class DriverListener implements WebDriverListener, IDriverPool {
 
     private void generateDump(WebDriver driver, String screenName) {
         // XML layout extraction
-        File uiDumpFile = getDevice(driver).generateUiDump(screenName);
-        if (uiDumpFile != null) {
-            // use the same naming but with zip extension. Put into the test artifacts folder
-            String dumpArtifact = ReportContext.getArtifactsFolder().getAbsolutePath() + "/" + screenName.replace(".png", ".zip");
-            LOGGER.debug("UI Dump artifact: {}", dumpArtifact);
-
-            // build path to screenshot using name
-            File screenFile = new File(ReportContext.getTestDir().getAbsolutePath() + "/" + screenName);
-
-            // archive page source dump and screenshot both together
-            FileManager.zipFiles(dumpArtifact, uiDumpFile, screenFile);
-
-            Artifact.attachToTest("UI Dump artifact", new File(dumpArtifact));
-        } else {
+        Optional<Path> uiDumpFile = getDevice(driver).generateUiDump(screenName);
+        if (uiDumpFile.isEmpty()) {
             LOGGER.debug("Dump file is empty.");
+            return;
         }
+        // use the same naming but with zip extension. Put into the test artifacts folder
+        Path dumpArtifact = SessionContext.getArtifactsFolder().resolve(screenName.replace(".png", ".zip"));
+        LOGGER.debug("UI Dump artifact: {}", dumpArtifact);
+
+        // build path to screenshot using name
+        Path screenFile = Path.of(ReportContext.getTestDir().getAbsolutePath()).resolve(screenName);
+
+        // archive page source dump and screenshot both together
+        FileManager.zipFiles(dumpArtifact.toAbsolutePath().toString(), uiDumpFile.get().toFile(), screenFile.toFile());
+        Artifact.attachToTest("UI Dump artifact", dumpArtifact);
     }
 
     private void onAfterAction(String comment, WebDriver driver) {
