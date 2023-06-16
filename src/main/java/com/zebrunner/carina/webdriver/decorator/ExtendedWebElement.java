@@ -24,13 +24,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.hamcrest.BaseMatcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
+import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
@@ -55,20 +54,18 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
-import org.testng.SkipException;
 
-import com.zebrunner.carina.crypto.Algorithm;
-import com.zebrunner.carina.crypto.CryptoTool;
-import com.zebrunner.carina.crypto.CryptoToolBuilder;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.IWebElement;
-import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
+import com.zebrunner.carina.utils.encryptor.EncryptorUtils;
 import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.utils.performance.ACTION_NAME;
 import com.zebrunner.carina.utils.resources.L10N;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
+import com.zebrunner.carina.webdriver.core.capability.CapabilityUtils;
+import com.zebrunner.carina.webdriver.core.capability.DriverType;
 import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
 import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
 import com.zebrunner.carina.webdriver.listener.DriverListener;
@@ -82,16 +79,15 @@ import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
 public class ExtendedWebElement implements IWebElement {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final long EXPLICIT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT);
-    private static final long RETRY_TIME = Configuration.getLong(Parameter.RETRY_INTERVAL);
-    private static final String CRYPTO_PATTERN = Configuration.get(Parameter.CRYPTO_PATTERN);
-    private final ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy.valueOf(Configuration.get(Parameter.ELEMENT_LOADING_STRATEGY));
+    private static final long EXPLICIT_TIMEOUT = Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class);
+    private static final long RETRY_TIME = Configuration.getRequired(WebDriverConfiguration.Parameter.RETRY_INTERVAL, Long.class);
+    private final ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy
+            .valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.ELEMENT_LOADING_STRATEGY));
     // we should keep both properties: driver and searchContext obligatory
     // driver is used for actions, javascripts execution etc
     // searchContext is used for searching element by default
     private WebDriver driver;
     private SearchContext searchContext;
-    private CryptoTool cryptoTool = null;
     private WebElement element = null;
     private String name;
     private By by;
@@ -629,7 +625,7 @@ public class ExtendedWebElement implements IWebElement {
      * Useful for desktop with React
      */
     public void scrollTo() {
-        if (Configuration.getDriverType().equals(SpecialKeywords.MOBILE)) {
+        if (DriverType.MOBILE.equals(CapabilityUtils.getDriverType(((HasCapabilities) getDriver()).getCapabilities()))) {
             LOGGER.debug("scrollTo javascript is unsupported for mobile devices!");
             return;
         }
@@ -643,7 +639,7 @@ public class ExtendedWebElement implements IWebElement {
             // [CB] onPage -> inViewPort
             // https://code.google.com/p/selenium/source/browse/java/client/src/org/openqa/selenium/remote/RemoteWebElement.java?r=abc64b1df10d5f5d72d11fba37fabf5e85644081
             int y = locatableElement.getCoordinates().inViewPort().getY();
-            int offset = R.CONFIG.getInt("scroll_to_element_y_offset");
+            int offset = Configuration.getRequired(WebDriverConfiguration.Parameter.SCROLL_TO_ELEMENT_Y_OFFSET, Integer.class);
             ((JavascriptExecutor) getDriver()).executeScript("window.scrollBy(0," + (y - offset) + ");");
         } catch (Exception e) {
         	//do nothing
@@ -953,7 +949,7 @@ public class ExtendedWebElement implements IWebElement {
      * @return element with text existence status.
      */
     public boolean isElementWithTextPresent(final String text, long timeout) {
-    	final String decryptedText = decryptIfEncrypted(text);
+        final String decryptedText = EncryptorUtils.decrypt(text);
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
 
         if (element != null) {
@@ -1594,7 +1590,7 @@ public class ExtendedWebElement implements IWebElement {
 
             @Override
             public void doType(String text) {
-                final String decryptedText = decryptIfEncrypted(text);
+                final String decryptedText = EncryptorUtils.decrypt(text);
                 DriverListener.setMessages(Messager.KEYS_CLEARED_IN_ELEMENT.getMessage(getName()),
                         Messager.KEYS_NOT_CLEARED_IN_ELEMENT.getMessage(getNameWithLocator()));
                 element.clear();
@@ -1608,7 +1604,7 @@ public class ExtendedWebElement implements IWebElement {
 
             @Override
             public void doAttachFile(String filePath) {
-                final String decryptedText = decryptIfEncrypted(filePath);
+                final String decryptedText = EncryptorUtils.decrypt(filePath);
 
                 String textLog = (!decryptedText.equals(filePath) ? "********" : filePath);
 
@@ -1698,7 +1694,7 @@ public class ExtendedWebElement implements IWebElement {
 
             @Override
             public boolean doSelect(String text) {
-                final String decryptedSelectText = decryptIfEncrypted(text);
+                final String decryptedSelectText = EncryptorUtils.decrypt(text);
 
                 String textLog = (!decryptedSelectText.equals(text) ? "********" : text);
 
@@ -1908,29 +1904,5 @@ public class ExtendedWebElement implements IWebElement {
             retryInterval = 1000;
         }
         return retryInterval;
-    }
-
-    private String decryptIfEncrypted(String text) {
-        Matcher cryptoMatcher = Pattern.compile(CRYPTO_PATTERN)
-                .matcher(text);
-        String decryptedText = text;
-        if (cryptoMatcher.find()) {
-            initCryptoTool();
-            decryptedText = this.cryptoTool.decrypt(text, CRYPTO_PATTERN);
-        }
-        return decryptedText;
-    }
-
-    private void initCryptoTool() {
-        if (this.cryptoTool == null) {
-            String cryptoKey = Configuration.get(Parameter.CRYPTO_KEY_VALUE);
-            if (cryptoKey.isEmpty()) {
-                throw new SkipException("Encrypted data detected, but the crypto key is not found!");
-            }
-            this.cryptoTool = CryptoToolBuilder.builder()
-                    .chooseAlgorithm(Algorithm.find(Configuration.get(Parameter.CRYPTO_ALGORITHM)))
-                    .setKey(cryptoKey)
-                    .build();
-        }
     }
 }

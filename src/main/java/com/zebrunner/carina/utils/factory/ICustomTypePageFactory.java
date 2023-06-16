@@ -35,10 +35,11 @@ import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.exception.RequiredCtorNotFoundException;
 import com.zebrunner.carina.utils.factory.DeviceType.Type;
 import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.device.Device;
 import com.zebrunner.carina.webdriver.gui.AbstractPage;
 
@@ -52,7 +53,7 @@ public interface ICustomTypePageFactory extends IDriverPool {
     String LONG_STR = "long";
     String DOUBLE_OBJ_STR = "class java.lang.Double";
     String DOUBLE_STR = "double";
-    Reflections REFLECTIONS = Configuration.getBoolean(Configuration.Parameter.PAGE_RECURSIVE_REFLECTION)
+    Reflections REFLECTIONS = Configuration.getRequired(WebDriverConfiguration.Parameter.PAGE_RECURSIVE_REFLECTION, Boolean.class)
             ? new Reflections(new ConfigurationBuilder().addUrls(Arrays.stream(Package.getPackages())
                     .map(Package::getName)
                     .map(s -> s.split("\\.")[0])

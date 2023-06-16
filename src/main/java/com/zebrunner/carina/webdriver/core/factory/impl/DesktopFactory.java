@@ -20,6 +20,7 @@ import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
+import java.util.Optional;
 
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.MutableCapabilities;
@@ -29,16 +30,18 @@ import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.remote.Browser;
+import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.http.ClientConfig;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.Wait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.desktop.ChromeCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.desktop.EdgeCapabilities;
@@ -57,7 +60,7 @@ public class DesktopFactory extends AbstractFactory {
     public WebDriver create(String name, MutableCapabilities capabilities, String seleniumHost) {
         WebDriver driver = null;
         if (seleniumHost == null) {
-            seleniumHost = Configuration.getSeleniumUrl();
+            seleniumHost = Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL);
         }
 
         if (isCapabilitiesEmpty(capabilities)) {
@@ -72,7 +75,13 @@ public class DesktopFactory extends AbstractFactory {
         LOGGER.debug("Capabilities: {}", capabilities);
 
         try {
-            EventFiringSeleniumCommandExecutor ce = new EventFiringSeleniumCommandExecutor(new URL(seleniumHost));
+            ClientConfig clientConfig = ClientConfig.defaultConfig()
+                    .baseUrl(new URL(seleniumHost));
+            Optional<Integer> readTimeout = Configuration.get(WebDriverConfiguration.Parameter.READ_TIMEOUT, Integer.class);
+            if (readTimeout.isPresent()) {
+                clientConfig = clientConfig.readTimeout(Duration.ofSeconds(readTimeout.get()));
+            }
+            EventFiringSeleniumCommandExecutor ce = new EventFiringSeleniumCommandExecutor(clientConfig);
             driver = new RemoteWebDriver(ce, capabilities);
         } catch (MalformedURLException e) {
             throw new UncheckedIOException("Malformed selenium URL!", e);
@@ -83,7 +92,9 @@ public class DesktopFactory extends AbstractFactory {
 
     @SuppressWarnings("deprecation")
     public MutableCapabilities getCapabilities(String name) {
-        String browser = Configuration.getBrowser();
+        String browser = WebDriverConfiguration.getBrowser().orElseThrow(
+                () -> new InvalidConfigurationException(String.format("Cannot choose type of desktop browser. '%s' capability not specified.",
+                        CapabilityType.BROWSER_NAME)));
         AbstractCapabilities<?> capabilities = null;
         if (Browser.FIREFOX.browserName().equalsIgnoreCase(browser)) {
             capabilities = new FirefoxCapabilities();
@@ -119,8 +130,8 @@ public class DesktopFactory extends AbstractFactory {
     private void resizeBrowserWindow(WebDriver driver, MutableCapabilities capabilities) {
         try {
             Wait<WebDriver> wait = new FluentWait<WebDriver>(driver)
-                    .pollingEvery(Duration.ofMillis(Configuration.getInt(Parameter.RETRY_INTERVAL)))
-                    .withTimeout(Duration.ofSeconds(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT)))
+                    .pollingEvery(Duration.ofMillis(Configuration.getRequired(WebDriverConfiguration.Parameter.RETRY_INTERVAL, Integer.class)))
+                    .withTimeout(Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class)))
                     .ignoring(WebDriverException.class)
                     .ignoring(NoSuchSessionException.class)
                     .ignoring(TimeoutException.class);

@@ -15,9 +15,9 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.screenshot;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.webdriver.ScreenshotType;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 
 /**
  * @deprecated instead used {@link DefaultSuccessfulDriverActionScreenshotRule} and
@@ -34,12 +34,12 @@ public class AutoScreenshotRule implements IScreenshotRule {
     @Override
     public boolean isTakeScreenshot() {
         // enabled or not screenshot generation for driver action or test failure
-        return Configuration.getBoolean(Parameter.AUTO_SCREENSHOT) || Configuration.getBoolean(Parameter.ERROR_SCREENSHOT);
+        return Configuration.get(WebDriverConfiguration.Parameter.AUTO_SCREENSHOT, Boolean.class).orElse(false);
     }
 
     @Override
     public boolean isAllowFullSize() {
         // enabled or not full size screenshot on failure/driver exception
-        return Configuration.getBoolean(Parameter.ALLOW_FULLSIZE_SCREENSHOT);
+        return Configuration.get(WebDriverConfiguration.Parameter.ALLOW_FULLSIZE_SCREENSHOT, Boolean.class).orElse(false);
     }
 }

@@ -20,12 +20,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.MutableCapabilities;
@@ -34,14 +34,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.proxy.ProxyUtils;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
-import com.zebrunner.carina.webdriver.proxy.ZebrunnerProxyBuilder;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 
 import io.appium.java_client.remote.MobileCapabilityType;
+import io.appium.java_client.remote.MobilePlatform;
 
 public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     // TODO: [VD] reorganize in the same way Firefox profiles args/options if any and review other browsers
@@ -72,30 +71,16 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
      * @param capabilities see {@link T}
      */
     protected void addProxy(T capabilities) {
-        String proxyTypeAsString = getConfigurationValue("proxy_type");
-        if (proxyTypeAsString.equalsIgnoreCase("Zebrunner")) {
-            capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, "true");
-            String args = getConfigurationValue(ZebrunnerProxyBuilder.PROXY_ARGUMENTS_PARAMETER);
-            if (!args.isBlank()) {
-                capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args);
+        Configuration.get(WebDriverConfiguration.Parameter.PROXY_TYPE).ifPresent(proxyType -> {
+            if (proxyType.equalsIgnoreCase("Zebrunner")) {
+                capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, "true");
+                Configuration.get(WebDriverConfiguration.Parameter.PROXY_ZEBRUNNER_ARGS).ifPresent(args -> {
+                    capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args);
+                });
+            } else {
+                ProxyUtils.getSeleniumProxy().ifPresent(proxy -> capabilities.setCapability(CapabilityType.PROXY, proxy));
             }
-        } else {
-            if ("DYNAMIC".equalsIgnoreCase(proxyTypeAsString) || ("LEGACY".equalsIgnoreCase(proxyTypeAsString) &&
-                    Configuration.getBoolean(Configuration.Parameter.BROWSERUP_PROXY))) {
-                LOGGER.warn(
-                        "BrowserUp is deprecated and will be removed in the next release. This will also remove the LEGACY and DYNAMIC proxy modes.");
-            }
-            ProxyUtils.getSeleniumProxy()
-                    .ifPresent(proxy -> capabilities.setCapability(CapabilityType.PROXY, proxy));
-        }
-    }
-
-    protected final String getProvider() {
-        String provider = R.CONFIG.get(SpecialKeywords.PROVIDER);
-        if (provider.isEmpty()) {
-            provider = R.CONFIG.get("capabilities.zebrunner:provider");
-        }
-        return provider;
+        });
     }
 
     /**
@@ -108,15 +93,10 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     }
 
     /**
-     * Add capabilities from properties
-     *
-     * @param options see {@link C}
-     * @param props see {@link Properties}
+     * <b>For internal usage only</b>
      */
-    static <C extends MutableCapabilities> void addPropertiesCapabilities(C options, Properties props) {
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        Map<String, String> properties = new HashMap(props);
-        Map<String, Object> capabilities = properties.entrySet()
+    public static Map<String, Object> getGlobalCapabilities(Map<String, String> props) {
+        return props.entrySet()
                 .stream()
                 .filter(entry -> entry.getKey().startsWith("capabilities."))
                 .filter(entry -> entry.getValue() != null)
@@ -128,7 +108,42 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
                 })
                 .map(p -> parseCapabilityType(p.getLeft(), p.getRight()))
                 .collect(Collectors.toMap(MutablePair::getLeft, MutablePair::getRight));
+    }
 
+    /**
+     * <b>For internal usage only</b>
+     */
+    public static Map<String, Object> getEnvCapabilities(Map<String, String> props) {
+        Optional<String> env = Configuration.get(Configuration.Parameter.ENV);
+        if (env.isEmpty()) {
+            return Map.of();
+        }
+        return props.entrySet()
+                .stream()
+                .filter(entry -> entry.getKey().startsWith(env.get() + ".capabilities."))
+                .filter(entry -> entry.getValue() != null)
+                .filter(entry -> !entry.getValue().isBlank())
+                .map(entry -> {
+                    MutablePair<String, String> pair = new MutablePair<>();
+                    pair.setLeft(entry.getKey().replaceFirst(env.get() + ".capabilities.", ""));
+                    pair.setRight(entry.getValue());
+                    return pair;
+                })
+                .map(p -> parseCapabilityType(p.getLeft(), p.getRight()))
+                .collect(Collectors.toMap(MutablePair::getLeft, MutablePair::getRight));
+    }
+
+    /**
+     * Add capabilities from properties
+     *
+     * @param options see {@link C}
+     * @param props see {@link Properties}
+     */
+    static <C extends MutableCapabilities> void addPropertiesCapabilities(C options, Properties props) {
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        Map<String, String> properties = new HashMap(props);
+        Map<String, Object> capabilities = getGlobalCapabilities(properties);
+        capabilities.putAll(getEnvCapabilities(properties));
         for (Map.Entry<String, Object> entry : capabilities.entrySet()) {
             List<String> names = Arrays.asList(entry.getKey().split("\\."));
 
@@ -257,37 +272,33 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
          * fr_CA format for iOS. CA format (country name abbreviation) for Android
          */
         // parse locale param as it has language and country by default like en_US
-        String localeValue = Configuration.get(Parameter.LOCALE);
-        LOGGER.debug("Default locale value is : {}", localeValue);
-        String[] values = localeValue.split("_");
-        if (values.length == 1) {
-            // only locale is present!
-            caps.setCapability(MobileCapabilityType.LOCALE, localeValue);
-            String langValue = Configuration.get(Parameter.LANGUAGE);
-            if (!langValue.isEmpty()) {
-                LOGGER.debug("Default language value is : {}", langValue);
-                // provide extra capability language only if it exists among config parameters...
-                caps.setCapability(MobileCapabilityType.LANGUAGE, langValue);
+        Configuration.get(WebDriverConfiguration.Parameter.LOCALE).ifPresent(locale -> {
+            LOGGER.debug("Default locale value is : {}", locale);
+            String[] values = locale.split("_");
+            if (values.length == 1) {
+                // only locale is present!
+                caps.setCapability(MobileCapabilityType.LOCALE, locale);
+                Configuration.get(WebDriverConfiguration.Parameter.LANGUAGE).ifPresent(language -> {
+                    LOGGER.debug("Default language value is : {}", language);
+                    // provide extra capability language only if it exists among config parameters...
+                    caps.setCapability(MobileCapabilityType.LANGUAGE, language);
+                });
+            } else if (values.length == 2) {
+                WebDriverConfiguration.getCapability(CapabilityType.PLATFORM_NAME).ifPresent(platformName -> {
+                    if (MobilePlatform.ANDROID.equalsIgnoreCase(platformName)) {
+                        LOGGER.debug("Put language and locale to android capabilities. language: {}; locale: {}", values[0], values[1]);
+                        caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
+                        caps.setCapability(MobileCapabilityType.LOCALE, values[1]);
+                    } else if (MobilePlatform.IOS.equalsIgnoreCase(platformName)) {
+                        LOGGER.debug("Put language and locale to iOS capabilities. language: {}; locale: {}", values[0], locale);
+                        caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
+                        caps.setCapability(MobileCapabilityType.LOCALE, locale);
+                    }
+                });
+            } else {
+                LOGGER.error("Undefined locale provided (ignoring for mobile capabilities): {}", locale);
             }
-        } else if (values.length == 2) {
-            if (Configuration.getPlatform().equalsIgnoreCase(SpecialKeywords.ANDROID)) {
-                LOGGER.debug("Put language and locale to android capabilities. language: {}; locale: {}", values[0], values[1]);
-                caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
-                caps.setCapability(MobileCapabilityType.LOCALE, values[1]);
-            } else if (Configuration.getPlatform().equalsIgnoreCase(SpecialKeywords.IOS)) {
-                LOGGER.debug("Put language and locale to iOS capabilities. language: {}; locale: {}", values[0], localeValue);
-                caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
-                caps.setCapability(MobileCapabilityType.LOCALE, localeValue);
-            }
-        } else {
-            LOGGER.error("Undefined locale provided (ignoring for mobile capabilitites): {}", localeValue);
-        }
+        });
         return caps;
-    }
-
-    // todo remove when params will be added to the Configuration class
-    private static String getConfigurationValue(String param) {
-        String value = R.CONFIG.get(param);
-        return !(value == null || value.equalsIgnoreCase(SpecialKeywords.NULL)) ? value : StringUtils.EMPTY;
     }
 }

@@ -37,13 +37,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.agent.core.registrar.Label;
-import com.zebrunner.carina.proxy.browserup.ProxyPool;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.exception.DriverPoolException;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration.Parameter;
 import com.zebrunner.carina.webdriver.core.factory.DriverFactory;
 import com.zebrunner.carina.webdriver.device.Device;
 
@@ -270,7 +270,7 @@ public interface IDriverPool {
         customCapabilities.remove();
     }
 
-    private void quitDriver(CarinaDriver carinaDriver, boolean keepProxyDuring) {
+    private void quitDriver(CarinaDriver carinaDriver, @Deprecated boolean keepProxyDuring) {
         try {
             carinaDriver.getDevice().disconnectRemote();
 
@@ -279,7 +279,7 @@ public interface IDriverPool {
             POOL_LOGGER.debug("start driver quit: {}", carinaDriver.getName());
 
             Future<?> future = Executors.newSingleThreadExecutor().submit((Callable<Void>) () -> {
-                if (Configuration.getBoolean(Parameter.CHROME_CLOSURE)) {
+                if (Configuration.get(WebDriverConfiguration.Parameter.CHROME_CLOSURE, Boolean.class).orElse(false)) {
                     // workaround to not cleaned chrome profiles on hard drive
                     POOL_LOGGER.debug("Starting drv.close()");
                     drv.close();
@@ -292,7 +292,7 @@ public interface IDriverPool {
             });
 
             // default timeout for driver quit 1/2 of explicit
-            long timeout = Configuration.getInt(Parameter.EXPLICIT_TIMEOUT) / 2;
+            long timeout = Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class) / 2;
             try {
                 future.get(timeout, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
@@ -315,10 +315,10 @@ public interface IDriverPool {
         } finally {
             POOL_LOGGER.debug("finished driver quit: {}", carinaDriver.getName());
             if (!keepProxyDuring) {
-                ProxyPool.stopProxy();
-                if (com.zebrunner.carina.proxy.ProxyPool.isProxyRegistered()) {
-                    com.zebrunner.carina.proxy.ProxyPool.stopProxy();
-                }
+//                ProxyPool.stopProxy();
+//                if (com.zebrunner.carina.proxy.ProxyPool.isProxyRegistered()) {
+//                    com.zebrunner.carina.proxy.ProxyPool.stopProxy();
+//                }
             }
         }
     }
@@ -344,13 +344,13 @@ public interface IDriverPool {
         Device device = nullDevice;
 
         // 1 - is default run without retry
-        int maxCount = Configuration.getInt(Parameter.INIT_RETRY_COUNT) + 1;
+        int maxCount = Configuration.getRequired(Parameter.INIT_RETRY_COUNT, Integer.class) + 1;
         while (drv == null && count++ < maxCount) {
             try {
                 POOL_LOGGER.debug("initDriver start...");
                 long threadId = Thread.currentThread().getId();
                 ConcurrentHashMap<String, CarinaDriver> currentDrivers = getDrivers();
-                int maxDriverCount = Configuration.getInt(Parameter.MAX_DRIVER_COUNT);
+                int maxDriverCount = Configuration.getRequired(Parameter.MAX_DRIVER_COUNT, Integer.class);
                 if (currentDrivers.size() == maxDriverCount) {
                     throw new RuntimeException(String.format("Unable to create new driver as you reached max number of drivers per thread: %s !" +
                             " Override max_driver_count to allow more drivers per test!", maxDriverCount));
@@ -370,19 +370,6 @@ public interface IDriverPool {
                 CarinaDriver carinaDriver = new CarinaDriver(name, drv, device, TestPhase.getActivePhase(), threadId);
                 driversPool.add(carinaDriver);
                 POOL_LOGGER.debug("initDriver finish...");
-
-                if (Configuration.getBoolean(Parameter.BROWSERUP_PROXY) && !device.isNull()) {
-                    int proxyPort;
-                    try {
-                        proxyPort = Integer.parseInt(device.getProxyPort());
-                    } catch (NumberFormatException e) {
-                        // use default from _config.properties. Use-case for
-                        // iOS devices which doesn't have proxy_port as part
-                        // of capabilities
-                        proxyPort = ProxyPool.getProxyPortFromConfig();
-                    }
-                    ProxyPool.startProxy(proxyPort);
-                }
             } catch (Exception e) {
                 device.disconnectRemote();
                 //TODO: [VD] think about excluding device from pool for explicit reasons like out of space etc
@@ -395,7 +382,7 @@ public interface IDriverPool {
                     // do not provide huge stacktrace as more retries exists. Only latest will generate full error + stacktrace
                     POOL_LOGGER.error(msg);
                 }
-                CommonUtils.pause(Configuration.getInt(Parameter.INIT_RETRY_INTERVAL));
+                CommonUtils.pause(Configuration.getRequired(Parameter.INIT_RETRY_INTERVAL, Integer.class));
             }
         }
 

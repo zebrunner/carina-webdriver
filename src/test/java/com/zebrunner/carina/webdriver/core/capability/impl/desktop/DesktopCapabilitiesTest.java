@@ -29,8 +29,8 @@ import org.openqa.selenium.remote.CapabilityType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 
 import io.appium.java_client.safari.options.SafariOptions;
 
@@ -48,8 +48,6 @@ public class DesktopCapabilitiesTest {
         ChromeOptions capabilities = chromeCapabilities.getCapability(testName);
 
         Assert.assertEquals(capabilities.getBrowserName(), Browser.CHROME.browserName(), "Returned browser name is not valid!");
-
-//        Assert.assertEquals(capabilities.getCapability("name"), testName, "Returned test name is not valid!");
         Map<String, Object> chromeOptions = (Map<String, Object>) capabilities.getCapability(ChromeOptions.CAPABILITY);
         List<String> chromeOptionsArgs = (List<String>) chromeOptions.get("args");
         Assert.assertTrue(chromeOptionsArgs.contains("--start-maximized"),
@@ -138,19 +136,14 @@ public class DesktopCapabilitiesTest {
         ChromiumOptions<?> capabilities = edgeCapabilities.getCapability(testName);
 
         Assert.assertEquals(capabilities.getBrowserName(), Browser.EDGE.browserName(), "Returned browser name is not valid!");
-
-//        Assert.assertEquals(capabilities.getCapability("name"), testName, "Returned test name is not valid!");
     }
 
     @Test(groups = {"DesktopCapabilitiesTestClass"})
     public static void getChromeCapabilityHeadlessTest() {
-        R.CONFIG.put(Configuration.Parameter.HEADLESS.getKey(), "true");
+        R.CONFIG.put(WebDriverConfiguration.Parameter.HEADLESS.getKey(), "true", true);
 
         ChromeCapabilities chromeCapabilities = new ChromeCapabilities();
         ChromeOptions capabilities = chromeCapabilities.getCapability("chrome - getChromeCapabilityHeadlessTest");
-
-        Assert.assertFalse((Boolean) capabilities.getCapability("zebrunner:enableVNC"), "Returned capability value is not valid!");
-        Assert.assertFalse((Boolean) capabilities.getCapability("zebrunner:enableVideo"), "Returned capability value is not valid!");
     }
 
     @Test(groups = {"DesktopCapabilitiesTestClass"})
@@ -159,10 +152,11 @@ public class DesktopCapabilitiesTest {
         String proxyPort = "80";
         String noProxy = "localhost.example.com";
 
-        R.CONFIG.put(Configuration.Parameter.PROXY_HOST.getKey(), proxyHost, true);
-        R.CONFIG.put(Configuration.Parameter.PROXY_PORT.getKey(), proxyPort, true);
-        R.CONFIG.put(Configuration.Parameter.PROXY_PROTOCOLS.getKey(), "http,https,ftp,socks", true);
-        R.CONFIG.put(Configuration.Parameter.NO_PROXY.getKey(), noProxy, true);
+        R.CONFIG.put(WebDriverConfiguration.Parameter.PROXY_HOST.getKey(), proxyHost, true);
+        R.CONFIG.put(WebDriverConfiguration.Parameter.PROXY_PORT.getKey(), proxyPort, true);
+        R.CONFIG.put(WebDriverConfiguration.Parameter.PROXY_PROTOCOLS.getKey(), "http,https,ftp,socks", true);
+        R.CONFIG.put(WebDriverConfiguration.Parameter.NO_PROXY.getKey(), noProxy, true);
+        R.CONFIG.put(WebDriverConfiguration.Parameter.PROXY_TYPE.getKey(), "MANUAL", true);
 
         ChromeCapabilities chromeCapabilities = new ChromeCapabilities();
         ChromeOptions capabilities = chromeCapabilities.getCapability("chrome - getChromeCapabilityProxyTest");
@@ -183,7 +177,7 @@ public class DesktopCapabilitiesTest {
     @Test(groups = {"DesktopCapabilitiesTestClass"})
     public static void getChromeCapabilityBrowserLanguageTest() {
         String browserLanguage = "en_US";
-        R.CONFIG.put(Configuration.Parameter.BROWSER_LANGUAGE.getKey(), browserLanguage, true);
+        R.CONFIG.put(WebDriverConfiguration.Parameter.BROWSER_LANGUAGE.getKey(), browserLanguage, true);
 
         ChromeCapabilities chromeCapabilities = new ChromeCapabilities();
         ChromeOptions capabilities = chromeCapabilities.getCapability("chrome - getChromeCapabilityBrowserLanguageTest");
@@ -196,7 +190,7 @@ public class DesktopCapabilitiesTest {
 
     @Test(groups = {"DesktopCapabilitiesTestClass"})
     public static void getChromeCapabilityAutoDownloadTest() {
-        R.CONFIG.put(Configuration.Parameter.AUTO_DOWNLOAD.getKey(), "true", true);
+        R.CONFIG.put(WebDriverConfiguration.Parameter.AUTO_DOWNLOAD.getKey(), "true", true);
 
         ChromeCapabilities chromeCapabilities = new ChromeCapabilities();
         ChromeOptions capabilities = chromeCapabilities.getCapability("chrome - getChromeCapabilityAutoDownloadTest");

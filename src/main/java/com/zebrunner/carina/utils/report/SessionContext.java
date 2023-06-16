@@ -35,10 +35,11 @@ import org.slf4j.LoggerFactory;
 
 import com.zebrunner.agent.core.config.ConfigurationHolder;
 import com.zebrunner.agent.core.registrar.Artifact;
-import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.config.Configuration;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.listener.DriverListener;
 
-public class SessionContext {
+public final class SessionContext {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final String ARTIFACTS_ENDPOINT = "download";
 
@@ -49,8 +50,7 @@ public class SessionContext {
     /**
      * Get artifacts folder.<br>
      * By default, artifacts folder is the folder in the test directory with the 'downloads' name.
-     * The custom artifacts folder path can be specified using the {@link Configuration.Parameter#CUSTOM_ARTIFACTS_FOLDER} parameter
-     * 
+     *
      * @return {@link Path}
      */
     public static synchronized Path getArtifactsFolder() {
@@ -59,10 +59,11 @@ public class SessionContext {
             // renamed to downloads to avoid automatic upload on our old Zebrunner ci-pipeline versions
             Path directory = Path.of(ReportContext.getTestDir().getCanonicalPath()).resolve("downloads");
             // artifacts directory should use canonical path otherwise auto download feature is broken in browsers
-            if (!Configuration.get(Configuration.Parameter.CUSTOM_ARTIFACTS_FOLDER).isEmpty()) {
+            Optional<String> customArtifactsFolder = Configuration.get(WebDriverConfiguration.Parameter.CUSTOM_ARTIFACTS_FOLDER);
+            if (customArtifactsFolder.isPresent()) {
                 LOGGER.debug("Parameter '{}' found with value '{}', so this path will be used as artifacts folder.",
-                        Configuration.Parameter.CUSTOM_ARTIFACTS_FOLDER.getKey(), Configuration.get(Configuration.Parameter.CUSTOM_ARTIFACTS_FOLDER));
-                directory = Path.of(Configuration.get(Configuration.Parameter.CUSTOM_ARTIFACTS_FOLDER));
+                        WebDriverConfiguration.Parameter.CUSTOM_ARTIFACTS_FOLDER.getKey(), customArtifactsFolder.get());
+                directory = Path.of(customArtifactsFolder.get());
             }
             if (Files.notExists(directory)) {
                 LOGGER.debug("The artifacts folder does not exist, so it will be created.");
@@ -328,7 +329,7 @@ public class SessionContext {
      */
     private static URL getEndpoint(WebDriver driver, String endpointName, @Nullable String method) {
         LOGGER.debug("Trying to create URL for endpoint '{}' with method '{}'", endpointName, method);
-        String endpoint = String.format("%s/%s/%s", Configuration.getSeleniumUrl()
+        String endpoint = String.format("%s/%s/%s", Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL)
                 .replace("wd/hub", endpointName),
                 DriverListener.castDriver(driver, RemoteWebDriver.class).getSessionId(),
                 method);

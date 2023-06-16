@@ -18,9 +18,9 @@ package com.zebrunner.carina.webdriver.core.capability.impl.desktop;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.XCUITestCapabilities;
 
 import io.appium.java_client.ios.options.XCUITestOptions;
@@ -28,7 +28,7 @@ import io.appium.java_client.ios.options.XCUITestOptions;
 public class IOSCapabilitiesTest {
 
     private static final String PLATFORM_NAME_KEY = SpecialKeywords.PLATFORM_NAME;
-    private static final String LOCALE_KEY = Configuration.Parameter.LOCALE.getKey();
+    private static final String LOCALE_KEY = WebDriverConfiguration.Parameter.LOCALE.getKey();
     private static final String LANGUAGE_KEY = "language";
 
     private static final String LOCALE = "US";

@@ -22,11 +22,11 @@ import org.openqa.selenium.support.FindBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.android.IAndroidUtils;
 import com.zebrunner.carina.utils.common.CommonUtils;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.gui.mobile.devices.MobileAbstractPage;
 
@@ -172,6 +172,6 @@ public class FakeGpsPage extends MobileAbstractPage implements IAndroidUtils {
 
     @Override
     public boolean isOpened() {
-        return isOpened(Configuration.getLong(Parameter.EXPLICIT_TIMEOUT) / 2);
+        return isOpened(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class) / 2);
     }
 }

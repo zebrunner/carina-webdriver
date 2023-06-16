@@ -24,9 +24,10 @@ import java.time.Instant;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.openqa.selenium.Beta;
 
-import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.ScreenshotType;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 
 public interface IScreenshotRule {
 
@@ -57,8 +58,8 @@ public interface IScreenshotRule {
      * @return {@link ImmutablePair}, left - width, right - height
      */
     public default ImmutablePair<Integer, Integer> getImageResizeDimensions() {
-        return new ImmutablePair<>(Configuration.getInt(Configuration.Parameter.BIG_SCREEN_WIDTH),
-                Configuration.getInt(Configuration.Parameter.BIG_SCREEN_HEIGHT));
+        return new ImmutablePair<>(Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_WIDTH, Integer.class).orElse(-1),
+                Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_HEIGHT, Integer.class).orElse(-1));
     }
 
     /**
@@ -86,7 +87,7 @@ public interface IScreenshotRule {
      */
     public default Duration getTimeout() {
         int divider = isAllowFullSize() ? 2 : 3;
-        return Duration.ofSeconds(Configuration.getInt(Configuration.Parameter.EXPLICIT_TIMEOUT) / divider);
+        return Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class) / divider);
     }
 
     /**
@@ -97,7 +98,7 @@ public interface IScreenshotRule {
      */
     @Beta
     public default boolean isEnableValidation() {
-        return "DEBUG".equalsIgnoreCase(Configuration.get(Configuration.Parameter.CORE_LOG_LEVEL));
+        return false;
     }
 
     @Beta

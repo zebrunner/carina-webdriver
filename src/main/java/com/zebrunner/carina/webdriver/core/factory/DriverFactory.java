@@ -22,7 +22,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
@@ -32,10 +31,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.agent.core.webdriver.RemoteWebDriverFactory;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
+import com.zebrunner.carina.webdriver.core.capability.CapabilityUtils;
+import com.zebrunner.carina.webdriver.core.capability.DriverType;
 import com.zebrunner.carina.webdriver.core.factory.impl.DesktopFactory;
 import com.zebrunner.carina.webdriver.core.factory.impl.MacFactory;
 import com.zebrunner.carina.webdriver.core.factory.impl.MobileFactory;
@@ -52,6 +52,7 @@ public class DriverFactory {
 
     // class have only static methods, so constructor should be hidden
     private DriverFactory() {
+        // hide
     }
 
     public static WebDriver create(String testName, MutableCapabilities capabilities, String seleniumHost) {
@@ -61,34 +62,30 @@ public class DriverFactory {
         URL seleniumUrl = RemoteWebDriverFactory.getSeleniumHubUrl();
         if (seleniumUrl != null) {
             // override existing selenium_url in config
-            R.CONFIG.put(Parameter.SELENIUM_URL.getKey(), seleniumUrl.toString());
+            R.CONFIG.put(WebDriverConfiguration.Parameter.SELENIUM_URL.getKey(), seleniumUrl.toString());
         }
 
-		String driverType = Configuration.getDriverType(capabilities);
+        DriverType driverType = capabilities == null ? WebDriverConfiguration.getDriverType() : CapabilityUtils.getDriverType(capabilities);
 		switch (driverType) {
-		case SpecialKeywords.DESKTOP:
+        case DESKTOP:
 			factory = new DesktopFactory();
 			break;
-
-		case SpecialKeywords.MOBILE:
+        case MOBILE:
 			factory = new MobileFactory();
 			break;
-
-        case SpecialKeywords.WINDOWS:
+        case WINDOWS:
             factory = new WindowsFactory();
             break;
-
-        case SpecialKeywords.MAC:
+        case MAC:
             factory = new MacFactory();
             break;
-
 		default:
-			throw new RuntimeException("Unsupported driver_type: " + driverType);
+            throw new IllegalArgumentException(String.format("Unsupported driver type: '%s'", driverType));
         }
 
         LOGGER.info("Starting driver session...");
         WebDriver driver = factory.create(testName, capabilities, seleniumHost);
-        driver = new EventFiringDecorator<WebDriver>(getEventListeners(driver))
+        driver = new EventFiringDecorator<>(getEventListeners(driver))
                 .decorate(driver);
         LOGGER.info("Driver session started.");
         LOGGER.debug("DriverFactory finish...");
@@ -108,9 +105,7 @@ public class DriverFactory {
         DriverListener driverListener = new DriverListener(driver);
         listeners.add(driverListener);
 
-        String listenerClasses = Configuration.get(Parameter.DRIVER_EVENT_LISTENERS);
-
-        if (!StringUtils.isEmpty(listenerClasses)) {
+        Configuration.get(WebDriverConfiguration.Parameter.DRIVER_EVENT_LISTENERS).ifPresent(listenerClasses -> {
             for (String listenerClass : listenerClasses.split(",")) {
                 try {
                     Class<?> clazz = Class.forName(listenerClass);
@@ -138,7 +133,8 @@ public class DriverFactory {
                     LOGGER.error("Unable to register '{}' webdriver event listener! Please, investigate stacktrace!", listenerClass, e);
                 }
             }
-        }
+        });
+
         return listeners.toArray(new WebDriverListener[0]);
     }
 
