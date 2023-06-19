@@ -74,7 +74,7 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     protected void addProxy(T capabilities) {
         String proxyTypeAsString = getConfigurationValue("proxy_type");
         if (proxyTypeAsString.equalsIgnoreCase("Zebrunner")) {
-            capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, "true");
+            capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, true);
             String args = getConfigurationValue(ZebrunnerProxyBuilder.PROXY_ARGUMENTS_PARAMETER);
             if (!args.isBlank()) {
                 capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args);
