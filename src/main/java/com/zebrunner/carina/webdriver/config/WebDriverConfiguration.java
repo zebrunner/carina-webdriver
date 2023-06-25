@@ -347,13 +347,13 @@ public final class WebDriverConfiguration extends Configuration {
         if (description.isEmpty()) {
             return "";
         }
-        return "\n============= WebDriver configuration =============\n" +
+        return "\n=========== WebDriver configuration ===========\n" +
                 description;
     }
 
     private static Optional<String> getCapabilitiesConfiguration() {
         StringBuilder sb = new StringBuilder();
-        sb.append("\n------------- Driver capabilities -----------\n");
+        sb.append("-------------- Driver capabilities ------------\n");
         Map<String, String> properties = (Map<String, String>) new HashMap(R.CONFIG.getProperties());
         Map<String, Object> capabilities = AbstractCapabilities.getGlobalCapabilities(properties);
         capabilities.putAll(AbstractCapabilities.getEnvCapabilities(properties));

@@ -331,8 +331,10 @@ public final class SessionContext {
         LOGGER.debug("Trying to create URL for endpoint '{}' with method '{}'", endpointName, method);
         String endpoint = String.format("%s/%s/%s", Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL)
                 .replace("wd/hub", endpointName),
-                DriverListener.castDriver(driver, RemoteWebDriver.class).getSessionId(),
-                method);
+                DriverListener.castDriver(driver, RemoteWebDriver.class).getSessionId());
+        if (method != null) {
+            endpoint += method;
+        }
         LOGGER.debug("Created endpoint url: {}", endpoint);
         try {
             return new URL(endpoint);
