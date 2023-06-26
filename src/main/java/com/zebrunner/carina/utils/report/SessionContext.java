@@ -329,7 +329,7 @@ public final class SessionContext {
      */
     private static URL getEndpoint(WebDriver driver, String endpointName, @Nullable String method) {
         LOGGER.debug("Trying to create URL for endpoint '{}' with method '{}'", endpointName, method);
-        String endpoint = String.format("%s/%s/%s", Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL)
+        String endpoint = String.format("%s/%s/", Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL)
                 .replace("wd/hub", endpointName),
                 DriverListener.castDriver(driver, RemoteWebDriver.class).getSessionId());
         if (method != null) {
