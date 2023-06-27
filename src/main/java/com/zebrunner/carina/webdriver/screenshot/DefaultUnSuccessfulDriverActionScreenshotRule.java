@@ -15,8 +15,9 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.screenshot;
 
-import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.webdriver.ScreenshotType;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 
 /**
  * Screenshot rule for capturing screenshots on {@link ScreenshotType#UNSUCCESSFUL_DRIVER_ACTION}.
@@ -37,6 +38,6 @@ public class DefaultUnSuccessfulDriverActionScreenshotRule implements IScreensho
     @Override
     public boolean isAllowFullSize() {
         // enabled or not full size screenshot on failure/driver exception
-        return Configuration.getBoolean(Configuration.Parameter.ALLOW_FULLSIZE_SCREENSHOT);
+        return Configuration.get(WebDriverConfiguration.Parameter.ALLOW_FULLSIZE_SCREENSHOT, Boolean.class).orElse(false);
     }
 }

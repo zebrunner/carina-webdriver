@@ -15,20 +15,20 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.capability.impl.desktop;
 
-import com.zebrunner.carina.webdriver.core.capability.impl.mobile.UiAutomator2Capabilities;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
+import com.zebrunner.carina.webdriver.core.capability.impl.mobile.UiAutomator2Capabilities;
 
 import io.appium.java_client.android.options.UiAutomator2Options;
 
 public class AndroidCapabilitiesTest {
 
     private static final String PLATFORM_NAME_KEY = SpecialKeywords.PLATFORM_NAME;
-    private static final String LOCALE_KEY = Configuration.Parameter.LOCALE.getKey();
+    private static final String LOCALE_KEY = WebDriverConfiguration.Parameter.LOCALE.getKey();
     private static final String LANGUAGE_KEY = "language";
 
     private static final String LOCALE = "US";

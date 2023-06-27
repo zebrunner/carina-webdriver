@@ -47,6 +47,7 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.zebrunner.carina.utils.encryptor.EncryptorUtils;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
@@ -75,7 +76,6 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
-import org.testng.SkipException;
 
 import com.github.kklisura.cdt.services.ChromeDevToolsService;
 import com.github.kklisura.cdt.services.WebSocketService;
@@ -84,15 +84,14 @@ import com.github.kklisura.cdt.services.impl.ChromeDevToolsServiceImpl;
 import com.github.kklisura.cdt.services.impl.WebSocketServiceImpl;
 import com.github.kklisura.cdt.services.invocation.CommandInvocationHandler;
 import com.github.kklisura.cdt.services.utils.ProxyUtils;
-import com.zebrunner.carina.crypto.Algorithm;
-import com.zebrunner.carina.crypto.CryptoTool;
-import com.zebrunner.carina.crypto.CryptoToolBuilder;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.LogicUtils;
 import com.zebrunner.carina.utils.common.CommonUtils;
+import com.zebrunner.carina.utils.config.Configuration;
+import com.zebrunner.carina.utils.config.StandardConfigurationOption;
 import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.utils.retry.ActionPoller;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration.Parameter;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.gui.AbstractPage;
 import com.zebrunner.carina.webdriver.listener.DriverListener;
@@ -106,23 +105,13 @@ import com.zebrunner.carina.webdriver.locator.LocatorUtils;
  * @author Alex Khursevich
  */
 public class DriverHelper {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final String REDUX_STORE_STATE_BASE_PATH = "window.store.getState()";
-    private static final String REDUX_STORE_STATE_DISPATCH_PATH = "window.store.dispatch";
-    private static final String CRYPTO_PATTERN = Configuration.get(Parameter.CRYPTO_PATTERN);
-    protected static final long EXPLICIT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT);
-    protected static final long SHORT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT) / 3;
-    protected static final long RETRY_TIME = Configuration.getLong(Parameter.RETRY_INTERVAL);
+    protected static final long EXPLICIT_TIMEOUT = Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Long.class);
+    protected static final long SHORT_TIMEOUT = Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Long.class) / 3;
+    protected static final long RETRY_TIME = Configuration.getRequired(Parameter.RETRY_INTERVAL, Long.class);
     protected WebDriver driver;
     protected String pageURL = getUrl();
-    protected CryptoTool cryptoTool = null;
-
-    /**
-     * @deprecated unused field
-     */
-    @Deprecated(forRemoval = true, since = "1.0.0")
-    protected long timer;
 
     public DriverHelper() {
     }
@@ -146,7 +135,7 @@ public class DriverHelper {
      * @param url to open.
      */
     public void openURL(String url) {
-        openURL(url, Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
+        openURL(url, Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class));
     }
 
     /**
@@ -156,7 +145,7 @@ public class DriverHelper {
      * @param timeout long
      */
     public void openURL(String url, long timeout) {
-        final String decryptedURL = getEnvArgURL(decryptIfEncrypted(url));
+        final String decryptedURL = getEnvArgURL(EncryptorUtils.decrypt(url));
         this.pageURL = decryptedURL;
         WebDriver drv = getDriver();
 
@@ -184,10 +173,11 @@ public class DriverHelper {
 
     protected void setPageURL(String relURL) {
         String baseURL;
-        if (!Configuration.get(Parameter.ENV).isEmpty()) {
-            baseURL = Configuration.getEnvArg("base");
+        if (Configuration.get(Configuration.Parameter.ENV).isPresent()) {
+            baseURL = Configuration.get("base", StandardConfigurationOption.ENVIRONMENT)
+                    .orElse(Configuration.getRequired(Parameter.URL));
         } else {
-            baseURL = Configuration.get(Parameter.URL);
+            baseURL = Configuration.getRequired(Parameter.URL);
         }
         this.pageURL = baseURL + relURL;
     }
@@ -478,7 +468,7 @@ public class DriverHelper {
 
         Wait<WebDriver> wait = new FluentWait<>(getDriver())
                 .pollingEvery(Duration.ofMillis(5000)) // there is no sense to refresh url address too often
-                .withTimeout(Duration.ofSeconds(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT)))
+                .withTimeout(Duration.ofSeconds(Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class)))
                 .ignoring(WebDriverException.class)
                 .ignoring(JavascriptException.class); // org.openqa.selenium.JavascriptException: javascript error: Cannot read property 'outerHTML' of null
         String res = "";
@@ -499,8 +489,8 @@ public class DriverHelper {
         DriverListener.setMessages(Messager.ADD_COOKIE.getMessage(cookie.getName()),
                 Messager.FAIL_ADD_COOKIE.getMessage(cookie.getName()));
         Wait<WebDriver> wait = new FluentWait<>(getDriver())
-                .pollingEvery(Duration.ofMillis(Configuration.getInt(Parameter.RETRY_INTERVAL)))
-                .withTimeout(Duration.ofSeconds(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT)))
+                .pollingEvery(Duration.ofMillis(Configuration.getRequired(Parameter.RETRY_INTERVAL, Integer.class)))
+                .withTimeout(Duration.ofSeconds(Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class)))
                 .ignoring(WebDriverException.class)
                 .ignoring(
                         JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters rea
@@ -605,7 +595,7 @@ public class DriverHelper {
      * @return url.
      */
     public String getCurrentUrl() {
-        return getCurrentUrl(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
+        return getCurrentUrl(Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class));
     }
 
     /**
@@ -618,9 +608,9 @@ public class DriverHelper {
         // explicitly limit time for the getCurrentUrl operation
         Future<?> future = Executors.newSingleThreadExecutor().submit(() -> {
             //organize fluent waiter for getting url
-            Wait<WebDriver> wait = new FluentWait<WebDriver>(getDriver())
-                    .pollingEvery(Duration.ofMillis(Configuration.getInt(Parameter.RETRY_INTERVAL)))
-                    .withTimeout(Duration.ofSeconds(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT)))
+            Wait<WebDriver> wait = new FluentWait<>(getDriver())
+                    .pollingEvery(Duration.ofMillis(Configuration.getRequired(Parameter.RETRY_INTERVAL, Integer.class)))
+                    .withTimeout(Duration.ofSeconds(Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class)))
                     .ignoring(WebDriverException.class)
                     .ignoring(
                             JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters rea
@@ -650,7 +640,7 @@ public class DriverHelper {
      * @return validation result.
      */
     public boolean isUrlAsExpected(String expectedURL) {
-        return isUrlAsExpected(expectedURL, Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
+        return isUrlAsExpected(expectedURL, Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class));
     }
 
     /**
@@ -661,7 +651,7 @@ public class DriverHelper {
      * @return validation result.
      */
     public boolean isUrlAsExpected(String expectedURL, long timeout) {
-        String decryptedURL = decryptIfEncrypted(expectedURL);
+        String decryptedURL = EncryptorUtils.decrypt(expectedURL);
         decryptedURL = getEnvArgURL(decryptedURL);
         String actualUrl = getCurrentUrl(timeout);
         if (LogicUtils.isURLEqual(decryptedURL, actualUrl)) {
@@ -681,11 +671,7 @@ public class DriverHelper {
      */
     private String getEnvArgURL(String decryptedURL) {
         if (!(decryptedURL.contains("http:") || decryptedURL.contains("https:"))) {
-            if (Configuration.getEnvArg(Parameter.URL.getKey()).isEmpty()) {
-                decryptedURL = Configuration.get(Parameter.URL) + decryptedURL;
-            } else {
-                decryptedURL = Configuration.getEnvArg(Parameter.URL.getKey()) + decryptedURL;
-            }
+            return Configuration.getRequired(Parameter.URL) + decryptedURL;
         }
         return decryptedURL;
     }
@@ -786,10 +772,7 @@ public class DriverHelper {
     }
 
     private String getSelenoidClipboardUrl(WebDriver driver) {
-        String seleniumHost = Configuration.getSeleniumUrl().replace("wd/hub", "clipboard/");
-        if (seleniumHost.isEmpty()) {
-            seleniumHost = Configuration.getEnvArg(Parameter.URL.getKey()).replace("wd/hub", "clipboard/");
-        }
+        String seleniumHost = Configuration.getRequired(Parameter.SELENIUM_URL).replace("wd/hub", "clipboard/");
         WebDriver drv = (driver instanceof Decorated<?>) ? (WebDriver) ((Decorated<?>) driver).getOriginal() : driver;
         String sessionId = ((RemoteWebDriver) drv).getSessionId().toString();
         String url = seleniumHost + sessionId;
@@ -823,7 +806,7 @@ public class DriverHelper {
      * @return title String.
      */
     public String getTitle() {
-        return getTitle(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
+        return getTitle(Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class));
     }
 
     /**
@@ -854,7 +837,7 @@ public class DriverHelper {
      * @return validation result.
      */
     public boolean isTitleAsExpected(final String expectedTitle) {
-        final String decryptedExpectedTitle = decryptIfEncrypted(expectedTitle);
+        final String decryptedExpectedTitle = EncryptorUtils.decrypt(expectedTitle);
         String title = getTitle(EXPLICIT_TIMEOUT);
         boolean result = title.contains(decryptedExpectedTitle);
         if (result) {
@@ -872,7 +855,7 @@ public class DriverHelper {
      * @return validation result.
      */
     public boolean isTitleAsExpectedPattern(String expectedPattern) {
-        final String decryptedExpectedPattern = decryptIfEncrypted(expectedPattern);
+        final String decryptedExpectedPattern = EncryptorUtils.decrypt(expectedPattern);
         String actual = getTitle(EXPLICIT_TIMEOUT);
         Pattern p = Pattern.compile(decryptedExpectedPattern);
         Matcher m = p.matcher(actual);
@@ -897,7 +880,7 @@ public class DriverHelper {
      * Refresh browser.
      */
     public void refresh() {
-        refresh(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
+        refresh(Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class));
     }
 
     /**
@@ -1156,7 +1139,7 @@ public class DriverHelper {
      * @throws RuntimeException If unable to open tab
      */
     public void openTab(String url) {
-        final String decryptedURL = decryptIfEncrypted(url);
+        final String decryptedURL = EncryptorUtils.decrypt(url);
         String script = "var d=document,a=d.createElement('a');a.target='_blank';a.href='%s';a.innerHTML='.';d.body.appendChild(a);return a";
         Object element = trigger(String.format(script, decryptedURL));
         if (element instanceof WebElement) {
@@ -1376,7 +1359,7 @@ public class DriverHelper {
     }
 
     private String getSelenoidDevToolsUrl() {
-        String url = String.format("%s%s", Configuration.getSeleniumUrl()
+        String url = String.format("%s%s", Configuration.getRequired(Parameter.SELENIUM_URL)
                 .replace("/wd/hub", "/devtools/")
                 .replaceFirst("^.+@", "wss://"),
                 DriverListener.castDriver(getDriver(), RemoteWebDriver.class).getSessionId());
@@ -1405,13 +1388,7 @@ public class DriverHelper {
     }
 
     private String getUrl() {
-        String url = "";
-        if (Configuration.isNull(Parameter.ENV) || Configuration.getEnvArg(Parameter.URL.getKey()).isEmpty()) {
-            url = Configuration.get(Parameter.URL);
-        } else {
-            url = Configuration.getEnvArg(Parameter.URL.getKey());
-        }
-        return url;
+        return Configuration.get(Parameter.URL).orElse("");
     }
 
     private static void setPageLoadTimeout(WebDriver drv, long timeout) {
@@ -1446,29 +1423,5 @@ public class DriverHelper {
             retryInterval = 1000;
         }
         return retryInterval;
-    }
-
-    private String decryptIfEncrypted(String text) {
-        Matcher cryptoMatcher = Pattern.compile(CRYPTO_PATTERN)
-                .matcher(text);
-        String decryptedText = text;
-        if (cryptoMatcher.find()) {
-            initCryptoTool();
-            decryptedText = this.cryptoTool.decrypt(text, CRYPTO_PATTERN);
-        }
-        return decryptedText;
-    }
-
-    private void initCryptoTool() {
-        if (this.cryptoTool == null) {
-            String cryptoKey = Configuration.get(Parameter.CRYPTO_KEY_VALUE);
-            if (cryptoKey.isEmpty()) {
-                throw new SkipException("Encrypted data detected, but the crypto key is not found!");
-            }
-            this.cryptoTool = CryptoToolBuilder.builder()
-                    .chooseAlgorithm(Algorithm.find(Configuration.get(Parameter.CRYPTO_ALGORITHM)))
-                    .setKey(cryptoKey)
-                    .build();
-        }
     }
 }

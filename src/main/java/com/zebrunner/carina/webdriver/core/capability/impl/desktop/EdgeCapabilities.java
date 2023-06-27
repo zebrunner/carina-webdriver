@@ -18,14 +18,15 @@ package com.zebrunner.carina.webdriver.core.capability.impl.desktop;
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.openqa.selenium.edge.EdgeOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.report.SessionContext;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
 public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
@@ -45,39 +46,30 @@ public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
 
     private void addEdgeOptions(EdgeOptions caps) {
         Map<String, Object> prefs = new HashMap<>();
-        boolean needsPrefs = false;
+        AtomicBoolean needsPrefs = new AtomicBoolean(false);
         // disable the "unsupported flag" prompt
         caps.addArguments("--test-type");
         // update browser language
-        String browserLang = Configuration.get(Configuration.Parameter.BROWSER_LANGUAGE);
-        if (!browserLang.isEmpty()) {
-            LOGGER.info("Set Edge language to: {}", browserLang);
-            caps.addArguments("--lang=" + browserLang);
-            prefs.put("intl.accept_languages", browserLang);
-            needsPrefs = true;
-        }
+        Configuration.get(WebDriverConfiguration.Parameter.BROWSER_LANGUAGE).ifPresent(language -> {
+            LOGGER.info("Set Edge language to: {}", language);
+            caps.addArguments("--lang=" + language);
+            prefs.put("intl.accept_languages", language);
+            needsPrefs.set(true);
+        });
 
-        if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD)) {
+        if (Configuration.get(WebDriverConfiguration.Parameter.AUTO_DOWNLOAD, Boolean.class).orElse(false)) {
             prefs.put("download.prompt_for_download", false);
-            if (!"zebrunner".equalsIgnoreCase(getProvider())) {
-                prefs.put("download.default_directory", SessionContext.getArtifactsFolder().toString());
-            }
-            needsPrefs = true;
+            prefs.put("download.default_directory", SessionContext.getArtifactsFolder().toString());
+            needsPrefs.set(true);
         }
 
-        if (needsPrefs) {
+        if (needsPrefs.get()) {
             caps.setExperimentalOption("prefs", prefs);
         }
         caps.setCapability("ms:edgeChrominum", true);
 
-        String driverType = Configuration.getDriverType();
-        if (Configuration.getBoolean(Configuration.Parameter.HEADLESS)
-                && driverType.equals(SpecialKeywords.DESKTOP)) {
-            caps.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
-            // todo refactor with w3c rules or remove
-            LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
-            caps.setCapability("zebrunner:enableVNC", false);
-            caps.setCapability("zebrunner:enableVideo", false);
+        if (Configuration.get(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class).orElse(false)) {
+            caps.setHeadless(true);
         }
     }
 }

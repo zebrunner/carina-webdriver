@@ -29,10 +29,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.webdriver.TestPhase.Phase;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.device.Device;
 
 public class DriverPoolTest implements IDriverPool {
@@ -247,7 +247,7 @@ public class DriverPoolTest implements IDriverPool {
         Long threadId = Thread.currentThread().getId();
         ConcurrentHashMap<String, CarinaDriver> currentDrivers = getDrivers();
 
-        int maxDriverCount = Configuration.getInt(Parameter.MAX_DRIVER_COUNT);
+        int maxDriverCount = Configuration.getRequired(WebDriverConfiguration.Parameter.MAX_DRIVER_COUNT, Integer.class);
 
         if (currentDrivers.size() == maxDriverCount) {
             Assert.fail("Unable to register driver as you reached max number of drivers per thread: " + maxDriverCount);

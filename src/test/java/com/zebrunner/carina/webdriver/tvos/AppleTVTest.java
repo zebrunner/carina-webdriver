@@ -15,8 +15,6 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.tvos;
 
-import static com.zebrunner.carina.utils.commons.SpecialKeywords.DESKTOP;
-import static com.zebrunner.carina.utils.commons.SpecialKeywords.MOBILE;
 import static com.zebrunner.carina.utils.commons.SpecialKeywords.MOBILE_DEVICE_PLATFORM;
 import static com.zebrunner.carina.utils.commons.SpecialKeywords.TVOS;
 
@@ -25,10 +23,12 @@ import org.openqa.selenium.remote.CapabilityType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
-import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.R;
+import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.factory.DeviceType.Type;
+import com.zebrunner.carina.webdriver.core.capability.CapabilityUtils;
+import com.zebrunner.carina.webdriver.core.capability.DriverType;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.device.Device;
 
 public class AppleTVTest {
@@ -43,26 +43,26 @@ public class AppleTVTest {
 	public void getTvOSDriverTypeTest() {
         MutableCapabilities capability = new MutableCapabilities();
         capability.setCapability(CapabilityType.PLATFORM_NAME, TVOS);
-		Assert.assertEquals(Configuration.getDriverType(capability), MOBILE);
+        Assert.assertEquals(CapabilityUtils.getDriverType(capability), DriverType.MOBILE);
 	}
 
 	@Test(groups = {"AppleTVTestClass"}, dependsOnGroups = {"DesktopCapabilitiesTestClass"})
 	public void negativeTvOSDriverTypeTest() {
         MutableCapabilities capability = new MutableCapabilities();
         capability.setCapability(CapabilityType.PLATFORM_NAME, TVOS);
-		Assert.assertNotEquals(Configuration.getDriverType(capability), DESKTOP);
+        Assert.assertNotEquals(CapabilityUtils.getDriverType(capability), DriverType.DESKTOP);
 	}
 
 	@Test(groups = {"AppleTVTestClass"}, dependsOnGroups = {"DesktopCapabilitiesTestClass"})
 	public void getTvOSPlatformTest() {
 		R.CONFIG.put(SpecialKeywords.PLATFORM_NAME, TVOS, true);
-		Assert.assertEquals(Configuration.getDriverType(), MOBILE);
+        Assert.assertEquals(WebDriverConfiguration.getDriverType(), DriverType.MOBILE);
 	}
 
 	@Test(groups = {"AppleTVTestClass"}, dependsOnGroups = {"DesktopCapabilitiesTestClass"})
 	public void negativeTvOSPlatformTest() {
 		R.CONFIG.put(SpecialKeywords.PLATFORM_NAME, TVOS, true);
-		Assert.assertNotEquals(Configuration.getDriverType(), DESKTOP);
+        Assert.assertNotEquals(WebDriverConfiguration.getDriverType(), DriverType.DESKTOP);
 	}
 
 	@Test(groups = {"AppleTVTestClass"}, dependsOnGroups = {"DesktopCapabilitiesTestClass"})

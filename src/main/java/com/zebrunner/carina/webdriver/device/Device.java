@@ -32,25 +32,25 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Capabilities;
-import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.CapabilityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.android.recorder.utils.AdbExecutor;
 import com.zebrunner.carina.utils.android.recorder.utils.CmdLine;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.factory.DeviceType.Type;
 import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
+import com.zebrunner.carina.webdriver.core.capability.CapabilityUtils;
 
 import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.remote.MobileCapabilityType;
+import io.appium.java_client.remote.MobilePlatform;
 
 public class Device implements IDriverPool {
     // TODO Review grid capabilities functionality (for example, slotCapabilities)
@@ -90,60 +90,36 @@ public class Device implements IDriverPool {
     }
 
     public Device(Capabilities capabilities) {
-        String deviceName = "";
-        if (CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.DEVICE_NAME, String.class) != null){
-            deviceName = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.DEVICE_NAME, String.class);
-        }
-        if (!R.CONFIG.get(SpecialKeywords.MOBILE_DEVICE_NAME).isBlank()){
-            deviceName = R.CONFIG.get(SpecialKeywords.MOBILE_DEVICE_NAME);
-        }
-        setName(deviceName);
+        setName("");
+        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.DEVICE_NAME, String.class)).ifPresent(this::setName);
+        WebDriverConfiguration.getAppiumCapability(MobileCapabilityType.DEVICE_NAME).ifPresent(this::setName);
 
         // TODO: should we register default device type as phone?
-        String deviceType = SpecialKeywords.PHONE;
-        if (!R.CONFIG.get(SpecialKeywords.MOBILE_DEVICE_TYPE).isEmpty()) {
-            deviceType = R.CONFIG.get(SpecialKeywords.MOBILE_DEVICE_TYPE);
-        }
-        if (capabilities.getCapability("deviceType") != null) {
-            deviceType = capabilities.getCapability("deviceType").toString();
-        }
-        setType(deviceType);
+        setType(SpecialKeywords.PHONE);
+        CapabilityUtils.getZebrunnerCapability(capabilities, "deviceType", String.class).ifPresent(this::setType);
+        WebDriverConfiguration.getZebrunnerCapability("deviceType").ifPresent(this::setType);
 
-        setOs(Configuration.getPlatform(new MutableCapabilities(capabilities)));
+        setOs("*");
+        Optional.ofNullable((String) capabilities.getCapability(CapabilityType.PLATFORM_NAME)).ifPresent(this::setOs);
+        WebDriverConfiguration.getCapability(CapabilityType.PLATFORM_NAME).ifPresent(this::setOs);
 
-        String platformVersion = "";
-        if (capabilities.getCapability("os_version") != null) {
-            platformVersion = capabilities.getCapability("os_version").toString();
-        }
-        if (!R.CONFIG.get(SpecialKeywords.BROWSERSTACK_PLATFORM_VERSION).isBlank()) {
-            platformVersion = R.CONFIG.get(SpecialKeywords.BROWSERSTACK_PLATFORM_VERSION);
-        }
-        if (CapabilityHelpers.getCapability(capabilities, "platformVersion", String.class) != null) {
-            platformVersion = CapabilityHelpers.getCapability(capabilities, "platformVersion", String.class);
-        }
-        if (!R.CONFIG.get(SpecialKeywords.PLATFORM_VERSION).isBlank()) {
-            platformVersion = R.CONFIG.get(SpecialKeywords.PLATFORM_VERSION);
-        }
-        setOsVersion(platformVersion);
+        setOsVersion("");
+        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.PLATFORM_VERSION, String.class))
+                .ifPresent(this::setOsVersion);
+        WebDriverConfiguration.getAppiumCapability(MobileCapabilityType.PLATFORM_VERSION).ifPresent(this::setOsVersion);
 
-        String deviceUdid = R.CONFIG.get(SpecialKeywords.MOBILE_DEVICE_UDID);
-        if (capabilities.getCapability(MobileCapabilityType.UDID) != null) {
-            deviceUdid = capabilities.getCapability(MobileCapabilityType.UDID).toString();
-        }
-        setUdid(deviceUdid);
-        
-        String proxyPort = R.CONFIG.get(SpecialKeywords.MOBILE_PROXY_PORT);
-        if (capabilities.getCapability(Parameter.PROXY_PORT.getKey()) != null) {
-            proxyPort = capabilities.getCapability(Parameter.PROXY_PORT.getKey()).toString();
-        }
-        setProxyPort(proxyPort);
+        setUdid("");
+        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class)).ifPresent(this::setUdid);
+        WebDriverConfiguration.getAppiumCapability(MobileCapabilityType.UDID).ifPresent(this::setUdid);
+
+        CapabilityUtils.getZebrunnerCapability(capabilities, "proxyPort", String.class).ifPresent(this::setProxyPort);
+        WebDriverConfiguration.getZebrunnerCapability("proxyPort").ifPresent(this::setProxyPort);
         
         // try to read extra information from slot capabilities object
         @SuppressWarnings("unchecked")
-        Map<String, Object> slotCap = (Map<String, Object>) capabilities.getCapability(SpecialKeywords.SLOT_CAPABILITIES);
-        if(slotCap == null) {
-            slotCap = (Map<String, Object>) capabilities.getCapability("zebrunner:slotCapabilities");
-        }
+        Map<String, Object> slotCap = (Map<String, Object>) CapabilityUtils
+                .getZebrunnerCapability(capabilities, SpecialKeywords.SLOT_CAPABILITIES, Object.class)
+                .orElse(null);
         try {
             if (slotCap != null && slotCap.containsKey(MobileCapabilityType.UDID)) {
 
@@ -160,7 +136,7 @@ public class Device implements IDriverPool {
                  */
 
                 // That's a trusted information from Zebrunner Device Farm so we can override all values
-                setName((String) slotCap.get("deviceName"));
+                setName((String) slotCap.get(MobileCapabilityType.DEVICE_NAME));
                 setOs((String) slotCap.get(CapabilityType.PLATFORM_NAME));
                 setOsVersion((String) slotCap.get(MobileCapabilityType.PLATFORM_VERSION));
                 setType((String) slotCap.get("deviceType"));
@@ -168,19 +144,16 @@ public class Device implements IDriverPool {
                 if (slotCap.containsKey("vnc")) {
                     setVnc((String) slotCap.get("vnc"));
                 }
-                if (slotCap.containsKey(Parameter.PROXY_PORT.getKey())) {
-                    setProxyPort(String.valueOf(slotCap.get(Parameter.PROXY_PORT.getKey())));
+                if (slotCap.containsKey("proxyPort")) {
+                    setProxyPort(String.valueOf(slotCap.get("proxyPort")));
                 }
-
                 if (slotCap.containsKey("remoteURL")) {
                     setRemoteURL(String.valueOf(slotCap.get("remoteURL")));
                 }
             }
-
         } catch (Exception e) {
             LOGGER.error("Unable to get device info!", e);
         }
-        
         setCapabilities(capabilities);
     }
 
@@ -274,7 +247,7 @@ public class Device implements IDriverPool {
             return Type.DESKTOP;
         }
 
-        if (getOs().equalsIgnoreCase(SpecialKeywords.ANDROID)) {
+        if (SpecialKeywords.ANDROID.equalsIgnoreCase(getOs())) {
             if (isTablet()) {
                 return Type.ANDROID_TABLET;
             }
@@ -282,7 +255,8 @@ public class Device implements IDriverPool {
                 return Type.ANDROID_TV;
             }
             return Type.ANDROID_PHONE;
-        } else if (getOs().equalsIgnoreCase(SpecialKeywords.IOS) || getOs().equalsIgnoreCase(SpecialKeywords.MAC) || getOs().equalsIgnoreCase(SpecialKeywords.TVOS)) {
+        } else if (SpecialKeywords.IOS.equalsIgnoreCase(getOs()) || SpecialKeywords.MAC.equalsIgnoreCase(getOs()) ||
+                SpecialKeywords.TVOS.equalsIgnoreCase(getOs())) {
             if (isTablet()) {
                 return Type.IOS_TABLET;
             }
@@ -300,10 +274,7 @@ public class Device implements IDriverPool {
     }
 
     public boolean isNull() {
-        if (StringUtils.isEmpty(getName())) {
-            return true;
-        }
-        return getName().isEmpty();
+        return StringUtils.isEmpty(getName());
     }
 
     public void connectRemote() {
@@ -398,20 +369,17 @@ public class Device implements IDriverPool {
     }
 
     public void clearAppData() {
-        clearAppData(Configuration.getMobileApp());
+        clearAppData(CapabilityHelpers.getCapability(getCapabilities(), MobileCapabilityType.APP, String.class));
     }
 
     public void clearAppData(String app) {
-        if (!Configuration.getPlatform().equalsIgnoreCase(SpecialKeywords.ANDROID)) {
+        if (!SpecialKeywords.ANDROID.equalsIgnoreCase((String) getCapabilities().getCapability(CapabilityType.PLATFORM_NAME))) {
             return;
         }
-
         if (isNull())
             return;
-
         // adb -s UDID shell pm clear com.myfitnesspal.android
         String packageName = getApkPackageName(app);
-
         String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "-s", getAdbName(), "shell", "pm", "clear", packageName);
         executor.execute(cmd);
     }
@@ -574,16 +542,20 @@ public class Device implements IDriverPool {
      * Related apps will be uninstall just once for a test launch.
      */
     public void uninstallRelatedApps() {
-        if (getOs().equalsIgnoreCase(Type.ANDROID_PHONE.getFamily()) && Configuration.getBoolean(Parameter.UNINSTALL_RELATED_APPS)
+        if (MobilePlatform.ANDROID.equalsIgnoreCase(getOs())
+                && Configuration.get(WebDriverConfiguration.Parameter.UNINSTALL_RELATED_APPS, Boolean.class).orElse(false)
                 && !CLEARED_DEVICE_UDIDS.contains(getUdid())) {
-            String mobileApp = Configuration.getMobileApp();
+            String mobileApp = CapabilityHelpers.getCapability(getCapabilities(), MobileCapabilityType.APP, String.class);
+            if (mobileApp == null) {
+                mobileApp = "";
+            }
             LOGGER.debug("Current mobile app: {}", mobileApp);
             String tempPackage;
             try {
                 tempPackage = getApkPackageName(mobileApp);
             } catch (Exception e) {
                 LOGGER.info("Error during extraction of package using aapt. It will be extracted from config");
-                tempPackage = R.CONFIG.get(SpecialKeywords.MOBILE_APP_PACKAGE);
+                tempPackage = WebDriverConfiguration.getAppiumCapability("appPackage").orElse("");
             }
             final String mobilePackage = tempPackage;
             LOGGER.debug("Current mobile package: {}", mobilePackage);

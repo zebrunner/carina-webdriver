@@ -17,6 +17,9 @@ package com.zebrunner.carina.webdriver.core.capability.impl.desktop;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.firefox.FirefoxProfile;
@@ -24,14 +27,14 @@ import org.openqa.selenium.net.PortProber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.report.SessionContext;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
 public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final ArrayList<Integer> firefoxPorts = new ArrayList<>();
+    private static final List<Integer> firefoxPorts = new ArrayList<>();
 
     /**
      * Generate FirefoxOptions for Firefox with default Carina FirefoxProfile.
@@ -70,43 +73,36 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
     private void addFirefoxOptions(FirefoxOptions options) {
         FirefoxProfile profile = getDefaultFirefoxProfile();
         options.setProfile(profile);
+        // add custom firefox args
+        Configuration.get(WebDriverConfiguration.Parameter.FIREFOX_ARGS)
+                .ifPresent(args -> Arrays.stream(args.split(","))
+                        .filter(arg -> !arg.isEmpty())
+                        .map(String::trim)
+                        .forEach(options::addArguments));
 
-        // add all custom firefox args
-        for (String arg : Configuration.get(Configuration.Parameter.FIREFOX_ARGS).split(",")) {
-            if (arg.isEmpty()) {
-                continue;
-            }
-            options.addArguments(arg.trim());
-        }
         // add all custom firefox preferences
-        for (String preference : Configuration.get(Configuration.Parameter.FIREFOX_PREFERENCES).split(",")) {
-            if (preference.isEmpty()) {
-                continue;
-            }
-            // TODO: think about equal sign inside name or value later
-            preference = preference.trim();
-            String name = preference.split("=")[0].trim();
-            String value = preference.split("=")[1].trim();
-            // TODO: test approach with numbers
-            if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
-                options.addPreference(name, Boolean.valueOf(value));
-            } else {
-                options.addPreference(name, value);
-            }
-        }
+        Configuration.get(WebDriverConfiguration.Parameter.FIREFOX_PREFERENCES).ifPresent(preferences -> {
+            Arrays.stream(preferences.split(","))
+                    .filter(p -> !p.isEmpty())
+                    // TODO: think about equal sign inside name or value later
+                    .map(String::trim)
+                    .forEach(preference -> {
+                        String name = preference.split("=")[0].trim();
+                        String value = preference.split("=")[1].trim();
+                        // TODO: test approach with numbers
+                        if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
+                            options.addPreference(name, Boolean.valueOf(value));
+                        } else {
+                            options.addPreference(name, value);
+                        }
+                    });
+        });
 
-        String driverType = Configuration.getDriverType();
-        if (Configuration.getBoolean(Configuration.Parameter.HEADLESS)
-                && driverType.equals(SpecialKeywords.DESKTOP)) {
-            options.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
-            // todo refactor with w3c rules or remove
-            LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
-            options.setCapability("zebrunner:enableVNC", false);
-            options.setCapability("zebrunner:enableVideo", false);
+        if (Configuration.get(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class)
+                .orElse(false)) {
+            options.setHeadless(true);
         }
-
     }
-
 
     /**
      * Generate default default Carina FirefoxProfile.
@@ -118,11 +114,11 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
         FirefoxProfile profile = new FirefoxProfile();
 
         // update browser language
-        String browserLang = Configuration.get(Configuration.Parameter.BROWSER_LANGUAGE);
-        if (!browserLang.isEmpty()) {
-            LOGGER.info("Set Firefox lanaguage to: {}, ", browserLang);
-            profile.setPreference("intl.accept_languages", browserLang);
-        }
+        Configuration.get(WebDriverConfiguration.Parameter.BROWSER_LANGUAGE)
+                .ifPresent(language -> {
+                    LOGGER.info("Set Firefox language to: {}, ", language);
+                    profile.setPreference("intl.accept_languages", language);
+                });
 
         boolean generated = false;
         int newPort = 7055;
@@ -144,25 +140,30 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
         profile.setPreference("dom.max_chrome_script_run_time", 0);
         profile.setPreference("dom.max_script_run_time", 0);
 
-        if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD) && !(Configuration.isNull(Configuration.Parameter.AUTO_DOWNLOAD_APPS)
-                || "".equals(Configuration.get(Configuration.Parameter.AUTO_DOWNLOAD_APPS)))) {
-            profile.setPreference("browser.download.folderList", 2);
-            if (!"zebrunner".equalsIgnoreCase(getProvider())) {
-                // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
-                profile.setPreference("browser.download.dir", SessionContext.getArtifactsFolder().toString());
+        Configuration.get(WebDriverConfiguration.Parameter.AUTO_DOWNLOAD, Boolean.class).ifPresent(isAutoDownload -> {
+            if (!isAutoDownload) {
+                return;
             }
-            profile.setPreference("browser.helperApps.neverAsk.saveToDisk", Configuration.get(Configuration.Parameter.AUTO_DOWNLOAD_APPS));
+            Optional<String> autoDownloadApps = Configuration.get(WebDriverConfiguration.Parameter.AUTO_DOWNLOAD_APPS);
+            if (autoDownloadApps.isEmpty()) {
+                LOGGER.warn(
+                        "If you want to enable auto-download for FF please specify '{}' param",
+                        WebDriverConfiguration.Parameter.AUTO_DOWNLOAD_APPS.getKey());
+                return;
+            }
+
+            profile.setPreference("browser.download.folderList", 2);
+            // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
+            profile.setPreference("browser.download.dir", SessionContext.getArtifactsFolder().toString());
+
+            profile.setPreference("browser.helperApps.neverAsk.saveToDisk", autoDownloadApps.get());
             profile.setPreference("browser.download.manager.showWhenStarting", false);
             profile.setPreference("browser.download.saveLinkAsFilenameTimeout", 1);
             profile.setPreference("pdfjs.disabled", true);
             profile.setPreference("plugin.scan.plid.all", false);
             profile.setPreference("plugin.scan.Acrobat", "99.0");
-        } else if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD) && Configuration.isNull(Configuration.Parameter.AUTO_DOWNLOAD_APPS)
-                || "".equals(Configuration.get(Configuration.Parameter.AUTO_DOWNLOAD_APPS))) {
-            LOGGER.warn(
-                    "If you want to enable auto-download for FF please specify '{}' param", Configuration.Parameter.AUTO_DOWNLOAD_APPS.getKey());
-        }
 
+        });
         profile.setAcceptUntrustedCertificates(true);
         profile.setAssumeUntrustedCertificateIssuer(true);
 

@@ -18,14 +18,15 @@ package com.zebrunner.carina.webdriver.core.capability.impl.desktop;
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.report.SessionContext;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
 public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
@@ -58,52 +59,38 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
         options.addArguments("--test-type");
         // prefs
         HashMap<String, Object> chromePrefs = new HashMap<>();
-        boolean needsPrefs = false;
+        AtomicBoolean needsPrefs = new AtomicBoolean(false);
 
         // update browser language
-        String browserLang = Configuration.get(Configuration.Parameter.BROWSER_LANGUAGE);
-        if (!browserLang.isEmpty()) {
-            LOGGER.info("Set Chrome language to: {}", browserLang);
-            options.addArguments("--lang=" + browserLang);
-            chromePrefs.put("intl.accept_languages", browserLang);
-            needsPrefs = true;
-        }
+        Configuration.get(WebDriverConfiguration.Parameter.BROWSER_LANGUAGE).ifPresent(language -> {
+            LOGGER.info("Set Chrome language to: {}", language);
+            options.addArguments("--lang=" + language);
+            chromePrefs.put("intl.accept_languages", language);
+            needsPrefs.set(true);
+        });
 
-        if (Configuration.getBoolean(Configuration.Parameter.AUTO_DOWNLOAD)) {
+        if (Configuration.get(WebDriverConfiguration.Parameter.AUTO_DOWNLOAD, Boolean.class).orElse(false)) {
             chromePrefs.put("download.prompt_for_download", false);
-            if (!"zebrunner".equalsIgnoreCase(getProvider())) {
-                // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
-                chromePrefs.put("download.default_directory", SessionContext.getArtifactsFolder().toString());
-            }
+            // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
+            chromePrefs.put("download.default_directory", SessionContext.getArtifactsFolder().toString());
             chromePrefs.put("plugins.always_open_pdf_externally", true);
-            needsPrefs = true;
+            needsPrefs.set(true);
         }
 
-
-        // [VD] no need to set proxy via options anymore!
-        // moreover if below code is uncommented then we have double proxy start and mess in host:port values
-
-        // setup default mobile chrome args and preferences
-        String driverType = Configuration.getDriverType();
-        if (SpecialKeywords.MOBILE.equals(driverType)) {
-            options.addArguments("--no-first-run");
-            options.addArguments("--disable-notifications");
-            options.setExperimentalOption("w3c", false);
-        }
-
-        // add all custom chrome args
-        for (String arg : Configuration.get(Configuration.Parameter.CHROME_ARGS).split(",")) {
-            if (arg.isEmpty()) {
-                continue;
+        Configuration.get(WebDriverConfiguration.Parameter.CHROME_ARGS).ifPresent(args -> {
+            // add all custom chrome args
+            for (String arg : args.split(",")) {
+                if (arg.isEmpty()) {
+                    continue;
+                }
+                options.addArguments(arg.trim());
             }
-            options.addArguments(arg.trim());
-        }
+        });
 
         // add all custom chrome experimental options, w3c=false
-        String experimentalOptions = Configuration.get(Configuration.Parameter.CHROME_EXPERIMENTAL_OPTS);
-        if (!experimentalOptions.isEmpty()) {
-            needsPrefs = true;
-            for (String option : experimentalOptions.split(",")) {
+        Configuration.get(WebDriverConfiguration.Parameter.CHROME_EXPERIMENTAL_OPTS).ifPresent(opts -> {
+            needsPrefs.set(true);
+            for (String option : opts.split(",")) {
                 if (option.isEmpty()) {
                     continue;
                 }
@@ -120,36 +107,33 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
                     chromePrefs.put(name, value);
                 }
             }
-        }
+        });
 
-        if (needsPrefs) {
+        if (needsPrefs.get()) {
             options.setExperimentalOption("prefs", chromePrefs);
         }
 
         // add all custom chrome mobileEmulation options, deviceName=Nexus 5
         Map<String, String> mobileEmulation = new HashMap<>();
-        for (String option : Configuration.get(Configuration.Parameter.CHROME_MOBILE_EMULATION_OPTS).split(",")) {
-            if (option.isEmpty()) {
-                continue;
-            }
+        Configuration.get(WebDriverConfiguration.Parameter.CHROME_MOBILE_EMULATION_OPTS).ifPresent(opts -> {
+            for (String option : opts.split(",")) {
+                if (option.isEmpty()) {
+                    continue;
+                }
 
-            option = option.trim();
-            String name = option.split("=")[0].trim();
-            String value = option.split("=")[1].trim();
-            mobileEmulation.put(name, value);
-        }
+                option = option.trim();
+                String name = option.split("=")[0].trim();
+                String value = option.split("=")[1].trim();
+                mobileEmulation.put(name, value);
+            }
+        });
 
         if (!mobileEmulation.isEmpty()) {
             options.setExperimentalOption("mobileEmulation", mobileEmulation);
         }
 
-        if (Configuration.getBoolean(Configuration.Parameter.HEADLESS)
-                && driverType.equals(SpecialKeywords.DESKTOP)) {
-            options.setHeadless(Configuration.getBoolean(Configuration.Parameter.HEADLESS));
-            // todo refactor with w3c rules or remove
-            LOGGER.info("Browser will be started in headless mode. VNC and Video will be disabled.");
-            options.setCapability("zebrunner:enableVNC", false);
-            options.setCapability("zebrunner:enableVideo", false);
+        if (Configuration.get(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class).orElse(false)) {
+            options.setHeadless(true);
         }
     }
 }

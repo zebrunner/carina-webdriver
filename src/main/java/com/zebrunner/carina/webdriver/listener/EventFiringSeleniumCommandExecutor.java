@@ -17,8 +17,6 @@ package com.zebrunner.carina.webdriver.listener;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
-import java.net.URL;
-import java.time.Duration;
 
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.remote.Command;
@@ -29,33 +27,27 @@ import org.openqa.selenium.remote.http.ClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 
 /**
  * EventFiringSeleniumCommandExecutor triggers event listener before/after execution of the command.
  */
 public class EventFiringSeleniumCommandExecutor extends HttpCommandExecutor {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
     private static final String CONNECTION_TIMED_OUT_EXCEPTION = "connection timed out";
 
-    public EventFiringSeleniumCommandExecutor(URL addressOfRemoteServer) {
-        super(ClientConfig.defaultConfig()
-                .baseUrl(addressOfRemoteServer)
-                //todo reuse parameter from Configuration.Parameter class
-                .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout"))));
+    public EventFiringSeleniumCommandExecutor(ClientConfig clientConfig) {
+        super(clientConfig);
     }
 
     @Override
     public Response execute(Command command) throws IOException {
         Response response = null;
         int retry = 2; // extra retries to execute command
-        Number pause = Configuration.getInt(Parameter.EXPLICIT_TIMEOUT) / retry;
+        Number pause = Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class) / retry;
         while (retry >= 0) {
             response = super.execute(command);
             if (response.getValue() instanceof WebDriverException) {

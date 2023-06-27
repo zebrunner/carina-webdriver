@@ -23,10 +23,10 @@ import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 import org.testng.Assert;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.webdriver.DriverHelper;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.factory.ExtendedPageFactory;
 import com.zebrunner.carina.webdriver.decorator.ElementLoadingStrategy;
 import com.zebrunner.carina.webdriver.decorator.ExtendedFieldDecorator;
@@ -54,7 +54,8 @@ public abstract class AbstractUIObject extends DriverHelper {
      * @deprecated useless variable
      */
     @Deprecated(forRemoval = true, since = "1.0.0")
-    private ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy.valueOf(Configuration.get(Parameter.ELEMENT_LOADING_STRATEGY));
+    private ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy
+            .valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.ELEMENT_LOADING_STRATEGY));
 
     /**
      * Initializes UI object using {@link PageFactory}. Whole browser window is used as search context
@@ -98,7 +99,7 @@ public abstract class AbstractUIObject extends DriverHelper {
     }
 
     public boolean isUIObjectPresent() {
-        return isUIObjectPresent(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT));
+        return isUIObjectPresent(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class));
     }
 
     public ExtendedWebElement getUiLoadedMarker() {
