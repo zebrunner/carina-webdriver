@@ -89,31 +89,33 @@ public class Device implements IDriverPool {
         this.proxyPort = proxyPort;        
     }
 
+    // todo refactor - read only from capabilities (original)
     public Device(Capabilities capabilities) {
         setName("");
-        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.DEVICE_NAME, String.class)).ifPresent(this::setName);
-        WebDriverConfiguration.getAppiumCapability(MobileCapabilityType.DEVICE_NAME).ifPresent(this::setName);
+        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.DEVICE_NAME, String.class))
+                .ifPresent(this::setName);
+        WebDriverConfiguration.getCapability(MobileCapabilityType.DEVICE_NAME).ifPresent(this::setName);
 
         // TODO: should we register default device type as phone?
         setType(SpecialKeywords.PHONE);
+        WebDriverConfiguration.getCapability("deviceType").ifPresent(this::setType);
         CapabilityUtils.getZebrunnerCapability(capabilities, "deviceType", String.class).ifPresent(this::setType);
-        WebDriverConfiguration.getZebrunnerCapability("deviceType").ifPresent(this::setType);
 
-        setOs("*");
-        Optional.ofNullable((String) capabilities.getCapability(CapabilityType.PLATFORM_NAME)).ifPresent(this::setOs);
-        WebDriverConfiguration.getCapability(CapabilityType.PLATFORM_NAME).ifPresent(this::setOs);
+        setOs(WebDriverConfiguration.getCapability(CapabilityType.PLATFORM_NAME).orElse("*"));
 
         setOsVersion("");
         Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.PLATFORM_VERSION, String.class))
                 .ifPresent(this::setOsVersion);
-        WebDriverConfiguration.getAppiumCapability(MobileCapabilityType.PLATFORM_VERSION).ifPresent(this::setOsVersion);
+        WebDriverConfiguration.getCapability(MobileCapabilityType.PLATFORM_VERSION).ifPresent(this::setOsVersion);
 
         setUdid("");
-        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class)).ifPresent(this::setUdid);
-        WebDriverConfiguration.getAppiumCapability(MobileCapabilityType.UDID).ifPresent(this::setUdid);
+        WebDriverConfiguration.getCapability(MobileCapabilityType.UDID).ifPresent(this::setUdid);
+        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class))
+                .ifPresent(this::setUdid);
 
+        setProxyPort("");
+        WebDriverConfiguration.getCapability("proxyPort").ifPresent(this::setProxyPort);
         CapabilityUtils.getZebrunnerCapability(capabilities, "proxyPort", String.class).ifPresent(this::setProxyPort);
-        WebDriverConfiguration.getZebrunnerCapability("proxyPort").ifPresent(this::setProxyPort);
         
         // try to read extra information from slot capabilities object
         @SuppressWarnings("unchecked")
