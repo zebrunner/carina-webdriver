@@ -49,7 +49,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
-        <carina-utils.version>1.1.5.P1-SNAPSHOT</carina-utils.version>
+        <carina-utils.version>1.1.5</carina-utils.version>
         <carina-commons.version>1.0.2</carina-commons.version>
         <zebrunner-testng-pluggable.version>1.9.6</zebrunner-testng-pluggable.version>
         <slf4j.version>1.7.30</slf4j.version>
@@ -76,7 +76,7 @@
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
     </properties>
 
-    <repositories>
+    <!--repositories>
         <repository>
             <id>zebrunner_snapshots</id>
             <name>zebrunner Snapshots</name>
@@ -88,7 +88,7 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
-    </repositories>
+    </repositories-->
 
     <dependencies>
         <dependency>
