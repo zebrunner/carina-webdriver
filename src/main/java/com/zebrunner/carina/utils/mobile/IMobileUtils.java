@@ -45,15 +45,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.android.AndroidService;
 import com.zebrunner.carina.utils.android.DeviceTimeZone;
 import com.zebrunner.carina.utils.android.IAndroidUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.webdriver.DriverHelper;
 import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 
 import io.appium.java_client.HasAppStrings;
@@ -92,8 +92,7 @@ public interface IMobileUtils extends IDriverPool {
      * @deprecated this constant is not used in IMobileUtils
      */
     @Deprecated(forRemoval = true, since = "8.x")
-    long EXPLICIT_TIMEOUT = Configuration.getLong(Parameter.EXPLICIT_TIMEOUT);
-
+    long EXPLICIT_TIMEOUT = Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class);
     /**
      * @deprecated this constant is not used in IMobileUtils
      */
@@ -740,19 +739,15 @@ public interface IMobileUtils extends IDriverPool {
             String baseApp = "";
             String os = IDriverPool.getDefaultDevice().getOs();
             if (os.equalsIgnoreCase(SpecialKeywords.ANDROID)) {
-
                 AndroidService androidService = AndroidService.getInstance();
-
                 if (returnAppFocus) {
                     baseApp = androidService.getCurrentFocusedApkDetails();
                 }
-
-                String deviceTimezone = Configuration.get(Parameter.DEFAULT_DEVICE_TIMEZONE);
-                String deviceTimeFormat = Configuration.get(Parameter.DEFAULT_DEVICE_TIME_FORMAT);
-                String deviceLanguage = Configuration.get(Parameter.DEFAULT_DEVICE_LANGUAGE);
-
-                DeviceTimeZone.TimeFormat timeFormat = DeviceTimeZone.TimeFormat.parse(deviceTimeFormat);
-                DeviceTimeZone.TimeZoneFormat timeZone = DeviceTimeZone.TimeZoneFormat.parse(deviceTimezone);
+                DeviceTimeZone.TimeZoneFormat timeZone = Configuration.get(WebDriverConfiguration.Parameter.DEFAULT_DEVICE_TIMEZONE)
+                        .map(DeviceTimeZone.TimeZoneFormat::parse).orElse(DeviceTimeZone.TimeZoneFormat.GMT);
+                DeviceTimeZone.TimeFormat timeFormat = Configuration.get(WebDriverConfiguration.Parameter.DEFAULT_DEVICE_TIME_FORMAT)
+                        .map(DeviceTimeZone.TimeFormat::parse).orElse(DeviceTimeZone.TimeFormat.FORMAT_12);
+                String deviceLanguage = Configuration.get(WebDriverConfiguration.Parameter.DEFAULT_DEVICE_LANGUAGE).orElse("en_US");
 
                 UTILS_LOGGER.info("Set device timezone to {}", timeZone);
                 UTILS_LOGGER.info("Set device time format to {}", timeFormat);
@@ -760,15 +755,11 @@ public interface IMobileUtils extends IDriverPool {
 
                 boolean timeZoneChanged = androidService.setDeviceTimeZone(timeZone.getTimeZone(), timeZone.getSettingsTZ(), timeFormat);
                 boolean languageChanged = androidService.setDeviceLanguage(deviceLanguage);
-
                 UTILS_LOGGER.info("Device TimeZone was changed to timeZone '{}' : {}. Device Language was changed to language '{}': {}",
-                        deviceTimezone,
-                        timeZoneChanged, deviceLanguage, languageChanged);
-
+                        timeZone, timeZoneChanged, deviceLanguage, languageChanged);
                 if (returnAppFocus) {
                     androidService.openApp(baseApp);
                 }
-
             } else {
                 UTILS_LOGGER.info("Current OS is {}. But we can set default TimeZone and Language only for Android.", os);
             }

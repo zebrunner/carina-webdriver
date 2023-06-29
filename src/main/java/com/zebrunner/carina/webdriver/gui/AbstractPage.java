@@ -15,11 +15,10 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.gui;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
-import java.util.Optional;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -34,11 +33,12 @@ import com.itextpdf.text.Image;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.RectangleReadOnly;
 import com.itextpdf.text.pdf.PdfWriter;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.factory.ICustomTypePageFactory;
 import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.utils.report.SessionContext;
 import com.zebrunner.carina.webdriver.Screenshot;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.decorator.PageOpeningStrategy;
 import com.zebrunner.carina.webdriver.screenshot.ExplicitFullSizeScreenshotRule;
 
@@ -50,7 +50,8 @@ import com.zebrunner.carina.webdriver.screenshot.ExplicitFullSizeScreenshotRule;
 public abstract class AbstractPage extends AbstractUIObject implements ICustomTypePageFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private PageOpeningStrategy pageOpeningStrategy = PageOpeningStrategy.valueOf(Configuration.get(Parameter.PAGE_OPENING_STRATEGY));
+    private PageOpeningStrategy pageOpeningStrategy = PageOpeningStrategy
+            .valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.PAGE_OPENING_STRATEGY));
 
     protected AbstractPage(WebDriver driver) {
         super(driver);
@@ -147,44 +148,41 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
      * Save page as pdf<br>
      * If you want to set fileName as test name, use TestNamingService.getTestName()
      */
-    public String savePageAsPdf(boolean scaled, String fileName) throws IOException, DocumentException {
-        String pdfName = "";
-        File artifactsFolder = ReportContext.getArtifactsFolder();
+    public Path savePageAsPdf(boolean scaled, String fileName) {
+        try {
+            String pdfName = "";
+            String screenshot = Screenshot.capture(getDriver(), getDriver(), new ExplicitFullSizeScreenshotRule(), "")
+                    .orElseThrow();
+            String fileID = fileName.replaceAll("\\W+", "_") + "-" + System.currentTimeMillis();
+            pdfName = fileID + ".pdf";
+            Path pdfPath = SessionContext.getArtifactsFolder().resolve(pdfName);
 
-
-        ExplicitFullSizeScreenshotRule screenshotRule = new ExplicitFullSizeScreenshotRule();
-        Optional<String> screenshot = Screenshot.capture(getDriver(), getDriver(), screenshotRule, "");
-        if (screenshot.isEmpty()) {
-            return pdfName;
-        }
-
-        String fileID = fileName.replaceAll("\\W+", "_") + "-" + System.currentTimeMillis();
-        pdfName = fileID + ".pdf";
-        String fullPdfPath = artifactsFolder.getAbsolutePath() + "/" + pdfName;
-
-        Image image = Image.getInstance(screenshotRule.getSaveFolder().toFile().getAbsolutePath() + "/" + screenshot.get());
-        Document document = null;
-        if (scaled) {
-            document = new Document(PageSize.A4, 10, 10, 10, 10);
-            if (image.getHeight() > (document.getPageSize().getHeight() - 20)
-                    || image.getScaledWidth() > (document.getPageSize().getWidth() - 20)) {
-                image.scaleToFit(document.getPageSize().getWidth() - 20, document.getPageSize().getHeight() - 20);
+            Image image = Image.getInstance(Path.of(ReportContext.getTestDir().getAbsolutePath()).resolve(screenshot).toString());
+            Document document;
+            if (scaled) {
+                document = new Document(PageSize.A4, 10, 10, 10, 10);
+                if (image.getHeight() > (document.getPageSize().getHeight() - 20)
+                        || image.getScaledWidth() > (document.getPageSize().getWidth() - 20)) {
+                    image.scaleToFit(document.getPageSize().getWidth() - 20, document.getPageSize().getHeight() - 20);
+                }
+            } else {
+                document = new Document(new RectangleReadOnly(image.getScaledWidth(), image.getScaledHeight()));
             }
-        } else {
-            document = new Document(new RectangleReadOnly(image.getScaledWidth(), image.getScaledHeight()));
+            PdfWriter.getInstance(document, Files.newOutputStream(pdfPath));
+            document.open();
+            document.add(image);
+            document.close();
+            return pdfPath;
+        } catch (IOException | DocumentException e) {
+            throw new RuntimeException(String.format("Cannot save page as pdf. Message: '%s'", e.getMessage()), e);
         }
-        PdfWriter.getInstance(document, new FileOutputStream(fullPdfPath));
-        document.open();
-        document.add(image);
-        document.close();
-        return fullPdfPath;
     }
 
     /**
      * Save page as pdf<br>
      * If you want to set fileName as test name, use TestNamingService.getTestName()
      */
-    public String savePageAsPdf(String fileName) throws IOException, DocumentException {
+    public Path savePageAsPdf(String fileName) {
         return savePageAsPdf(true, fileName);
     }
 

@@ -13,31 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package com.zebrunner.carina.webdriver.screenshot;
-
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
-import com.zebrunner.carina.webdriver.ScreenshotType;
+package com.zebrunner.carina.utils.exception;
 
 /**
- * Screenshot rule for capturing screenshots if debug log level enabled.
- * Not used by default in Carina Framework
+ * <b>for internal usage only</b>
  */
-public class DebugLevelScreenshotRule implements IScreenshotRule {
+public class DriverPoolException extends RuntimeException {
+	private static final long serialVersionUID = 5200458288468528656L;
 
-    @Override
-    public ScreenshotType getScreenshotType() {
-        return ScreenshotType.SUCCESSFUL_DRIVER_ACTION;
+    public DriverPoolException() {
+        super("Undefined failure in DriverPool!");
     }
 
-    @Override
-    public boolean isTakeScreenshot() {
-        return Configuration.get(Parameter.CORE_LOG_LEVEL).equalsIgnoreCase("debug");
+    public DriverPoolException(String msg) {
+        super(msg);
     }
-    
-    @Override
-    public boolean isAllowFullSize() {
-        return Configuration.get(Parameter.CORE_LOG_LEVEL).equalsIgnoreCase("debug");
-    }
-
 }

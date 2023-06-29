@@ -15,9 +15,9 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.screenshot;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.webdriver.ScreenshotType;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 
 /**
  * Screenshot rule for capturing screenshots on {@link ScreenshotType#SUCCESSFUL_DRIVER_ACTION}.
@@ -33,7 +33,7 @@ public class DefaultSuccessfulDriverActionScreenshotRule implements IScreenshotR
     @Override
     public boolean isTakeScreenshot() {
         // enabled or not screenshot generation for driver action
-        return Configuration.getBoolean(Parameter.AUTO_SCREENSHOT);
+        return Configuration.get(WebDriverConfiguration.Parameter.AUTO_SCREENSHOT, Boolean.class).orElse(false);
     }
 
     @Override

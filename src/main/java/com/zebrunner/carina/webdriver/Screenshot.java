@@ -40,6 +40,7 @@ import org.openqa.selenium.Beta;
 import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.NoSuchWindowException;
 import org.openqa.selenium.OutputType;
+import org.openqa.selenium.Platform;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.TimeoutException;
@@ -54,10 +55,12 @@ import org.openqa.selenium.support.ui.Wait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.report.ReportContext;
+import com.zebrunner.carina.webdriver.core.capability.CapabilityUtils;
+import com.zebrunner.carina.webdriver.core.capability.DriverType;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.screenshot.IScreenshotRule;
 
 import io.appium.java_client.AppiumDriver;
@@ -524,7 +527,8 @@ public class Screenshot {
                 }
 
                 int divider = fullSize ? 2 : 3;
-                Duration timeout = Duration.ofSeconds(Configuration.getInt(Parameter.EXPLICIT_TIMEOUT) / divider);
+                Duration timeout = Duration
+                        .ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class) / divider);
                 BufferedImage screen = null;
                 try {
                     setPageLoadTimeout(driver, timeout);
@@ -555,10 +559,10 @@ public class Screenshot {
                     return "";
                 }
 
-                if (Configuration.getInt(Parameter.BIG_SCREEN_WIDTH) != -1
-                        && Configuration.getInt(Parameter.BIG_SCREEN_HEIGHT) != -1) {
-                    screen = resizeImg(screen, Configuration.getInt(Parameter.BIG_SCREEN_WIDTH),
-                            Configuration.getInt(Parameter.BIG_SCREEN_HEIGHT));
+                Optional<Integer> screenWidth = Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_WIDTH, Integer.class);
+                Optional<Integer> screenHeight = Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_HEIGHT, Integer.class);
+                if (screenWidth.isPresent() && screenHeight.isPresent()) {
+                    screen = resizeImg(screen, screenWidth.get(), screenHeight.get());
                 }
 
                 File screenshot = new File(screenPath);
@@ -637,8 +641,8 @@ public class Screenshot {
         } else {
             final AShot ashot;
             // if for mobile we use RemoteWebDriver
-            if (Configuration.getDriverType().equals(SpecialKeywords.MOBILE)) {
-                if (Configuration.getPlatform().equals("ANDROID")) {
+            if (DriverType.MOBILE.equals(CapabilityUtils.getDriverType(((HasCapabilities) driver).getCapabilities()))) {
+                if (Platform.ANDROID.is(((HasCapabilities) driver).getCapabilities().getPlatformName())) {
                     String pixelRatio = String.valueOf(((HasCapabilities) driver).getCapabilities().getCapability("pixelRatio"));
                     float dpr = !pixelRatio.equals("null") ? Float.parseFloat(pixelRatio) : SpecialKeywords.DEFAULT_DPR;
                     ashot = new AShot().shootingStrategy(ShootingStrategies
@@ -654,9 +658,7 @@ public class Screenshot {
                 // regular web
                 ashot = new AShot().shootingStrategy(ShootingStrategies.viewportPasting(SpecialKeywords.DEFAULT_SCROLL_TIMEOUT));
             }
-            screenshot = wait.until(
-                    ashot::takeScreenshot)
-                    .getImage();
+            screenshot = wait.until(ashot::takeScreenshot).getImage();
         }
         return screenshot;
     }
@@ -814,10 +816,10 @@ public class Screenshot {
             screenName = fileNameDiffImage + ".png";
             String screenPath = testScreenRootDir.getAbsolutePath() + "/" + screenName;
 
-            if (Configuration.getInt(Parameter.BIG_SCREEN_WIDTH) != -1
-                    && Configuration.getInt(Parameter.BIG_SCREEN_HEIGHT) != -1) {
-                screen = resizeImg(screen, Configuration.getInt(Parameter.BIG_SCREEN_WIDTH),
-                        Configuration.getInt(Parameter.BIG_SCREEN_HEIGHT));
+            Optional<Integer> screenWidth = Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_WIDTH, Integer.class);
+            Optional<Integer> screenHeight = Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_HEIGHT, Integer.class);
+            if (screenWidth.isPresent() && screenHeight.isPresent()) {
+                screen = resizeImg(screen, screenWidth.get(), screenHeight.get());
             }
 
             File screenshot;

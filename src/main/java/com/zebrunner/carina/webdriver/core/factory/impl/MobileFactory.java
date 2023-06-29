@@ -20,8 +20,8 @@ import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,19 +35,18 @@ import org.slf4j.LoggerFactory;
 
 import com.zebrunner.agent.core.registrar.Artifact;
 import com.zebrunner.carina.commons.artifact.IArtifactManager;
-import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
 import com.zebrunner.carina.utils.mobile.ArtifactProvider;
 import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.EspressoCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.UiAutomator2Capabilities;
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.XCUITestCapabilities;
 import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
 import com.zebrunner.carina.webdriver.device.Device;
-import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 
 import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.android.AndroidDriver;
@@ -55,6 +54,7 @@ import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.remote.AutomationName;
 import io.appium.java_client.remote.MobileCapabilityType;
+import io.appium.java_client.remote.MobilePlatform;
 
 /**
  * MobileFactory creates instance {@link WebDriver} for mobile testing.
@@ -90,7 +90,7 @@ public class MobileFactory extends AbstractFactory {
     @Override
     public WebDriver create(String name, MutableCapabilities capabilities, String seleniumHost) {
         if (seleniumHost == null) {
-            seleniumHost = Configuration.getSeleniumUrl();
+            seleniumHost = Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL);
         }
         LOGGER.debug("Selenium URL: {}", seleniumHost);
 
@@ -98,14 +98,15 @@ public class MobileFactory extends AbstractFactory {
         // if inside capabilities only singly "udid" capability then generate default one and append udid
         if (isCapabilitiesEmpty(capabilities)) {
             capabilities = getCapabilities(name);
-        } else if (capabilities.asMap().size() == 1 && capabilities.getCapability("udid") != null) {
-            String udid = capabilities.getCapability("udid").toString();
+        } else if (capabilities.asMap().size() == 1
+                && CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class) != null) {
+            String udid = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class);
             capabilities = getCapabilities(name);
-            capabilities.setCapability("udid", udid);
+            capabilities.setCapability(MobileCapabilityType.UDID, udid);
             LOGGER.debug("Appended udid to capabilities: {}", capabilities);
         }
 
-        Object mobileAppCapability = capabilities.getCapability(MobileCapabilityType.APP);
+        Object mobileAppCapability = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.APP, String.class);
         if (mobileAppCapability != null) {
             capabilities.setCapability(MobileCapabilityType.APP, getCachedAppLink(String.valueOf(mobileAppCapability)));
         }
@@ -114,22 +115,19 @@ public class MobileFactory extends AbstractFactory {
 
         try {
             String mobilePlatformName = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
-            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new HashMap<>(0),
-                    AppiumClientConfig.defaultConfig().baseUrl(new URL(seleniumHost))
-                            .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout"))));
-
-            if (SpecialKeywords.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
-                driver = new AndroidDriver(ce, capabilities);
-                // todo do not create TVOSDriver for now
-                // }
-                // else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) &&
-                // SpecialKeywords.TVOS.equalsIgnoreCase(CapabilityHelpers.getCapability(capabilities, "deviceType", String.class))) {
-                // driver = new TVOSDriver(ce, capabilities);
-            } else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) ||
-                    SpecialKeywords.TVOS.equalsIgnoreCase(mobilePlatformName)) {
+            AppiumClientConfig clientConfig = AppiumClientConfig.defaultConfig()
+                    .baseUrl(new URL(seleniumHost));
+            Optional<Integer> readTimeout = Configuration.get(WebDriverConfiguration.Parameter.READ_TIMEOUT, Integer.class);
+            if (readTimeout.isPresent()) {
+                clientConfig = clientConfig.readTimeout(Duration.ofSeconds(readTimeout.get()));
+            }
+            if (MobilePlatform.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
+                driver = new AndroidDriver(clientConfig, capabilities);
+            } else if (MobilePlatform.IOS.equalsIgnoreCase(mobilePlatformName) ||
+                    MobilePlatform.TVOS.equalsIgnoreCase(mobilePlatformName)) {
                 // can't create a SafariDriver as it has no advantages over IOSDriver, but needs revision in the future
                 // SafariDriver only limits functionality
-                driver = new IOSDriver(ce, capabilities);
+                driver = new IOSDriver(clientConfig, capabilities);
             } else {
                 throw new InvalidConfigurationException("Unsupported mobile platform: " + mobilePlatformName);
             }
@@ -170,9 +168,6 @@ public class MobileFactory extends AbstractFactory {
             LOGGER.error("finished driver quit...");
             throw e;
         }
-
-
-
         return driver;
     }
 
@@ -198,19 +193,21 @@ public class MobileFactory extends AbstractFactory {
     }
 
     private MutableCapabilities getCapabilities(String name) {
-        String platform = R.CONFIG.get("capabilities." + CapabilityType.PLATFORM_NAME);
-        String automationName = R.CONFIG.get("capabilities." + MobileCapabilityType.AUTOMATION_NAME);
+        Optional<String> platform = WebDriverConfiguration.getCapability(CapabilityType.PLATFORM_NAME);
+        Optional<String> automationName = WebDriverConfiguration.getCapability(MobileCapabilityType.AUTOMATION_NAME);
 
         AbstractCapabilities<?> capabilities = null;
-        if (AutomationName.ESPRESSO.equalsIgnoreCase(automationName)) {
+        if (automationName.isPresent() && AutomationName.ESPRESSO.equalsIgnoreCase(automationName.get())) {
             capabilities = new EspressoCapabilities();
-        } else if (SpecialKeywords.ANDROID.equalsIgnoreCase(platform)) {
+        } else if (platform.isEmpty()) {
+            throw new InvalidConfigurationException("Cannot choose mobile capabilities. 'platformName' capability is not specified.");
+        } else if (SpecialKeywords.ANDROID.equalsIgnoreCase(platform.get())) {
             capabilities = new UiAutomator2Capabilities();
-        } else if (platform.equalsIgnoreCase(SpecialKeywords.IOS)
-                || platform.equalsIgnoreCase(SpecialKeywords.TVOS)) {
+        } else if (SpecialKeywords.IOS.equalsIgnoreCase(platform.get())
+                || SpecialKeywords.TVOS.equalsIgnoreCase(platform.get())) {
             capabilities = new XCUITestCapabilities();
         } else {
-            throw new InvalidConfigurationException("Unsupported platform: " + platform);
+            throw new InvalidConfigurationException("Unsupported platform: " + platform.get());
         }
         return capabilities.getCapability(name);
     }

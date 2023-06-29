@@ -17,15 +17,16 @@ package com.zebrunner.carina.webdriver.gui.mobile.devices;
 
 import org.openqa.selenium.WebDriver;
 
-import com.zebrunner.carina.utils.Configuration;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.mobile.IMobileUtils;
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.gui.AbstractPage;
 
 public abstract class MobileAbstractPage extends AbstractPage implements IMobileUtils {
 
     protected static final long DELAY = 10;
 
-    protected static final long SHORT_TIMEOUT = Configuration.getLong(Configuration.Parameter.EXPLICIT_TIMEOUT) / 20;
+    protected static final long SHORT_TIMEOUT = Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class) / 20;
 
     protected static final long ONE_SEC_TIMEOUT = 1;
 
