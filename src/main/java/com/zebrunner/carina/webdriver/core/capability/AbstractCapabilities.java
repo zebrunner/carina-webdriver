@@ -73,7 +73,7 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     protected void addProxy(T capabilities) {
         Configuration.get(WebDriverConfiguration.Parameter.PROXY_TYPE).ifPresent(proxyType -> {
             if (proxyType.equalsIgnoreCase("Zebrunner")) {
-                capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, "true");
+                capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, true);
                 Configuration.get(WebDriverConfiguration.Parameter.PROXY_ZEBRUNNER_ARGS).ifPresent(args -> {
                     capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args);
                 });
