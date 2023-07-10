@@ -26,6 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
@@ -33,8 +35,8 @@ import org.openqa.selenium.remote.CapabilityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.zebrunner.agent.core.config.ConfigurationHolder;
 import com.zebrunner.agent.core.registrar.Artifact;
-import com.zebrunner.carina.commons.artifact.IArtifactManager;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
@@ -63,29 +65,8 @@ import io.appium.java_client.remote.MobilePlatform;
  */
 public class MobileFactory extends AbstractFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final Map<String, String> CACHE_MOBILE_APP_LINKS = new ConcurrentHashMap<>();
+    private static final Map<String, LazyInitializer<String>> CACHE_MOBILE_APP_LAZY_INITIALIZERS = new ConcurrentHashMap<>();
 
-    /**
-     * Get a direct (pre-sign) link to the application.
-     * If the passed link was previously accessed to get a direct link,
-     * it will be taken from the cache, otherwise it will be generated and cached.
-     *
-     * @param originalAppLink link of which a direct link will be made
-     * @return direct link to the mobile application
-     */
-    public static String getAppLink(String originalAppLink) {
-        String updatedMobileApp;
-        if (!CACHE_MOBILE_APP_LINKS.containsKey(originalAppLink)) {
-            IArtifactManager artifactProvider = ArtifactProvider.getInstance();
-            updatedMobileApp = artifactProvider.getDirectLink(originalAppLink);
-            CACHE_MOBILE_APP_LINKS.put(originalAppLink, updatedMobileApp);
-            LOGGER.debug("For the 'app' capability with current value '{}', will be cached link: {}", originalAppLink, updatedMobileApp);
-        } else {
-            updatedMobileApp = CACHE_MOBILE_APP_LINKS.get(originalAppLink);
-            LOGGER.debug("Original value of capability 'app': '{}' will be replaced by cached link: {}", originalAppLink, updatedMobileApp);
-        }
-        return updatedMobileApp;
-    }
 
     @Override
     public WebDriver create(String name, MutableCapabilities capabilities, String seleniumHost) {
@@ -108,7 +89,7 @@ public class MobileFactory extends AbstractFactory {
 
         Object mobileAppCapability = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.APP, String.class);
         if (mobileAppCapability != null) {
-            capabilities.setCapability(MobileCapabilityType.APP, getCachedAppLink(String.valueOf(mobileAppCapability)));
+            capabilities.setCapability(MobileCapabilityType.APP, getAppLink(String.valueOf(mobileAppCapability)));
         }
 
         LOGGER.debug("capabilities: {}", capabilities);
@@ -172,24 +153,34 @@ public class MobileFactory extends AbstractFactory {
     }
 
     /**
-     * Get cached link to the app
-     * 
-     * @param appLink original link
-     * @return cached (pre-signed) link
+     * Get a direct (pre-sign) link to the application.
+     * If the passed link was previously accessed to get a direct link,
+     * it will be taken from the cache, otherwise it will be generated and cached.
+     *
+     * @param originalAppLink link of which a direct link will be made
+     * @return direct link to the mobile application
      */
-    private String getCachedAppLink(String appLink) {
-        String updatedMobileApp;
-        if (!CACHE_MOBILE_APP_LINKS.containsKey(appLink)) {
-            IArtifactManager artifactProvider = ArtifactProvider.getInstance();
-            updatedMobileApp = artifactProvider.getDirectLink(appLink);
-            CACHE_MOBILE_APP_LINKS.put(appLink, updatedMobileApp);
-            LOGGER.debug("For the 'app' capability with current value '{}', will be cached link: {}", appLink, updatedMobileApp);
-            Artifact.attachReferenceToTestRun("app", updatedMobileApp);
-        } else {
-            updatedMobileApp = CACHE_MOBILE_APP_LINKS.get(appLink);
-            LOGGER.debug("Original value of capability 'app': '{}' will be replaced by cached link: {}", appLink, updatedMobileApp);
+    public static String getAppLink(String originalAppLink) {
+        try {
+            String directLink = CACHE_MOBILE_APP_LAZY_INITIALIZERS.computeIfAbsent(originalAppLink,
+                    link -> new LazyInitializer<>() {
+                        @Override
+                        protected String initialize() throws ConcurrentException {
+                            String generatedLink = ArtifactProvider.getInstance()
+                                    .getDirectLink(link);
+                            LOGGER.debug("For the 'app' capability with current value '{}', will be cached link: {}", link, generatedLink);
+                            if (ConfigurationHolder.isReportingEnabled()) {
+                                Artifact.attachReferenceToTestRun("app", generatedLink);
+                            }
+                            return generatedLink;
+                        }
+            })
+                    .get();
+            LOGGER.debug("Original value of capability 'app': '{}' will be replaced by cached link: {}", originalAppLink, directLink);
+            return directLink;
+        } catch (ConcurrentException e) {
+            throw new RuntimeException("Cannot get direct link to the application. Message: " + e.getMessage(), e);
         }
-        return updatedMobileApp;
     }
 
     private MutableCapabilities getCapabilities(String name) {
