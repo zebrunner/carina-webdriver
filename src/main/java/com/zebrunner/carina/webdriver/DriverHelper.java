@@ -23,9 +23,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -33,11 +31,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -47,7 +43,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.zebrunner.carina.utils.encryptor.EncryptorUtils;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
@@ -77,23 +72,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
-import com.github.kklisura.cdt.services.ChromeDevToolsService;
-import com.github.kklisura.cdt.services.WebSocketService;
-import com.github.kklisura.cdt.services.config.ChromeDevToolsServiceConfiguration;
-import com.github.kklisura.cdt.services.impl.ChromeDevToolsServiceImpl;
-import com.github.kklisura.cdt.services.impl.WebSocketServiceImpl;
-import com.github.kklisura.cdt.services.invocation.CommandInvocationHandler;
-import com.github.kklisura.cdt.services.utils.ProxyUtils;
 import com.zebrunner.carina.utils.LogicUtils;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.config.StandardConfigurationOption;
+import com.zebrunner.carina.utils.encryptor.EncryptorUtils;
 import com.zebrunner.carina.utils.messager.Messager;
 import com.zebrunner.carina.utils.retry.ActionPoller;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration.Parameter;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.gui.AbstractPage;
+import com.zebrunner.carina.webdriver.helper.IChromeDevToolsHelper;
 import com.zebrunner.carina.webdriver.listener.DriverListener;
 import com.zebrunner.carina.webdriver.locator.LocatorType;
 import com.zebrunner.carina.webdriver.locator.LocatorUtils;
@@ -104,7 +94,7 @@ import com.zebrunner.carina.webdriver.locator.LocatorUtils;
  *
  * @author Alex Khursevich
  */
-public class DriverHelper {
+public class DriverHelper implements IChromeDevToolsHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final String REDUX_STORE_STATE_BASE_PATH = "window.store.getState()";
     protected static final long EXPLICIT_TIMEOUT = Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Long.class);
@@ -1330,41 +1320,6 @@ public class DriverHelper {
             }
         }
         return result;
-    }
-
-    /**
-     * Get selenoid chrome devtools, see {@link ChromeDevToolsService}
-     */
-    public ChromeDevToolsService getChromeDevTools() {
-        try {
-            WebSocketService webSocketService = WebSocketServiceImpl
-                    .create(new URI(getSelenoidDevToolsUrl()));
-            CommandInvocationHandler commandInvocationHandler = new CommandInvocationHandler();
-            Map<Method, Object> commandsCache = new ConcurrentHashMap<>();
-            ChromeDevToolsService devtools = ProxyUtils.createProxyFromAbstract(
-                    ChromeDevToolsServiceImpl.class,
-                    new Class[] { WebSocketService.class, ChromeDevToolsServiceConfiguration.class },
-                    new Object[] { webSocketService, new ChromeDevToolsServiceConfiguration() },
-                    (unused, method, args) -> commandsCache.computeIfAbsent(
-                            method,
-                            key -> {
-                                Class<?> returnType = method.getReturnType();
-                                return ProxyUtils.createProxy(returnType, commandInvocationHandler);
-                            }));
-            commandInvocationHandler.setChromeDevToolsService(devtools);
-            return devtools;
-        } catch (Exception e) {
-            throw new RuntimeException(String.format("Cannot create Chrome DevTools. Cause: %s", e.getMessage()), e);
-        }
-    }
-
-    private String getSelenoidDevToolsUrl() {
-        String url = String.format("%s%s", Configuration.getRequired(Parameter.SELENIUM_URL)
-                .replace("/wd/hub", "/devtools/")
-                .replaceFirst("^.+@", "wss://"),
-                DriverListener.castDriver(getDriver(), RemoteWebDriver.class).getSessionId());
-        LOGGER.debug("Chrome DevTools URL: {}", url);
-        return url;
     }
 
     //TODO: uncomment javadoc when T could be described correctly
