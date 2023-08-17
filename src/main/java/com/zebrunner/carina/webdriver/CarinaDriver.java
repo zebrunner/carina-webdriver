@@ -15,6 +15,7 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver;
 
+import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.WebDriver;
 
 import com.zebrunner.carina.webdriver.TestPhase.Phase;
@@ -26,14 +27,16 @@ public class CarinaDriver {
 	private Device device;
 	private Phase phase;
 	private long threadId;
-	
-    public CarinaDriver(String name, WebDriver driver, Device device, Phase phase, long threadId) {
+	private final Capabilities originalCapabilities;
+
+	public CarinaDriver(String name, WebDriver driver, Device device, Phase phase, long threadId, Capabilities originalCapabilities) {
 		super();
 		this.name = name;
 		this.driver = driver;
 		this.device = device;
 		this.phase = phase;
 		this.threadId = threadId;
+		this.originalCapabilities = originalCapabilities;
 	}
 
 	public WebDriver getDriver() {
@@ -59,4 +62,15 @@ public class CarinaDriver {
     protected void setThreadId(long threadId) {
         this.threadId = threadId;
     }
+
+    /**
+     * Get capabilities that used for creating driver.<br>
+     * <b>For internal usage only</b>
+     * 
+     * @return {@link Capabilities}
+     */
+    public Capabilities getOriginalCapabilities() {
+        return originalCapabilities;
+    }
+
 }

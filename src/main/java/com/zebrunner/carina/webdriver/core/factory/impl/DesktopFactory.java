@@ -22,6 +22,8 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.Optional;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.NoSuchSessionException;
@@ -57,7 +59,7 @@ public class DesktopFactory extends AbstractFactory {
     private static MutableCapabilities staticCapabilities = null;
 
     @Override
-    public WebDriver create(String name, MutableCapabilities capabilities, String seleniumHost) {
+    public ImmutablePair<WebDriver, Capabilities> create(String name, Capabilities capabilities, String seleniumHost) {
         WebDriver driver = null;
         if (seleniumHost == null) {
             seleniumHost = Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL);
@@ -87,7 +89,7 @@ public class DesktopFactory extends AbstractFactory {
             throw new UncheckedIOException("Malformed selenium URL!", e);
         }
         resizeBrowserWindow(driver, capabilities);
-        return driver;
+        return new ImmutablePair<>(driver, capabilities);
     }
 
     @SuppressWarnings("deprecation")
@@ -127,7 +129,7 @@ public class DesktopFactory extends AbstractFactory {
      * @param driver - instance of desktop @WebDriver
      * @param capabilities - driver capabilities
      */
-    private void resizeBrowserWindow(WebDriver driver, MutableCapabilities capabilities) {
+    private void resizeBrowserWindow(WebDriver driver, Capabilities capabilities) {
         try {
             Wait<WebDriver> wait = new FluentWait<WebDriver>(driver)
                     .pollingEvery(Duration.ofMillis(Configuration.getRequired(WebDriverConfiguration.Parameter.RETRY_INTERVAL, Integer.class)))
