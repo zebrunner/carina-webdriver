@@ -17,6 +17,7 @@ package com.zebrunner.carina.webdriver.core.factory;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
@@ -38,7 +39,7 @@ public abstract class AbstractFactory {
      * @param seleniumHost - selenium server URL
      * @return instance of {@link WebDriver}
      */
-    public abstract WebDriver create(String testName, MutableCapabilities capabilities, String seleniumHost);
+    public abstract ImmutablePair<WebDriver, Capabilities> create(String testName, Capabilities capabilities, String seleniumHost);
 
     /**
      * If any listeners specified, converts RemoteWebDriver to EventFiringDecorator and registers all listeners.

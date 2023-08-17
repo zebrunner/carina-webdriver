@@ -28,6 +28,8 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
@@ -69,7 +71,7 @@ public class MobileFactory extends AbstractFactory {
 
 
     @Override
-    public WebDriver create(String name, MutableCapabilities capabilities, String seleniumHost) {
+    public ImmutablePair<WebDriver, Capabilities> create(String name, Capabilities capabilities, String seleniumHost) {
         if (seleniumHost == null) {
             seleniumHost = Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL);
         }
@@ -83,13 +85,17 @@ public class MobileFactory extends AbstractFactory {
                 && CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class) != null) {
             String udid = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class);
             capabilities = getCapabilities(name);
-            capabilities.setCapability(MobileCapabilityType.UDID, udid);
+            MutableCapabilities udidCaps = new MutableCapabilities();
+            udidCaps.setCapability(MobileCapabilityType.UDID, udid);
+            capabilities = capabilities.merge(udidCaps);
             LOGGER.debug("Appended udid to capabilities: {}", capabilities);
         }
 
         Object mobileAppCapability = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.APP, String.class);
         if (mobileAppCapability != null) {
-            capabilities.setCapability(MobileCapabilityType.APP, getAppLink(String.valueOf(mobileAppCapability)));
+            MutableCapabilities appCaps = new MutableCapabilities();
+            appCaps.setCapability(MobileCapabilityType.APP, getAppLink(String.valueOf(mobileAppCapability)));
+            capabilities = capabilities.merge(appCaps);
         }
 
         LOGGER.debug("capabilities: {}", capabilities);
@@ -149,7 +155,7 @@ public class MobileFactory extends AbstractFactory {
             LOGGER.error("finished driver quit...");
             throw e;
         }
-        return driver;
+        return new ImmutablePair<>(driver, capabilities);
     }
 
     /**
