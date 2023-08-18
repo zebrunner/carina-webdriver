@@ -65,9 +65,9 @@ public class ExtendedFieldDecorator implements FieldDecorator {
             return null;
         }
 //        //TODO: (hotfix) remove when AbstractPage will be separated from AbstractUIObject
-//        if (AbstractPage.class.isAssignableFrom(field.getType())) {
-//            return null;
-//        }
+        if (AbstractPage.class.isAssignableFrom(field.getType())) {
+            return null;
+        }
 
         ElementLocator locator;
         try {
