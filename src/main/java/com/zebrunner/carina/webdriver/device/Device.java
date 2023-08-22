@@ -299,7 +299,21 @@ public class Device implements IDriverPool {
 
         // TODO: verify that device connected and raise an error if not and disabled adb integration
         String[] cmd2 = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "devices");
-        executor.execute(cmd2);
+        // Possible result of the command:
+
+        // List of devices attached
+        // <device_udid_or_remote_url> unauthorized
+        // <device_udid_or_remote_url> unauthorized
+        String deviceStatus = executor.execute(cmd2).stream()
+                .filter(line -> line.contains(getAdbName()))
+                .map(line -> StringUtils.remove(line, getAdbName()))
+                .map(StringUtils::trim)
+                .findAny()
+                .orElseThrow(() -> new RuntimeException(
+                        String.format("There are no device with udid (or remote url) '%s' in the list of adb devices.", getAdbName())));
+        if (!"device".equals(deviceStatus)) {
+            throw new RuntimeException(String.format("Device adb status is invalid: '%s'", deviceStatus));
+        }
 
         isAdbEnabled = true;
     }
