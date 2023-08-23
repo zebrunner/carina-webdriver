@@ -61,6 +61,7 @@ public class ExtendedElementLocator implements ElementLocator {
     private boolean caseInsensitive = false;
     private boolean localized = false;
     private final LinkedList<LocatorConverter> locatorConverters = new LinkedList<>();
+    private WebElement cacheWebElement;
 
     /**
      * Creates a new element locator.
@@ -141,6 +142,16 @@ public class ExtendedElementLocator implements ElementLocator {
             throw new NullPointerException("By cannot be null");
         }
 
+        if(cacheWebElement != null) {
+            try {
+                //if element gone, this call will produce StaleElementReferenceException
+                cacheWebElement.isDisplayed();
+                return cacheWebElement;
+            } catch (Exception e) {
+                // do nothing
+            }
+        }
+
         //TODO: test how findElements work for web and android
         // maybe migrate to the latest appium java driver and reuse original findElement!
         List<WebElement> elements = searchContext.findElements(getBy(by, searchContext));
@@ -156,6 +167,7 @@ public class ExtendedElementLocator implements ElementLocator {
         if (element == null) {
             throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + by);
         }
+        cacheWebElement = element;
         return element;
     }
 
