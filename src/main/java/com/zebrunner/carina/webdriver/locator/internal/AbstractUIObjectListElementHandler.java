@@ -39,20 +39,23 @@ public class AbstractUIObjectListElementHandler implements InvocationHandler {
             if (listElementLocator == null) {
                 throw new NullPointerException("listElementLocator cannot be null");
             }
+            try {
+                element.isDisplayed();
+            } catch (Exception e) {
+                // TODO: test how findElements work for web and android
+                // maybe migrate to the latest appium java driver and reuse original findElement!
+                List<WebElement> elements = locator.getSearchContext().findElements(listElementLocator);
 
-            // TODO: test how findElements work for web and android
-            // maybe migrate to the latest appium java driver and reuse original findElement!
-            List<WebElement> elements = locator.getSearchContext().findElements(listElementLocator);
+                WebElement findElement = null;
+                if (elements.size() >= 1) {
+                    findElement = elements.get(0);
+                }
 
-            WebElement findElement = null;
-            if (elements.size() >= 1) {
-                findElement = elements.get(0);
+                if (findElement == null) {
+                    throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + listElementLocator);
+                }
+                element = findElement;
             }
-
-            if (findElement == null) {
-                throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + listElementLocator);
-            }
-            element = findElement;
         }
 
         try {
