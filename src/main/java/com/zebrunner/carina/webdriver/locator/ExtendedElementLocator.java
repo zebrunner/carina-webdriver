@@ -118,11 +118,13 @@ public class ExtendedElementLocator implements ElementLocator {
      * then it is switched to the searching for some html or native mobile element.
      * Otherwise nothing happens there.
      *
+     * @deprecated this method takes too much time for the simple actions
      * @param currentBy is some locator strategy
      * @param currentContent is an instance of some subclass of the {@link SearchContext}.
      * @return the corrected {@link By} for the further searching
      *
      */
+    @Deprecated(forRemoval = true, since = "1.1.7")
     private By getBy(By currentBy, SearchContext currentContent) {
         if (!ContentMappedBy.class.isAssignableFrom(currentBy.getClass())) {
             return currentBy;
@@ -143,7 +145,10 @@ public class ExtendedElementLocator implements ElementLocator {
 
         //TODO: test how findElements work for web and android
         // maybe migrate to the latest appium java driver and reuse original findElement!
-        List<WebElement> elements = searchContext.findElements(getBy(by, searchContext));
+        // do not use getBy method  - getText method, for example, takes 3s instead of 1s or even ~600ms!
+        //List<WebElement> elements = searchContext.findElements(getBy(by, searchContext));
+        List<WebElement> elements = searchContext.findElements(by);
+
 
         WebElement element = null;
         if (elements.size() == 1) {
@@ -166,7 +171,10 @@ public class ExtendedElementLocator implements ElementLocator {
         List<WebElement> elements = null;
 
         try {
-            elements = searchContext.findElements(getBy(by, searchContext));
+            // do not use getBy method  - getText method, for example, takes 3s instead of 1s or even ~600ms!
+            //elements = searchContext.findElements(getBy(by, searchContext));
+            elements = searchContext.findElements(by);
+
         } catch (NoSuchElementException e) {
             LOGGER.debug("Unable to find elements: " + e.getMessage());
         }
