@@ -38,6 +38,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.imgscalr.Scalr;
 import org.openqa.selenium.Beta;
 import org.openqa.selenium.HasCapabilities;
+import org.openqa.selenium.NoSuchSessionException;
 import org.openqa.selenium.NoSuchWindowException;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.Platform;
@@ -85,7 +86,7 @@ public class Screenshot {
     private static final Duration DEFAULT_PAGE_LOAD_TIMEOUT = Duration.ofSeconds(300);
     private static final String ERROR_STACKTRACE = "Error stacktrace: ";
     private static final String ACTUAL_RANGE_OF_SCREENSHOT_RULES_MESSAGE = "Actual range of screenshot rules: {}";
-    
+
     private Screenshot() {
     	//hide default constructor
     }
@@ -221,7 +222,7 @@ public class Screenshot {
     public static String captureByRule(WebDriver driver, String comment) {
         return captureByRule(driver, comment, false);
     }
-    
+
     /**
      * Captures screenshot explicitly by any rule, creates thumbnail and copies both images to specified screenshots
      * location.
@@ -239,7 +240,7 @@ public class Screenshot {
         for (IScreenshotRule iScreenshotRule : RULES) {
             isTakeScreenshotRules = iScreenshotRule.isTakeScreenshot();
             if (isTakeScreenshotRules) {
-                isFullSize = isFullSize && iScreenshotRule.isAllowFullSize(); 
+                isFullSize = isFullSize && iScreenshotRule.isAllowFullSize();
                 break;
             }
         }
@@ -387,6 +388,8 @@ public class Screenshot {
             }
         } catch (TimeoutException e) {
             LOGGER.warn("Unable to capture screenshot during {} sec!", rule.getTimeout().toSeconds());
+        } catch (NoSuchSessionException e) {
+            LOGGER.warn("Unable to capture screenshot due to session does not exist.");
         } catch (Exception e) {
             // for undefined failure keep full stacktrace to handle later correctly!
             LOGGER.error("Undefined error on capture screenshot detected!", e);
@@ -702,7 +705,7 @@ public class Screenshot {
                 || message.contains("not found in active sessions")
 				|| message.contains("Session timed out or not found")
 				|| message.contains("Unable to determine type from: <. Last 1 characters read")
-				|| message.contains("not available and is not among the last 1000 terminated sessions")				
+				|| message.contains("not available and is not among the last 1000 terminated sessions")
 				|| message.contains("cannot forward the request")
                 || message.contains("connect ECONNREFUSED")
 				|| message.contains("was terminated due to") // FORWARDING_TO_NODE_FAILED, CLIENT_STOPPED_SESSION, PROXY_REREGISTRATION, TIMEOUT, BROWSER_TIMEOUT etc
@@ -711,14 +714,14 @@ public class Screenshot {
 				|| message.contains("https://www.seleniumhq.org/exceptions/no_such_element.html") // use-case for Safari driver
 				|| message.contains("no such window: window was already closed")
 				|| message.contains("Method is not implemented") //to often exception for mobile native app testing
-				// [VD] exclude below condition otherwise we overload appium when fluent wait looking for device and doing screenshot in a loop 
+				// [VD] exclude below condition otherwise we overload appium when fluent wait looking for device and doing screenshot in a loop
 				|| message.contains("An element could not be located on the page using the given search parameters")
 				|| message.contains("current view have 'secure' flag set")
 				|| message.contains("Error communicating with the remote browser. It may have died")
-				|| message.contains("unexpected alert open") 
+				|| message.contains("unexpected alert open")
 				|| message.contains("chrome not reachable")
 				|| message.contains("cannot forward the request Connect to")
-				|| message.contains("Could not proxy command to remote server. Original error:") // Error: socket hang up, Error: read ECONNRESET etc				
+				|| message.contains("Could not proxy command to remote server. Original error:") // Error: socket hang up, Error: read ECONNRESET etc
 				|| message.contains("Could not proxy command to the remote server. Original error:") // Different messages on some Appium versions
 				|| message.contains("Unable to find elements by Selenium")
 				|| message.contains("generateUiDump") //do not generate screenshot if getPageSource is invalid
@@ -729,12 +732,12 @@ public class Screenshot {
 				|| message.contains("Illegal base64 character 2e")
 				|| message.contains("javascript error: Cannot read property 'outerHTML' of null")
 				|| message.contains("Driver connection refused")
-                || message.contains("tab crashed")				
+                || message.contains("tab crashed")
 				// carina based errors which means that driver is not ready for screenshoting
 				|| message.contains("Unable to open url during");
 
 		if (!isContains) {
-		    // for released builds put below message to debug  
+		    // for released builds put below message to debug
             LOGGER.debug("isCaptured->message: '{}'", message);
 		    // for snapshot builds use info to get more useful information
 		    //LOGGER.info("isCaptured->message: '" + message + "'");
