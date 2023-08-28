@@ -3,6 +3,7 @@ package com.zebrunner.carina.webdriver.core.factory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
@@ -26,7 +27,7 @@ public class CarinaEventFiringDecorator<T extends WebDriver> extends EventFiring
         // Hotfix for https://bugs.chromium.org/p/chromedriver/issues/detail?id=4440
         if (e.getTargetException() instanceof WebDriverException) {
             WebDriverException exception = (WebDriverException) e.getTargetException();
-            if (exception.getMessage().contains("unknown error: unhandled inspector error: {\"code\":-32000,\"message\":\"No node with given id found\"}")) {
+            if (StringUtils.contains(exception.getMessage(), "No node with given id found")) {
                 return super.onError(target, method, args,
                         new InvocationTargetException(new StaleElementReferenceException("stale element reference")));
             }
