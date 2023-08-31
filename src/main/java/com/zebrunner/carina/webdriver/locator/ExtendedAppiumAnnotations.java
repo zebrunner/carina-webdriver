@@ -1,20 +1,31 @@
 package com.zebrunner.carina.webdriver.locator;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Field;
-
 import org.openqa.selenium.By;
 import org.openqa.selenium.support.FindAll;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.FindBys;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Field;
+
 import io.appium.java_client.pagefactory.DefaultElementByBuilder;
 
 public class ExtendedAppiumAnnotations extends DefaultElementByBuilder {
 
-    public ExtendedAppiumAnnotations(String platform, String automation) {
-        super(platform, automation);
+    private final LocatorCreatorContext locatorCreatorContext;
+
+    public ExtendedAppiumAnnotations(LocatorCreatorContext locatorCreatorContext) {
+        super(locatorCreatorContext.getPlatform(), locatorCreatorContext.getAutomation());
+        this.locatorCreatorContext = locatorCreatorContext;
+    }
+
+    @Override
+    public By buildBy() {
+        AnnotatedElement annotatedElement = annotatedElementContainer.getAnnotated();
+        return FindConditional.Builder
+                .buildIt((Field) annotatedElement, locatorCreatorContext)
+                .orElseGet(super::buildBy);
     }
 
     @Override
@@ -46,6 +57,7 @@ public class ExtendedAppiumAnnotations extends DefaultElementByBuilder {
                 defaultBy = new FindAny.FindAnyBuilder().buildIt(findAny, (Field) annotatedElement);
             }
         }
+
         return defaultBy;
     }
 
