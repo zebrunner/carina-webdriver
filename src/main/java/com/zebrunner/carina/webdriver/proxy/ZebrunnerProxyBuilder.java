@@ -3,6 +3,7 @@ package com.zebrunner.carina.webdriver.proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -580,6 +581,17 @@ public final class ZebrunnerProxyBuilder {
     public ZebrunnerProxyBuilder addHeaderModify(FilterCondition flowFilter, String regex, String headerValue) {
         Objects.requireNonNull(flowFilter);
         this.headerModifications.add(new Modification(flowFilter.toString(), regex, headerValue));
+        return this;
+    }
+
+    public ZebrunnerProxyBuilder removeHeaderModify(String regex) {
+        headerModifications.removeIf((modification -> modification.getOriginal().equals(regex)));
+        return this;
+    }
+
+    public ZebrunnerProxyBuilder removeHeaderModify(FilterCondition flowFilter, String regex) {
+        headerModifications.removeIf((modification -> StringUtils.equals(modification.getOriginal(), regex)
+                && StringUtils.equals(modification.getFlowFilter(), flowFilter.toString())));
         return this;
     }
 
