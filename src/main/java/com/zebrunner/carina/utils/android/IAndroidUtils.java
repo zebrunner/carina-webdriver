@@ -776,10 +776,10 @@ public interface IAndroidUtils extends IMobileUtils {
      * @return String command output in one line
      */
     default String executeAdbCommand(String command) {
-        String deviceName = getDevice().getAdbName();
-        if (!deviceName.isEmpty()) {
+        String deviceUdid = getDevice().getUdid();
+        if (!deviceUdid.isEmpty()) {
             // add remoteURL/udid reference
-            command = "-s " + deviceName + " " + command;
+            command = "-s " + deviceUdid + " " + command;
         } else {
             UTILS_LOGGER.warn("nullDevice detected fot current thread!");
         }
