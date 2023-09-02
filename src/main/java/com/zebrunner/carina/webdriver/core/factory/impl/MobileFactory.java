@@ -22,6 +22,7 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -114,12 +115,12 @@ public class MobileFactory extends AbstractFactory {
 
         try {
             String mobilePlatformName = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
-            EventFiringAppiumCommandExecutor ce = new EventFiringAppiumCommandExecutor(new HashMap<>(0),
-                    AppiumClientConfig.defaultConfig().baseUrl(new URL(seleniumHost))
-                            .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout"))));
+            AppiumClientConfig config = AppiumClientConfig.defaultConfig()
+                    .baseUrl(new URL(seleniumHost))
+                    .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout")));
 
             if (SpecialKeywords.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
-                driver = new AndroidDriver(ce, capabilities);
+                driver = new AndroidDriver(config, capabilities);
                 // todo do not create TVOSDriver for now
                 // }
                 // else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) &&
@@ -129,7 +130,7 @@ public class MobileFactory extends AbstractFactory {
                     SpecialKeywords.TVOS.equalsIgnoreCase(mobilePlatformName)) {
                 // can't create a SafariDriver as it has no advantages over IOSDriver, but needs revision in the future
                 // SafariDriver only limits functionality
-                driver = new IOSDriver(ce, capabilities);
+                driver = new IOSDriver(config, capabilities);
             } else {
                 throw new InvalidConfigurationException("Unsupported mobile platform: " + mobilePlatformName);
             }
