@@ -478,17 +478,15 @@ public interface IDriverPool {
      * @return Device device
      */
     static Device registerDevice(Device device) {
-
-        boolean enableAdb = R.CONFIG.getBoolean(SpecialKeywords.ENABLE_ADB);
-        if (enableAdb) {
-            device.connectRemote();
-        }
         // register current device to be able to transfer it into Zafira at the end of the test
         long threadId = Thread.currentThread().getId();
         POOL_LOGGER.debug("Set current device '{}' to thread: {}", device.getName(), threadId);
         currentDevice.set(device);
-        Label.attachToTest("device", device.getName());
         POOL_LOGGER.debug("register device for current thread id: {}; device: '{}'", threadId, device.getName());
+        boolean enableAdb = R.CONFIG.getBoolean(SpecialKeywords.ENABLE_ADB);
+        if (enableAdb) {
+            device.connectRemote();
+        }
         return device;
     }
 
