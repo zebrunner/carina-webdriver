@@ -23,6 +23,8 @@ public class ExtendedSeleniumAnnotations extends Annotations {
 
     @Override
     public By buildBy() {
+        assertValidAnnotations();
+
         Field field = getField();
         return FindConditional.Builder
                 .buildIt(field, locatorCreatorContext)

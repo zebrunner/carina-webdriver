@@ -1,7 +1,6 @@
 package com.zebrunner.carina.webdriver.locator;
 
 import org.apache.commons.lang3.StringUtils;
-import org.openqa.selenium.support.FindBy;
 
 import java.util.Arrays;
 
@@ -38,9 +37,5 @@ public abstract class BasePlatformCondition {
                 break;
         }
         return applicable;
-    }
-
-    public FindBy getFindBy(FindBy findBy) {
-        return findBy;
     }
 }

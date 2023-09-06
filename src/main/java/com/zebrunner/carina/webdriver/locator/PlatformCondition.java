@@ -20,6 +20,6 @@ public class PlatformCondition extends BasePlatformCondition implements FindCond
 
     @Override
     public FindBy getFindBy(FindByPlatform annotation) {
-        return super.getFindBy(annotation.findBy());
+        return annotation.findBy();
     }
 }

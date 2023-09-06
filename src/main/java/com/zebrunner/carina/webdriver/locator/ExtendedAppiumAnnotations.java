@@ -22,6 +22,8 @@ public class ExtendedAppiumAnnotations extends DefaultElementByBuilder {
 
     @Override
     public By buildBy() {
+        assertValidAnnotations();
+
         AnnotatedElement annotatedElement = annotatedElementContainer.getAnnotated();
         return FindConditional.Builder
                 .buildIt((Field) annotatedElement, locatorCreatorContext)

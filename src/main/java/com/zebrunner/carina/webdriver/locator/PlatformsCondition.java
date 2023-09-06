@@ -40,7 +40,7 @@ public class PlatformsCondition extends BasePlatformCondition implements FindCon
         return Arrays.stream(annotation.value())
                 .filter(findByPlatform -> isConditionApply(findByPlatform.value()))
                 .findFirst()
-                .map(findByPlatform -> getFindBy(findByPlatform.findBy()))
+                .map(FindByPlatform::findBy)
                 .orElse(null);
     }
 }
