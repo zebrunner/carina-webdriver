@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +55,7 @@ public class AdbExecutor {
     }
 
     public List<String> execute(String[] cmd) {
+        LOGGER.info("Executing adb command: {}", StringUtils.join(cmd, " "));
         ProcessBuilderExecutor executor = null;
         BufferedReader in = null;
         List<String> output = new ArrayList<>();
