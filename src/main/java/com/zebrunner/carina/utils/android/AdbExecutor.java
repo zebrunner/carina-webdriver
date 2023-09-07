@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package com.zebrunner.carina.utils.android.recorder.utils;
+package com.zebrunner.carina.utils.android;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.zebrunner.carina.utils.android.recorder.utils.ProcessBuilderExecutor;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

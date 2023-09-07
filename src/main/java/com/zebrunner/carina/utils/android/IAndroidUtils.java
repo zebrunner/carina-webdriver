@@ -50,7 +50,6 @@ import com.google.common.collect.ImmutableMap;
 import com.zebrunner.carina.utils.android.Permissions.Permission;
 import com.zebrunner.carina.utils.android.Permissions.PermissionAction;
 import com.zebrunner.carina.utils.android.Permissions.PermissionType;
-import com.zebrunner.carina.utils.android.recorder.utils.AdbExecutor;
 import com.zebrunner.carina.utils.android.recorder.utils.CmdLine;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
