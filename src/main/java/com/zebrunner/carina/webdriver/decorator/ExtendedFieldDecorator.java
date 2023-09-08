@@ -18,12 +18,14 @@ package com.zebrunner.carina.webdriver.decorator;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.List;
 
 import com.zebrunner.carina.webdriver.gui.AbstractPage;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -64,8 +66,15 @@ public class ExtendedFieldDecorator implements FieldDecorator {
                 isDecoratableList(field))) {
             return null;
         }
-//        //TODO: (hotfix) remove when AbstractPage will be separated from AbstractUIObject
         if (AbstractPage.class.isAssignableFrom(field.getType())) {
+            try {
+                return ((Class<? extends AbstractPage>) field.getType()).getConstructor(WebDriver.class, SearchContext.class)
+                        .newInstance(webDriver, webDriver);
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                ExceptionUtils.rethrow(e);
+            } catch (NoSuchMethodException e) {
+                // ignore
+            }
             return null;
         }
 
