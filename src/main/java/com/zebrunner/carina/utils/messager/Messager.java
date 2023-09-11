@@ -79,23 +79,23 @@ public enum Messager implements IMessager {
 
     FAIL_REFRESH("FAIL: refresh page."),
 
-    EXPECTED_URL("PASS: url '%s' is correct."),
+    EXPECTED_URL("URL '%s' is correct."),
 
     UNEXPECTED_URL("FAIL: wrong URL, expected '%s' but actual '%s'!"),
 
-    ELEMENT_PRESENT("PASS: element '%s' presents."),
+    ELEMENT_PRESENT("Element '%s' presents."),
 
     ELEMENT_NOT_PRESENT("FAIL: element '%s' is not present!"),
     
     ELEMENT_CONDITION_NOT_VERIFIED("FAIL: %s - waitCondition for element '%s' not satisfied!"),
 
-    ELEMENT_NOT_PRESENT_PASS("PASS: element '%s' is not present"),
+    ELEMENT_NOT_PRESENT_PASS("Element '%s' is not present"),
 
-    ELEMENT_WITH_ATTRIBUTE_PRESENT("PASS: element '%s' with attribute '%s' = '%s' presents."),
+    ELEMENT_WITH_ATTRIBUTE_PRESENT("Element '%s' with attribute '%s' = '%s' presents."),
 
     ELEMENT_WITH_ATTRIBUTE_NOT_PRESENT("FAIL: element '%s' with attribute '%s' = '%s' is not present!"),
 
-    ELEMENT_WITH_TEXT_PRESENT("PASS: element '%s' with text '%s' presents."),
+    ELEMENT_WITH_TEXT_PRESENT("Element '%s' with text '%s' presents."),
 
     ELEMENT_WITH_TEXT_NOT_PRESENT("FAIL: element '%s' with text: '%s' is not present!"),
 
@@ -103,95 +103,95 @@ public enum Messager implements IMessager {
 
     UNEXPECTED_ELEMENT_WITH_TEXT_PRESENT("FAIL: unexpected element '%s' with text '%s' present!"),
 
-    ELEMENT_CLICKED("PASS: element '%s' is clicked."),
+    ELEMENT_CLICKED("Element '%s' is clicked."),
 
     ELEMENT_NOT_CLICKED("FAIL: element '%s' is not clicked!"),
 
-    ELEMENT_FOUND("PASS: element '%s' is found."),
+    ELEMENT_FOUND("Element '%s' is found."),
 
     ELEMENT_NOT_FOUND("FAIL: element '%s' is not found!"),
     
-    ELEMENT_ATTRIBUTE_FOUND("PASS: attribute/value '%s'/'%s' for element '%s' is found."),
+    ELEMENT_ATTRIBUTE_FOUND("Attribute/value '%s'/'%s' for element '%s' is found."),
 
     ELEMENT_ATTRIBUTE_NOT_FOUND("FAIL: attribute '%s' for element '%s' is not found!"),
 
-    ELEMENT_DOUBLE_CLICKED("PASS: element '%s' is double clicked."),
+    ELEMENT_DOUBLE_CLICKED("Element '%s' is double clicked."),
 
     ELEMENT_NOT_DOUBLE_CLICKED("FAIL: element '%s' is not double clicked!"),
 
-    ELEMENT_RIGHT_CLICKED("PASS: element '%s' is right clicked."),
+    ELEMENT_RIGHT_CLICKED("Element '%s' is right clicked."),
 
     ELEMENT_NOT_RIGHT_CLICKED("FAIL: element '%s' is not right clicked!"),
 
-    ELEMENT_HOVERED("PASS: element '%s' is hovered."),
+    ELEMENT_HOVERED("Element '%s' is hovered."),
 
     ELEMENT_NOT_HOVERED("FAIL: element '%s' is not hovered!"),
 
-    ELEMENTS_DRAGGED_AND_DROPPED("PASS: element '%s' is dragged and dropped to '%s'."),
+    ELEMENTS_DRAGGED_AND_DROPPED("Element '%s' is dragged and dropped to '%s'."),
 
     ELEMENTS_NOT_DRAGGED_AND_DROPPED("FAIL: element '%s' is not dragged and dropped to '%s'!"),
 
-    KEYS_CLEARED_IN_ELEMENT("PASS: keys cleared in element '%s'."),
+    KEYS_CLEARED_IN_ELEMENT("Keys cleared in element '%s'."),
     
     KEYS_NOT_CLEARED_IN_ELEMENT("FAIL: keys not cleared in element '%s'."),
     
-    KEYS_SEND_TO_ELEMENT("PASS: keys '%s' are sent to element '%s'."),
+    KEYS_SEND_TO_ELEMENT("Keys '%s' are sent to element '%s'."),
 
     KEYS_NOT_SEND_TO_ELEMENT("FAIL: keys '%s' are not sent to element '%s'!"),
 
-    UI_OBJECT_PRESENT("PASS: UI object '%s' presents!"),
+    UI_OBJECT_PRESENT("UI object '%s' presents!"),
 
     UI_OBJECT_NOT_PRESENT("FAIL: UI object '%s' does not present!"),
 
-    TITLE_CORRECT("PASS: page has correct title '%s'."),
+    TITLE_CORRECT("Page has correct title '%s'."),
 
     TITLE_NOT_CORRECT("FAIL: incorrect title, expected '%s' but actual '%s'!"),
 
     STEPS_TO_REPRODUCE("Steps to reproduce test failure: \r\n%s"),
 
-    FILE_ATTACHED("PASS: file '%s' is attached."),
+    FILE_ATTACHED("File '%s' is attached."),
 
     FILE_NOT_ATTACHED("FAIL: file '%s' is not attached."),
 
-    SELECT_TEXT("PASS: text '%s' was selected in %s."),
+    SELECT_TEXT("Text '%s' was selected in %s."),
 
-    SELECT_INDEX("PASS: index '%s' was selected in %s."),
+    SELECT_INDEX("Index '%s' was selected in %s."),
 
     TEST_FAILURES("Test failures: \r\n%s"),
 
     TEST_CONFIGURATION("INFO: Test configuration: Browser='%s'; Base URL='%s'; Grid host='%s'."),
 
-    HOVER_IMG("PASS: img '%s' was hovered"),
+    HOVER_IMG("Img '%s' was hovered"),
 
-    ALERT_ACCEPTED("PASS: alert was accepted."),
+    ALERT_ACCEPTED("Alert was accepted."),
 
     ALERT_NOT_ACCEPTED("FAIL: alert was not accepted!"),
 
-    ALERT_CANCELED("PASS: alert was cancelled."),
+    ALERT_CANCELED("Alert was cancelled."),
 
     ALERT_NOT_CANCELED("FAIL: alert was not cancelled!"),
 
-    SELECT_BY_TEXT_PERFORMED("PASS: text '%s' was selected in '%s'."),
+    SELECT_BY_TEXT_PERFORMED("Text '%s' was selected in '%s'."),
 
     SELECT_BY_TEXT_NOT_PERFORMED("FAIL: text '%s' was NOT selected in '%s'."),
 
-    SELECT_BY_MATCHER_TEXT_PERFORMED("PASS: value by matcher '%s' was selected in '%s'."),
+    SELECT_BY_MATCHER_TEXT_PERFORMED("Value by matcher '%s' was selected in '%s'."),
 
     SELECT_BY_MATCHER_TEXT_NOT_PERFORMED("FAIL: value by matcher '%s' was NOT selected in '%s'."),
 
-    SELECT_BY_INDEX_PERFORMED("PASS: index '%s' was selected in '%s'."),
+    SELECT_BY_INDEX_PERFORMED("Index '%s' was selected in '%s'."),
 
     SELECT_BY_INDEX_NOT_PERFORMED("FAIL: index '%s' was NOT selected in '%s'."),
 
-    CHECKBOX_CHECKED("PASS: checkbox '%s' was checked."),
+    CHECKBOX_CHECKED("Checkbox '%s' was checked."),
 
-    CHECKBOX_UNCHECKED("PASS: index '%s' was unchecked."),
+    CHECKBOX_UNCHECKED("Index '%s' was unchecked."),
 
-    SLIDER_MOVED("PASS: slider '%s' was moved by offset X:'%s' Y:'%s'."),
+    SLIDER_MOVED("Slider '%s' was moved by offset X:'%s' Y:'%s'."),
 
     SLIDER_NOT_MOVED("FAIL: slider '%s' was NOT moved by offset X:'%s' Y:'%s'!"),
 
-    TAP_EXECUTED("PASS: Tap on X:'%s' Y:'%s' was executed."),
+    TAP_EXECUTED("Tap on X:'%s' Y:'%s' was executed."),
 
     TAP_NOT_EXECUTED("FAIL: Tap on X:'%s' Y:'%s' was not executed.");
     

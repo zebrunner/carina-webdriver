@@ -22,7 +22,8 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.Optional;
 
-import org.openqa.selenium.MutableCapabilities;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ public class MacFactory extends AbstractFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @Override
-    public WebDriver create(String name, MutableCapabilities capabilities, String seleniumHost) {
+    public ImmutablePair<WebDriver, Capabilities> create(String name, Capabilities capabilities, String seleniumHost) {
         if (seleniumHost == null) {
             seleniumHost = Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL);
         }
@@ -64,7 +65,7 @@ public class MacFactory extends AbstractFactory {
             if (readTimeout.isPresent()) {
                 config = config.readTimeout(Duration.ofSeconds(readTimeout.get()));
             }
-            return new Mac2Driver(config, capabilities);
+            return new ImmutablePair<>(new Mac2Driver(config, capabilities), capabilities);
         } catch (MalformedURLException e) {
             throw new UncheckedIOException("Malformed appium URL!", e);
         }

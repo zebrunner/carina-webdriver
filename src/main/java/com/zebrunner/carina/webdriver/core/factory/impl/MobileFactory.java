@@ -26,8 +26,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.zebrunner.agent.core.registrar.Label;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
@@ -69,7 +72,7 @@ public class MobileFactory extends AbstractFactory {
 
 
     @Override
-    public WebDriver create(String name, MutableCapabilities capabilities, String seleniumHost) {
+    public ImmutablePair<WebDriver, Capabilities> create(String name, Capabilities capabilities, String seleniumHost) {
         if (seleniumHost == null) {
             seleniumHost = Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL);
         }
@@ -83,13 +86,17 @@ public class MobileFactory extends AbstractFactory {
                 && CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class) != null) {
             String udid = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class);
             capabilities = getCapabilities(name);
-            capabilities.setCapability(MobileCapabilityType.UDID, udid);
+            MutableCapabilities udidCaps = new MutableCapabilities();
+            udidCaps.setCapability(MobileCapabilityType.UDID, udid);
+            capabilities = capabilities.merge(udidCaps);
             LOGGER.debug("Appended udid to capabilities: {}", capabilities);
         }
 
         Object mobileAppCapability = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.APP, String.class);
         if (mobileAppCapability != null) {
-            capabilities.setCapability(MobileCapabilityType.APP, getAppLink(String.valueOf(mobileAppCapability)));
+            MutableCapabilities appCaps = new MutableCapabilities();
+            appCaps.setCapability(MobileCapabilityType.APP, getAppLink(String.valueOf(mobileAppCapability)));
+            capabilities = capabilities.merge(appCaps);
         }
 
         LOGGER.debug("capabilities: {}", capabilities);
@@ -115,25 +122,18 @@ public class MobileFactory extends AbstractFactory {
         } catch (MalformedURLException e) {
             throw new UncheckedIOException("Malformed selenium URL!", e);
         } catch (Exception e) {
-            Device device = IDriverPool.nullDevice;
             LOGGER.debug("STF is enabled. Debug info will be extracted from the exception.");
-            if (e != null) {
-                String debugInfo = getDebugInfo(e.getMessage());
-                if (!debugInfo.isEmpty()) {
-                    String udid = getUdidFromDebugInfo(debugInfo);
-                    String deviceName = getParamFromDebugInfo(debugInfo, "name");
-                    device = new Device();
-                    device.setUdid(udid);
-                    device.setName(deviceName);
-                    IDriverPool.registerDevice(device);
-                }
-                // there is no sense to register device in the pool as driver is not started and we don't have custom exception from MCloud
-            } 
+            String debugInfo = getDebugInfo(e.getMessage());
+            if (!debugInfo.isEmpty()) {
+                Label.attachToTest("device", getParamFromDebugInfo(debugInfo, "name"));
+            }
+            // there is no sense to register device in the pool as driver is not started and we don't have custom exception from MCloud
             throw e;
         }
 
         try {
             Device device = new Device(((HasCapabilities) driver).getCapabilities());
+            Label.attachToTest("device", device.getName());
             IDriverPool.registerDevice(device);
             // will be performed just in case uninstall_related_apps flag marked as true
             device.uninstallRelatedApps();
@@ -149,7 +149,7 @@ public class MobileFactory extends AbstractFactory {
             LOGGER.error("finished driver quit...");
             throw e;
         }
-        return driver;
+        return new ImmutablePair<>(driver, capabilities);
     }
 
     /**

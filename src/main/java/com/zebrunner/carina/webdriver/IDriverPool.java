@@ -27,6 +27,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import io.appium.java_client.remote.MobileCapabilityType;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
@@ -176,18 +179,21 @@ public interface IDriverPool {
     default WebDriver restartDriver(boolean isSameDevice) {
         WebDriver drv = getDriver(DEFAULT);
         Device device = nullDevice;
-        MutableCapabilities caps = new MutableCapabilities();
+        MutableCapabilities udidCaps = new MutableCapabilities();
         boolean keepProxy = false;
         if (isSameDevice) {
             keepProxy = true;
             device = getDevice(drv);
             POOL_LOGGER.debug("Added udid: {} to capabilities for restartDriver on the same device.", device.getUdid());
-            caps.setCapability("udid", device.getUdid());
+            udidCaps.setCapability(MobileCapabilityType.UDID, device.getUdid());
         }
 
+        Capabilities capabilities = null;
         POOL_LOGGER.debug("before restartDriver: {}", driversPool);
         for (CarinaDriver carinaDriver : driversPool) {
             if (carinaDriver.getDriver().equals(drv)) {
+                capabilities = carinaDriver.getOriginalCapabilities()
+                        .merge(udidCaps);
                 quitDriver(carinaDriver, keepProxy);
                 // [VD] don't remove break or refactor moving removal out of "for" cycle
                 driversPool.remove(carinaDriver);
@@ -195,7 +201,7 @@ public interface IDriverPool {
             }
         }
         POOL_LOGGER.debug("after restartDriver: {}", driversPool);
-        return createDriver(DEFAULT, caps, null);
+        return createDriver(DEFAULT, capabilities, null);
     }
 
     /**
@@ -336,9 +342,9 @@ public interface IDriverPool {
      * @param name         String driver name
      * @param capabilities capabilities
      * @param seleniumHost String
-     * @return WebDriver
+     * @return {@link ImmutablePair} with {@link WebDriver} and original {@link Capabilities}
      */
-    private WebDriver createDriver(String name, MutableCapabilities capabilities, String seleniumHost) {
+    private WebDriver createDriver(String name, Capabilities capabilities, String seleniumHost) {
         int count = 0;
         WebDriver drv = null;
         Device device = nullDevice;
@@ -360,14 +366,14 @@ public interface IDriverPool {
                     // [VD] moved containsKey verification before the driver start
                     throw new RuntimeException(String.format("Driver '%s' is already registered for thread: %s", name, threadId));
                 }
-
-                drv = DriverFactory.create(name, capabilities, seleniumHost);
+                ImmutablePair<WebDriver, Capabilities> pair = DriverFactory.create(name, capabilities, seleniumHost);
+                drv = pair.getLeft();
 
                 if (currentDevice.get() != null) {
                     device = currentDevice.get();
                 }
 
-                CarinaDriver carinaDriver = new CarinaDriver(name, drv, device, TestPhase.getActivePhase(), threadId);
+                CarinaDriver carinaDriver = new CarinaDriver(name, drv, device, TestPhase.getActivePhase(), threadId, pair.getRight());
                 driversPool.add(carinaDriver);
                 POOL_LOGGER.debug("initDriver finish...");
             } catch (Exception e) {
@@ -472,17 +478,15 @@ public interface IDriverPool {
      * @return Device device
      */
     static Device registerDevice(Device device) {
-
-        boolean enableAdb = R.CONFIG.getBoolean(SpecialKeywords.ENABLE_ADB);
-        if (enableAdb) {
-            device.connectRemote();
-        }
         // register current device to be able to transfer it into Zafira at the end of the test
         long threadId = Thread.currentThread().getId();
         POOL_LOGGER.debug("Set current device '{}' to thread: {}", device.getName(), threadId);
         currentDevice.set(device);
-        Label.attachToTest("device", device.getName());
         POOL_LOGGER.debug("register device for current thread id: {}; device: '{}'", threadId, device.getName());
+        boolean enableAdb = R.CONFIG.getBoolean(SpecialKeywords.ENABLE_ADB);
+        if (enableAdb) {
+            device.connectRemote();
+        }
         return device;
     }
 

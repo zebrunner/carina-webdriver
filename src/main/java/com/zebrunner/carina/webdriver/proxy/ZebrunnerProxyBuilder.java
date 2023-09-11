@@ -583,6 +583,17 @@ public final class ZebrunnerProxyBuilder {
         return this;
     }
 
+    public ZebrunnerProxyBuilder removeHeaderModify(String regex) {
+        headerModifications.removeIf((modification -> modification.getOriginal().equals(regex)));
+        return this;
+    }
+
+    public ZebrunnerProxyBuilder removeHeaderModify(FilterCondition flowFilter, String regex) {
+        headerModifications.removeIf((modification -> StringUtils.equals(modification.getOriginal(), regex)
+                && StringUtils.equals(modification.getFlowFilter(), flowFilter.toString())));
+        return this;
+    }
+
     ////////////////// FILTERS //////////////////
 
     /**

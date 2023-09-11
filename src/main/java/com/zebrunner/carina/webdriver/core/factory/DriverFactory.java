@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.reflect.ConstructorUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.events.WebDriverListener;
@@ -43,6 +45,7 @@ import com.zebrunner.carina.webdriver.listener.DriverListener;
 
 /**
  * DriverFactory produces driver instance with capabilities according to configuration.
+ * <b>For internal usage only</b>
  *
  * @author Alexey Khursevich (hursevich@gmail.com)
  */
@@ -54,7 +57,7 @@ public class DriverFactory {
         // hide
     }
 
-    public static WebDriver create(String testName, MutableCapabilities capabilities, String seleniumHost) {
+    public static ImmutablePair<WebDriver, Capabilities> create(String testName, Capabilities capabilities, String seleniumHost) {
 		LOGGER.debug("DriverFactory start...");
         AbstractFactory factory = null;
 
@@ -83,13 +86,12 @@ public class DriverFactory {
         }
 
         LOGGER.info("Starting driver session...");
-        WebDriver driver = factory.create(testName, capabilities, seleniumHost);
-        driver = new CarinaEventFiringDecorator<>(getEventListeners(driver))
-                .decorate(driver);
+        ImmutablePair<WebDriver, Capabilities> pair = factory.create(testName, capabilities, seleniumHost);
         LOGGER.info("Driver session started.");
         LOGGER.debug("DriverFactory finish...");
 
-        return driver;
+        return new ImmutablePair<>(new CarinaEventFiringDecorator<>(getEventListeners(pair.getLeft()))
+                .decorate(pair.getLeft()), pair.getRight());
     }
 
     /**
