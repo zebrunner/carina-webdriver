@@ -3,7 +3,6 @@ package com.zebrunner.carina.webdriver.proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
