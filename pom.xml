@@ -66,7 +66,7 @@
         <org.json.version>20160810</org.json.version>
         <joda-time.version>2.9.9</joda-time.version>
         <mockito-core.version>3.2.4</mockito-core.version>
-        <testng.version>7.7.1</testng.version>
+        <testng.version>7.8.0</testng.version>
         <guava.version>31.1-jre</guava.version>
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
