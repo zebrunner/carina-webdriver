@@ -40,28 +40,33 @@ import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.remote.MobileCapabilityType;
 
 public final class ExtendedElementLocatorFactory implements ElementLocatorFactory, IDriverPool {
-    static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
     private final SearchContext searchContext;
     private final WebDriver webDriver;
-    private final String platform;
-    private final String automation;
-    private final String driverType;
+    private final LocatorCreatorContext locatorCreatorContext;
+
+    private String platform;
+    private String automation;
+    private String driverType;
 
     public ExtendedElementLocatorFactory(WebDriver webDriver, SearchContext searchContext) {
         this.webDriver = webDriver;
         this.searchContext = searchContext;
+
+        String browserName = null;
         if (this.webDriver instanceof HasCapabilities) {
             Capabilities capabilities = ((HasCapabilities) this.webDriver).getCapabilities();
             this.platform = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
             this.automation = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.AUTOMATION_NAME, String.class);
-            String browserName = CapabilityHelpers.getCapability(capabilities, CapabilityType.BROWSER_NAME, String.class);
+            browserName = CapabilityHelpers.getCapability(capabilities, CapabilityType.BROWSER_NAME, String.class);
             this.driverType = detectDriverType(browserName, platform);
         } else {
             LOGGER.error("Driver should realize HasCapabilities class!");
-            this.platform = null;
-            this.automation = null;
-            this.driverType = null;
         }
+
+        this.locatorCreatorContext = new LocatorCreatorContext(webDriver, searchContext, this.platform, browserName, this.automation, this.driverType);
     }
 
     public ElementLocator createLocator(Field field) {
@@ -69,7 +74,7 @@ public final class ExtendedElementLocatorFactory implements ElementLocatorFactor
             return null;
         }
 
-        AbstractAnnotations annotations = null;
+        AbstractAnnotations annotations;
         if (!SpecialKeywords.DESKTOP.equals(driverType)) {
             // todo create Annotations for every type of annotations
             if (field.isAnnotationPresent(ExtendedFindBy.class) ||
@@ -78,12 +83,12 @@ public final class ExtendedElementLocatorFactory implements ElementLocatorFactor
                     field.isAnnotationPresent(Predicate.class)) {
                 annotations = new ExtendedAnnotations(field);
             } else {
-                ExtendedAppiumAnnotations builder = new ExtendedAppiumAnnotations(platform, automation);
+                ExtendedAppiumAnnotations builder = new ExtendedAppiumAnnotations(locatorCreatorContext);
                 builder.setAnnotated(field);
                 annotations = builder;
             }
         } else {
-            annotations = new ExtendedSeleniumAnnotations(field);
+            annotations = new ExtendedSeleniumAnnotations(field, locatorCreatorContext);
         }
 
         ExtendedElementLocator extendedElementLocator = null;
