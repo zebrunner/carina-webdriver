@@ -52,10 +52,10 @@
         <carina-utils.version>1.1.5</carina-utils.version>
         <carina-commons.version>1.0.2</carina-commons.version>
         <zebrunner-testng-pluggable.version>1.9.7</zebrunner-testng-pluggable.version>
-        <slf4j.version>1.7.30</slf4j.version>
+        <slf4j.version>2.0.7</slf4j.version>
         <pdfbox.version>2.0.28</pdfbox.version>
-        <selenium.version>4.7.0</selenium.version>
-        <appium.version>8.3.0</appium.version>
+        <selenium.version>4.9.1</selenium.version>
+        <appium.version>8.5.1</appium.version>
         <cdt-java-client.version>4.0.0</cdt-java-client.version>
         <ashot.version>1.5.4</ashot.version>
         <itext.version>5.5.13.3</itext.version>
@@ -165,6 +165,18 @@
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-edge-driver</artifactId>
+            <version>${selenium.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-ie-driver</artifactId>
+            <version>${selenium.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-safari-driver</artifactId>
             <version>${selenium.version}</version>
         </dependency>
 
