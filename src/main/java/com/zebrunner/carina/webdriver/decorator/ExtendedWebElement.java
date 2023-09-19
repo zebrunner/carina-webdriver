@@ -1299,7 +1299,7 @@ public class ExtendedWebElement implements IWebElement {
                 }
                 ClassLoader classLoader = getClass().getClassLoader();
 
-                InvocationHandler handler = new LocatingListHandler(classLoader, innerLocator, this.name);
+                InvocationHandler handler = new LocatingListHandler(classLoader, innerLocator, this.name, ExtendedWebElement.class);
                 extendedWebElementList = (List<ExtendedWebElement>) Proxy.newProxyInstance(classLoader, new Class[] { List.class }, handler);
             } else {
                 By by = this.by;
