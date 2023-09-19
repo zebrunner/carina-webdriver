@@ -99,7 +99,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
         if (List.class.isAssignableFrom(field.getType())) {
             Type listType = getListType(field);
             if (ExtendedWebElement.class.isAssignableFrom((Class<?>) listType)) {
-                return proxyForListLocator(loader, field, locator);
+            	return proxyForListLocator(loader, field, locator, (Class<?>) listType);
             }
 
             if (AbstractUIObject.class.isAssignableFrom((Class<?>) listType)) {
@@ -120,7 +120,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
         }
 
         try {
-            if (!(ExtendedWebElement.class.equals(listType) || AbstractUIObject.class.isAssignableFrom((Class<?>) listType))) {
+            if (!(ExtendedWebElement.class.isAssignableFrom((Class<?>) listType) || AbstractUIObject.class.isAssignableFrom((Class<?>) listType))) {
                 return false;
             }
         } catch (ClassCastException e) {
@@ -134,12 +134,21 @@ public class ExtendedFieldDecorator implements FieldDecorator {
      * @param field page element to be proxied
      * @param locator {{{@link ExtendedElementLocator}}}
      */
-    protected ExtendedWebElement proxyForLocator(ClassLoader loader, Field field, ElementLocator locator) {
+    @SuppressWarnings("unchecked")
+    protected <T extends ExtendedWebElement> T proxyForLocator(ClassLoader loader, Field field, ElementLocator locator) {
         InvocationHandler handler = new LocatingElementHandler(locator);
         WebElement proxy = (WebElement) Proxy.newProxyInstance(loader, new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class,
                 Locatable.class, TakesScreenshot.class },
                 handler);
-        return new ExtendedWebElement(proxy, field.getName());
+        Class<? extends ExtendedWebElement> clazz = (Class<? extends ExtendedWebElement>) field.getType();
+        try {
+            return (T) clazz.getConstructor(WebElement.class, String.class).newInstance(proxy, field.getName());
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(
+                    "Implement appropriate AbstractUIObject constructor for auto-initialization!", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error creating ExtendedWebElement!", e);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -166,10 +175,10 @@ public class ExtendedFieldDecorator implements FieldDecorator {
         return uiObject;
     }
 
-    @SuppressWarnings("unchecked")
-    protected List<ExtendedWebElement> proxyForListLocator(ClassLoader loader, Field field, ElementLocator locator) {
-        InvocationHandler handler = new LocatingListHandler(loader, locator, field);
-        return (List<ExtendedWebElement>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    protected <T extends ExtendedWebElement> List<T> proxyForListLocator(ClassLoader loader, Field field, ElementLocator locator, Class<?> clazz) {
+        InvocationHandler handler = new LocatingListHandler(loader, locator, field, clazz);
+        return (List<T>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
     }
 
     @SuppressWarnings("unchecked")
