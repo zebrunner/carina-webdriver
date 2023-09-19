@@ -120,7 +120,7 @@ public class ExtendedFieldDecorator implements FieldDecorator {
         }
 
         try {
-        	if (!(ExtendedWebElement.class.isAssignableFrom((Class<?>) listType) || AbstractUIObject.class.isAssignableFrom((Class<?>) listType))) {
+            if (!(ExtendedWebElement.class.isAssignableFrom((Class<?>) listType) || AbstractUIObject.class.isAssignableFrom((Class<?>) listType))) {
                 return false;
             }
         } catch (ClassCastException e) {

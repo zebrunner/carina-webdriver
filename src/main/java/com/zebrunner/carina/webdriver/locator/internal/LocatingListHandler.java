@@ -80,7 +80,7 @@ public class LocatingListHandler<T extends ExtendedWebElement> implements Invoca
         List<T> extendedWebElements = null;
         int i = 0;
         if (elements != null) {
-        	extendedWebElements = new ArrayList<T>();
+            extendedWebElements = new ArrayList<T>();
             for (WebElement element : elements) {
                 InvocationHandler handler = new LocatingListsElementHandler(element, locator);
                 WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,
