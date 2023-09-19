@@ -419,7 +419,8 @@ public class Screenshot {
             if (!comment.isEmpty()) {
                 LOGGER.info(comment);
                 // add screenshot comment to collector
-                ReportContext.addScreenshotComment(screenshotFileName, comment);
+                //todo think about renaming screenshot
+                //ReportContext.addScreenshotComment(screenshotFileName, comment);
             }
             rule.after(file);
         } catch (NoSuchWindowException e) {
@@ -575,7 +576,8 @@ public class Screenshot {
                 if (!comment.isEmpty()) {
                     LOGGER.info(comment);
                     // add screenshot comment to collector
-                    ReportContext.addScreenshotComment(screenName, comment);
+                    //todo think about renaming screenshot
+                    //ReportContext.addScreenshotComment(screenName, comment);
                 }
                 // upload screenshot to Zebrunner Reporting
                 com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(screenshot.toPath()), Instant.now().toEpochMilli());
