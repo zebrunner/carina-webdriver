@@ -38,23 +38,27 @@ import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
 import com.zebrunner.carina.webdriver.locator.LocatorType;
 import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 
-public class LocatingListHandler implements InvocationHandler {
+public class LocatingListHandler<T extends ExtendedWebElement> implements InvocationHandler {
     private final ElementLocator locator;
     private final String name;
     private final ClassLoader loader;
+    private final Class<?> clazz;
 
-    public LocatingListHandler(ClassLoader loader, ElementLocator locator, Field field){
+    public LocatingListHandler(ClassLoader loader, ElementLocator locator, Field field, Class<?> clazz) {
         this.loader = loader;
         this.locator = locator;
         this.name = field.getName();
+        this.clazz = clazz;
     }
 
-    public LocatingListHandler(ClassLoader loader, ElementLocator locator, String name) {
+    public LocatingListHandler(ClassLoader loader, ElementLocator locator, String name, Class<?> clazz) {
         this.loader = loader;
         this.locator = locator;
         this.name = name;
+        this.clazz = clazz;
     }
 
+    @SuppressWarnings("unchecked")
     public Object invoke(Object object, Method method, Object[] objects) throws Throwable {
 		// Hotfix for huge and expected regression in carina: we lost managed
 		// time delays with lists manipulations
@@ -73,16 +77,25 @@ public class LocatingListHandler implements InvocationHandler {
         Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(by);
         boolean isByForListSupported = locatorType.isPresent() && locatorType.get().isIndexSupport();
         String locatorAsString = by.toString();
-        List<ExtendedWebElement> extendedWebElements = null;
+        List<T> extendedWebElements = null;
         int i = 0;
         if (elements != null) {
-            extendedWebElements = new ArrayList<>();
+            extendedWebElements = new ArrayList<T>();
             for (WebElement element : elements) {
                 InvocationHandler handler = new LocatingListsElementHandler(element, locator);
                 WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,
                         new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
                         handler);
-                ExtendedWebElement webElement = new ExtendedWebElement(proxy, name + i);
+                T webElement;
+                try {
+                    webElement = (T) clazz.getConstructor(WebElement.class, String.class).newInstance(proxy, name + i);
+                } catch (NoSuchMethodException e) {
+                    throw new RuntimeException(
+                            "Implement appropriate AbstractUIObject constructor for auto-initialization!", e);
+                } catch (Exception e) {
+                    throw new RuntimeException("Error creating ExtendedWebElement!", e);
+                }
+                
                 webElement.setIsSingle(false);
                 if (isByForListSupported) {
                     webElement.setIsRefreshSupport(true);
