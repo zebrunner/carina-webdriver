@@ -15,22 +15,8 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver;
 
-import java.awt.*;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.StringSelection;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -43,8 +29,10 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.zebrunner.carina.webdriver.helper.IClipboardHelper;
+import com.zebrunner.carina.webdriver.helper.ICommonsHelper;
+import com.zebrunner.carina.webdriver.helper.IExtendedWebElementHelper;
 import org.json.JSONObject;
-import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.JavascriptException;
 import org.openqa.selenium.JavascriptExecutor;
@@ -61,10 +49,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Action;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.json.JsonException;
-import org.openqa.selenium.remote.RemoteWebDriver;
-import org.openqa.selenium.support.decorators.Decorated;
 import org.openqa.selenium.support.ui.ExpectedCondition;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.Wait;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -73,20 +58,16 @@ import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
 import com.zebrunner.carina.utils.LogicUtils;
-import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.config.StandardConfigurationOption;
 import com.zebrunner.carina.utils.encryptor.EncryptorUtils;
 import com.zebrunner.carina.utils.messager.Messager;
-import com.zebrunner.carina.utils.retry.ActionPoller;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration.Parameter;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.gui.AbstractPage;
 import com.zebrunner.carina.webdriver.helper.IChromeDevToolsHelper;
 import com.zebrunner.carina.webdriver.listener.DriverListener;
-import com.zebrunner.carina.webdriver.locator.LocatorType;
-import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 
 /**
  * DriverHelper - WebDriver wrapper for logging and reporting features. Also it
@@ -94,7 +75,7 @@ import com.zebrunner.carina.webdriver.locator.LocatorUtils;
  *
  * @author Alex Khursevich
  */
-public class DriverHelper implements IChromeDevToolsHelper {
+public class DriverHelper implements IChromeDevToolsHelper, IExtendedWebElementHelper, IClipboardHelper, ICommonsHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final String REDUX_STORE_STATE_BASE_PATH = "window.store.getState()";
     protected static final long EXPLICIT_TIMEOUT = Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Long.class);
@@ -131,7 +112,7 @@ public class DriverHelper implements IChromeDevToolsHelper {
     /**
      * Open URL.
      *
-     * @param url     to open.
+     * @param url to open.
      * @param timeout long
      */
     public void openURL(String url, long timeout) {
@@ -184,273 +165,9 @@ public class DriverHelper implements IChromeDevToolsHelper {
     // Base UI interaction operations
     // --------------------------------------------------------------------------
 
-    /**
-     * Method which quickly looks for all element and check that they present
-     * during EXPLICIT_TIMEOUT
-     *
-     * @param elements ExtendedWebElement...
-     * @return boolean return true only if all elements present.
-     */
-    public boolean allElementsPresent(ExtendedWebElement... elements) {
-        return allElementsPresent(EXPLICIT_TIMEOUT, elements);
-    }
-
-    /**
-     * Method which quickly looks for all element and check that they present
-     * during timeout sec
-     *
-     * @param timeout  long
-     * @param elements ExtendedWebElement...
-     * @return boolean return true only if all elements present.
-     */
-    public boolean allElementsPresent(long timeout, ExtendedWebElement... elements) {
-        int index = 0;
-        boolean present = true;
-        boolean ret = true;
-        int counts = 1;
-        timeout = timeout / counts;
-        if (timeout < 1)
-            timeout = 1;
-        while (present && index++ < counts) {
-            for (ExtendedWebElement element : elements) {
-                present = element.isElementPresent(timeout);
-                if (!present) {
-                    LOGGER.error("{} is not present.", element.getNameWithLocator());
-                    ret = false;
-                }
-            }
-        }
-        return ret;
-    }
-
-    /**
-     * Method which quickly looks for all element lists and check that they
-     * contain at least one element during SHORT_TIMEOUT
-     *
-     * @param elements List&lt;ExtendedWebElement&gt;...
-     * @return boolean
-     */
-    @SuppressWarnings("unchecked")
-    public boolean allElementListsAreNotEmpty(List<ExtendedWebElement>... elements) {
-        return allElementListsAreNotEmpty(SHORT_TIMEOUT, elements);
-    }
-
-    /**
-     * Method which quickly looks for all element lists and check that they
-     * contain at least one element during timeout
-     *
-     * @param timeout  long
-     * @param elements List&lt;ExtendedWebElement&gt;...
-     * @return boolean return true only if All Element lists contain at least one element
-     */
-    @SuppressWarnings("unchecked")
-    public boolean allElementListsAreNotEmpty(long timeout, List<ExtendedWebElement>... elements) {
-        boolean ret;
-        int counts = 3;
-        timeout = timeout / counts;
-        if (timeout < 1)
-            timeout = 1;
-        for (int i = 0; i < elements.length; i++) {
-            boolean present = false;
-            int index = 0;
-            while (!present && index++ < counts) {
-                try {
-                    present = elements[i].get(0).isElementPresent(timeout);
-                } catch (Exception e) {
-                    // do nothing
-                }
-            }
-            ret = (!elements[i].isEmpty());
-            if (!ret) {
-                String elementsAsString = Arrays.toString(elements);
-                LOGGER.error("List of elements[{}] from elements {} is empty.", i, elementsAsString);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Method which quickly looks for any element presence during
-     * SHORT_TIMEOUT
-     *
-     * @param elements ExtendedWebElement...
-     * @return true if any of elements was found.
-     */
-    public boolean isAnyElementPresent(ExtendedWebElement... elements) {
-        return isAnyElementPresent(SHORT_TIMEOUT, elements);
-    }
-
-    /**
-     * Method which quickly looks for any element presence during timeout sec
-     *
-     * @param timeout  long
-     * @param elements ExtendedWebElement...
-     * @return true if any of elements was found.
-     */
-    public boolean isAnyElementPresent(long timeout, ExtendedWebElement... elements) {
-        int index = 0;
-        int counts = 10;
-        timeout = timeout / counts;
-        if (timeout < 1)
-            timeout = 1;
-        while (index++ < counts) {
-            for (ExtendedWebElement element : elements) {
-                if (element.isElementPresent(timeout)) {
-                    LOGGER.debug("{} is present", element.getNameWithLocator());
-                    return true;
-                }
-            }
-        }
-
-        LOGGER.error("Unable to find any element from array: {}", Arrays.toString(elements));
-        return false;
-    }
-
-    /**
-     * return Any Present Element from the list which present during
-     * SHORT_TIMEOUT
-     *
-     * @param elements ExtendedWebElement...
-     * @return ExtendedWebElement
-     */
-    public ExtendedWebElement returnAnyPresentElement(ExtendedWebElement... elements) {
-        return returnAnyPresentElement(SHORT_TIMEOUT, elements);
-    }
-
-    /**
-     * return Any Present Element from the list which present during timeout sec
-     *
-     * @param timeout  long
-     * @param elements ExtendedWebElement...
-     * @return ExtendedWebElement
-     */
-    public ExtendedWebElement returnAnyPresentElement(long timeout, ExtendedWebElement... elements) {
-        int index = 0;
-        int counts = 10;
-        timeout = timeout / counts;
-        if (timeout < 1)
-            timeout = 1;
-        while (index++ < counts) {
-            for (ExtendedWebElement element : elements) {
-                if (element.isElementPresent(timeout)) {
-                    LOGGER.debug(element.getNameWithLocator() + " is present");
-                    return element;
-                }
-            }
-        }
-        //throw exception anyway if nothing was returned inside for cycle
-        LOGGER.error("All elements are not present");
-        throw new RuntimeException("Unable to find any element from array: " + Arrays.toString(elements));
-    }
-
-    /**
-     * Check that element with text present.
-     *
-     * @param extWebElement to check if element with text is present
-     * @param text          of element to check.
-     * @return element with text existence status.
-     */
-    public boolean isElementWithTextPresent(final ExtendedWebElement extWebElement, final String text) {
-        return isElementWithTextPresent(extWebElement, text, EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Check that element with text present.
-     *
-     * @param extWebElement to check if element with text is present
-     * @param text          of element to check.
-     * @param timeout       Long
-     * @return element with text existence status.
-     */
-    public boolean isElementWithTextPresent(final ExtendedWebElement extWebElement, final String text, long timeout) {
-        return extWebElement.isElementWithTextPresent(text, timeout);
-    }
-
-    /**
-     * Check that element not present on page.
-     *
-     * @param extWebElement to check if element is not present
-     * @return element non-existence status.
-     */
-    public boolean isElementNotPresent(final ExtendedWebElement extWebElement) {
-        return isElementNotPresent(extWebElement, EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Check that element not present on page.
-     *
-     * @param extWebElement to check if element is not present
-     * @param timeout to wait
-     * @return element non-existence status.
-     */
-
-    public boolean isElementNotPresent(final ExtendedWebElement extWebElement, long timeout) {
-        return extWebElement.isElementNotPresent(timeout);
-    }
-
-    /**
-     * Check that element not present on page.
-     *
-     * @param element to check if element is not present
-     * @param controlInfo String
-     * @return element non-existence status.
-     */
-
-    public boolean isElementNotPresent(String controlInfo, final WebElement element) {
-        return isElementNotPresent(new ExtendedWebElement(element, controlInfo));
-    }
-
-    /**
-     * Clicks on element.
-     *
-     * @param elements ExtendedWebElements to click
-     */
-
-    public void clickAny(ExtendedWebElement... elements) {
-        clickAny(EXPLICIT_TIMEOUT, elements);
-    }
-
-    /**
-     * Clicks on element.
-     *
-     * @param elements ExtendedWebElements to click
-     * @param timeout to wait
-     */
-
-    public void clickAny(long timeout, ExtendedWebElement... elements) {
-        // Method which quickly looks for any element and click during timeout
-        // sec
-        WebDriver drv = getDriver();
-        ActionPoller<WebElement> actionPoller = ActionPoller.builder();
-
-        Optional<WebElement> searchableElement = actionPoller.task(() -> {
-            WebElement possiblyFoundElement = null;
-
-            for (ExtendedWebElement element : elements) {
-                List<WebElement> foundElements = drv.findElements(element.getBy());
-                if (!foundElements.isEmpty()) {
-                    possiblyFoundElement = foundElements.get(0);
-                    break;
-                }
-            }
-            return possiblyFoundElement;
-        })
-                .until(Objects::nonNull)
-                .pollEvery(0, ChronoUnit.SECONDS)
-                .stopAfter(timeout, ChronoUnit.SECONDS)
-                .execute();
-
-        if (searchableElement.isEmpty()) {
-            throw new RuntimeException(String.format("Unable to click onto any elements from array: %s", Arrays.toString(elements)));
-        }
-
-        searchableElement.get()
-                .click();
-    }
-
     /*
      * Get and return the source of the last loaded page.
+     * 
      * @return String
      */
     public String getPageSource() {
@@ -460,7 +177,8 @@ public class DriverHelper implements IChromeDevToolsHelper {
                 .pollingEvery(Duration.ofMillis(5000)) // there is no sense to refresh url address too often
                 .withTimeout(Duration.ofSeconds(Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class)))
                 .ignoring(WebDriverException.class)
-                .ignoring(JavascriptException.class); // org.openqa.selenium.JavascriptException: javascript error: Cannot read property 'outerHTML' of null
+                .ignoring(JavascriptException.class); // org.openqa.selenium.JavascriptException: javascript error: Cannot read property 'outerHTML'
+                                                      // of null
         String res = "";
         try {
             res = wait.until(WebDriver::getPageSource);
@@ -473,6 +191,7 @@ public class DriverHelper implements IChromeDevToolsHelper {
 
     /*
      * Add cookie object into the driver
+     * 
      * @param Cookie
      */
     public void addCookie(Cookie cookie) {
@@ -483,7 +202,8 @@ public class DriverHelper implements IChromeDevToolsHelper {
                 .withTimeout(Duration.ofSeconds(Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class)))
                 .ignoring(WebDriverException.class)
                 .ignoring(
-                        JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters rea
+                        JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0
+                                              // characters rea
         wait.until(drv -> {
             drv.manage().addCookie(cookie);
             return true;
@@ -517,7 +237,7 @@ public class DriverHelper implements IChromeDevToolsHelper {
      *
      * @param index the position of where the item is stored
      * @return an optional containing the name of the stored item for the index or an empty optional if
-     * nothing is at the given index.
+     *         nothing is at the given index.
      */
     public Optional<String> getNameFromLocalStorage(int index) {
         return Optional.ofNullable((String) ((JavascriptExecutor) getDriver())
@@ -546,7 +266,7 @@ public class DriverHelper implements IChromeDevToolsHelper {
      * @return all store states
      */
     public JSONObject getReduxStoreStates() {
-        String response = (String)((JavascriptExecutor) getDriver())
+        String response = (String) ((JavascriptExecutor) getDriver())
                 .executeScript("return JSON.stringify(arguments[0]);", REDUX_STORE_STATE_BASE_PATH);
         return new JSONObject(response);
     }
@@ -563,7 +283,7 @@ public class DriverHelper implements IChromeDevToolsHelper {
      * @return redux store state
      */
     public JSONObject getReduxStoreStateFor(String path) {
-        String response = (String)((JavascriptExecutor) getDriver())
+        String response = (String) ((JavascriptExecutor) getDriver())
                 .executeScript("return JSON.stringify(arguments[0].arguments[1]);", REDUX_STORE_STATE_BASE_PATH, path);
         return new JSONObject(response);
     }
@@ -597,13 +317,14 @@ public class DriverHelper implements IChromeDevToolsHelper {
     public String getCurrentUrl(long timeout) {
         // explicitly limit time for the getCurrentUrl operation
         Future<?> future = Executors.newSingleThreadExecutor().submit(() -> {
-            //organize fluent waiter for getting url
+            // organize fluent waiter for getting url
             Wait<WebDriver> wait = new FluentWait<>(getDriver())
                     .pollingEvery(Duration.ofMillis(Configuration.getRequired(Parameter.RETRY_INTERVAL, Integer.class)))
                     .withTimeout(Duration.ofSeconds(Configuration.getRequired(Parameter.EXPLICIT_TIMEOUT, Integer.class)))
                     .ignoring(WebDriverException.class)
                     .ignoring(
-                            JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters rea
+                            JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last
+                                                  // 0 characters rea
             return wait.until(WebDriver::getCurrentUrl);
         });
 
@@ -637,7 +358,7 @@ public class DriverHelper implements IChromeDevToolsHelper {
      * Checks that current URL is as expected.
      *
      * @param expectedURL Expected Url
-     * @param timeout     long
+     * @param timeout long
      * @return validation result.
      */
     public boolean isUrlAsExpected(String expectedURL, long timeout) {
@@ -667,130 +388,6 @@ public class DriverHelper implements IChromeDevToolsHelper {
     }
 
     /**
-     * Get clipboard text
-     *
-     * @return String saved in clipboard
-     */
-    public String getClipboardText() {
-        try {
-            LOGGER.debug("Trying to get clipboard from remote machine with hub...");
-            String url = getSelenoidClipboardUrl(driver);
-            String username = getField(url, 1);
-            String password = getField(url, 2);
-
-            HttpURLConnection.setFollowRedirects(false);
-            HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
-            con.setRequestMethod("GET");
-
-            if (!username.isEmpty() && !password.isEmpty()) {
-                String usernameColonPassword = username + ":" + password;
-                String basicAuthPayload = "Basic " + Base64.getEncoder().encodeToString(usernameColonPassword.getBytes());
-                con.addRequestProperty("Authorization", basicAuthPayload);
-            }
-
-            String clipboardText = "";
-            int status = con.getResponseCode();
-            if (200 <= status && status <= 299) {
-                BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                String inputLine;
-                StringBuilder sb = new StringBuilder();
-                while ((inputLine = br.readLine()) != null) {
-                    sb.append(inputLine);
-                }
-                br.close();
-                clipboardText = sb.toString();
-            } else {
-                LOGGER.debug("Trying to get clipboard from local java machine...");
-                clipboardText = (String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
-            }
-
-            clipboardText = clipboardText.replace("\n", "");
-            LOGGER.info("Clipboard: {}", clipboardText);
-            return clipboardText;
-        } catch (Exception e) {
-            throw new RuntimeException("Error when try to get clipboard text.", e);
-        }
-    }
-
-    /**
-     * Set text to clipboard
-     *
-     * @param text text
-     * @return true if successful, false otherwise
-     */
-    public boolean setClipboardText(String text) {
-        boolean isSuccessful = false;
-        try {
-            LOGGER.debug("Trying to set text to clipboard on the remote machine with hub...");
-            String url = getSelenoidClipboardUrl(getDriver());
-            String username = getField(url, 1);
-            String password = getField(url, 2);
-
-            HttpURLConnection.setFollowRedirects(false);
-            HttpURLConnection con = (HttpURLConnection) new URL(url)
-                    .openConnection();
-            con.setRequestMethod("POST");
-            con.setDoOutput(true);
-
-            if (!username.isEmpty() && !password.isEmpty()) {
-                String usernameColonPassword = username + ":" + password;
-                String basicAuthPayload = "Basic " + Base64.getEncoder().encodeToString(usernameColonPassword.getBytes());
-                con.addRequestProperty("Authorization", basicAuthPayload);
-            }
-
-            DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-            wr.writeBytes(text);
-            wr.flush();
-            wr.close();
-
-            int status = con.getResponseCode();
-            if (!(200 <= status && status <= 299)) {
-                throw new IOException("Response status code is not successful");
-            }
-            isSuccessful = true;
-        } catch (Exception e) {
-            LOGGER.error("Error occurred when try to set clipboard to remote machine with hub", e);
-            try {
-                LOGGER.debug("Trying to set clipboard to the local java machine...");
-                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
-                isSuccessful = true;
-            } catch (Exception ex) {
-                LOGGER.error("Error occurred when try to set clipboard to the local machine", ex);
-            }
-        }
-        return isSuccessful;
-    }
-
-    private String getSelenoidClipboardUrl(WebDriver driver) {
-        String seleniumHost = Configuration.getRequired(Parameter.SELENIUM_URL).replace("wd/hub", "clipboard/");
-        WebDriver drv = (driver instanceof Decorated<?>) ? (WebDriver) ((Decorated<?>) driver).getOriginal() : driver;
-        String sessionId = ((RemoteWebDriver) drv).getSessionId().toString();
-        String url = seleniumHost + sessionId;
-        LOGGER.debug("url: {}", url);
-        return url;
-    }
-
-    private String getField(String url, int position) {
-        Pattern pattern = Pattern.compile(".*:\\/\\/(.*):(.*)@");
-        Matcher matcher = pattern.matcher(url);
-
-        return matcher.find() ? matcher.group(position) : "";
-    }
-
-    /**
-     * Pause for specified timeout.
-     *
-     * @param timeout in seconds.
-     */
-    public void pause(long timeout) {
-        CommonUtils.pause(timeout);
-    }
-
-    public void pause(Double timeout) {
-        CommonUtils.pause(timeout);
-    }
-
-    /**
      * Return page title.
      *
      * @return title String.
@@ -810,7 +407,8 @@ public class DriverHelper implements IChromeDevToolsHelper {
                 .pollingEvery(Duration.ofMillis(RETRY_TIME))
                 .withTimeout(Duration.ofSeconds(timeout))
                 .ignoring(WebDriverException.class)
-                .ignoring(JavascriptException.class); // org.openqa.selenium.JavascriptException: javascript error: Cannot read property 'outerHTML' of null
+                .ignoring(JavascriptException.class); // org.openqa.selenium.JavascriptException: javascript error: Cannot read property 'outerHTML'
+                                                      // of null
         String res = "";
         try {
             res = wait.until(WebDriver::getTitle);
@@ -883,7 +481,8 @@ public class DriverHelper implements IChromeDevToolsHelper {
                 .pollingEvery(Duration.ofMillis(5000)) // there is no sense to refresh url address too often
                 .withTimeout(Duration.ofSeconds(timeout))
                 .ignoring(WebDriverException.class)
-                .ignoring(JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0 characters read
+                .ignoring(JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0
+                                                // characters read
         try {
             wait.until((Function<WebDriver, Void>) drv -> {
                 drv.navigate().refresh();
@@ -904,7 +503,7 @@ public class DriverHelper implements IChromeDevToolsHelper {
      * Drags and drops element to specified place.
      *
      * @param from element to drag.
-     * @param to   element to drop to.
+     * @param to element to drop to.
      */
     public void dragAndDrop(final ExtendedWebElement from, final ExtendedWebElement to) {
 
@@ -936,7 +535,7 @@ public class DriverHelper implements IChromeDevToolsHelper {
      * Drags and drops element to specified place. Elements Need To have an id.
      *
      * @param from the element to drag.
-     * @param to   the element to drop to.
+     * @param to the element to drop to.
      */
     public void dragAndDropHtml5(final ExtendedWebElement from, final ExtendedWebElement to) {
         String source = from.getAttribute("id");
@@ -1009,16 +608,16 @@ public class DriverHelper implements IChromeDevToolsHelper {
      * Performs slider move for specified offset.
      *
      * @param slider slider
-     * @param moveX  move x
-     * @param moveY  move y
+     * @param moveX move x
+     * @param moveY move y
      */
     public void slide(ExtendedWebElement slider, int moveX, int moveY) {
-    	//TODO: SZ migrate to FluentWaits
+        // TODO: SZ migrate to FluentWaits
         if (slider.isElementPresent()) {
             WebDriver drv = getDriver();
             (new Actions(drv)).moveToElement(slider.getElement()).dragAndDropBy(slider.getElement(), moveX, moveY)
                     .build().perform();
-			Messager.SLIDER_MOVED.info(slider.getNameWithLocator(), String.valueOf(moveX), String.valueOf(moveY));
+            Messager.SLIDER_MOVED.info(slider.getNameWithLocator(), String.valueOf(moveX), String.valueOf(moveY));
         } else {
             Messager.SLIDER_NOT_MOVED.error(slider.getNameWithLocator(), String.valueOf(moveX), String.valueOf(moveY));
         }
@@ -1101,7 +700,7 @@ public class DriverHelper implements IChromeDevToolsHelper {
      * Really should only be used when the web driver is sucking at exposing
      * functionality natively
      *
-     * @param script  The script to execute
+     * @param script The script to execute
      * @param element The target of the script, referenced as arguments[0]
      * @return Object
      */
@@ -1175,105 +774,6 @@ public class DriverHelper implements IChromeDevToolsHelper {
     // Helpers
     // --------------------------------------------------------------------------
 
-    /**
-     * Find element on the page<br>
-     * Element search is limited by the {@link Parameter#EXPLICIT_TIMEOUT}
-     *
-     * @param by see {@link By}
-     * @return {@link ExtendedWebElement} if exists, {@code null} otherwise
-     */
-    public ExtendedWebElement findExtendedWebElement(By by) {
-        return findExtendedWebElement(by, by.toString(), EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Find element on the page
-     *
-     * @param by see {@link By}
-     * @param timeout time to wait, in seconds
-     * @return {@link ExtendedWebElement} if exists, {@code null} otherwise
-     */
-    public ExtendedWebElement findExtendedWebElement(By by, long timeout) {
-        return findExtendedWebElement(by, by.toString(), timeout);
-    }
-
-    /**
-     * Find element on the page<br>
-     * Element search is limited by the {@link Parameter#EXPLICIT_TIMEOUT}
-     *
-     * @param by see {@link By}
-     * @param name the name that will be given to the found element
-     * @return {@link ExtendedWebElement} if exists, {@code null} otherwise
-     */
-    public ExtendedWebElement findExtendedWebElement(final By by, String name) {
-        return findExtendedWebElement(by, name, EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Find element on the page
-     *
-     * @param by see {@link By}
-     * @param name the name that will be given to the found element
-     * @param timeout time to wait, in seconds
-     * @return {@link ExtendedWebElement} if exists, {@code null} otherwise
-     */
-    public ExtendedWebElement findExtendedWebElement(final By by, String name, long timeout) {
-        DriverListener.setMessages(Messager.ELEMENT_FOUND.getMessage(name), Messager.ELEMENT_NOT_FOUND.getMessage(name));
-
-        if (!waitUntil(ExpectedConditions.presenceOfElementLocated(by), timeout)) {
-            Messager.ELEMENT_NOT_FOUND.error(name);
-            return null;
-        }
-        return new ExtendedWebElement(by, name, getDriver(), getDriver());
-    }
-
-    /**
-     * Find elements on the page<br>
-     * Elements search is limited by the {@link Parameter#EXPLICIT_TIMEOUT}
-     *
-     * @param by see {@link By}
-     * @return list of {@link ExtendedWebElement}s, empty list otherwise
-     */
-    public List<ExtendedWebElement> findExtendedWebElements(By by) {
-        return findExtendedWebElements(by, EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Find elements on the page
-     *
-     * @param by see {@link By}
-     * @param timeout time to wait, in seconds
-     * @return list of {@link ExtendedWebElement}s if found, empty list otherwise
-     */
-    public List<ExtendedWebElement> findExtendedWebElements(final By by, long timeout) {
-        List<ExtendedWebElement> extendedWebElements = new ArrayList<>();
-        if (!waitUntil(ExpectedConditions.presenceOfElementLocated(by), timeout)) {
-            Messager.ELEMENT_NOT_FOUND.info(by.toString());
-    		return extendedWebElements;
-    	}
-
-        Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(by);
-        boolean isByForListSupported = locatorType.isPresent() && locatorType.get().isIndexSupport();
-        String locatorAsString = by.toString();
-        List<WebElement> webElements = getDriver().findElements(by);
-        int i = 0;
-        for (WebElement element : webElements) {
-            String name = String.format("ExtendedWebElement - [%d]", i);
-            ExtendedWebElement tempElement = new ExtendedWebElement(by, name, getDriver(), getDriver());
-            tempElement.setElement(element);
-            tempElement.setIsSingle(false);
-            if (isByForListSupported) {
-                tempElement.setIsRefreshSupport(true);
-                tempElement.setBy(locatorType.get().buildLocatorWithIndex(locatorAsString, i));
-            } else {
-                tempElement.setIsRefreshSupport(false);
-            }
-            extendedWebElements.add(tempElement);
-            i++;
-        }
-        return extendedWebElements;
-    }
-
     protected void setDriver(WebDriver driver) {
         this.driver = driver;
     }
@@ -1291,10 +791,10 @@ public class DriverHelper implements IChromeDevToolsHelper {
      * Wait until any condition happens.
      *
      * @param condition ExpectedCondition
-     * @param timeout   timeout
+     * @param timeout timeout
      * @return true if condition happen
      */
-	public boolean waitUntil(ExpectedCondition<?> condition, long timeout) {
+    public boolean waitUntil(ExpectedCondition<?> condition, long timeout) {
         boolean result;
         long startMillis = 0;
         final WebDriver drv = getDriver();
@@ -1322,13 +822,15 @@ public class DriverHelper implements IChromeDevToolsHelper {
         return result;
     }
 
-    //TODO: uncomment javadoc when T could be described correctly
+    // TODO: uncomment javadoc when T could be described correctly
     /*
      * Method to handle SocketException due to okhttp factory initialization (java client 6.*).
      * Second execution of the same function works as expected.
      *
      * @param T The expected class of the supplier.
+     * 
      * @param supplier Object
+     * 
      * @return result Object
      */
     public <T> T performIgnoreException(Supplier<T> supplier) {

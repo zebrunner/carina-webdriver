@@ -16,16 +16,19 @@
 package com.zebrunner.carina.webdriver.decorator;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Proxy;
+import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
-import org.apache.commons.lang3.reflect.FieldUtils;
+import com.zebrunner.carina.webdriver.helper.ICommonsHelper;
+import com.zebrunner.carina.webdriver.helper.IExtendedWebElementHelper;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.reflect.ConstructorUtils;
 import org.hamcrest.BaseMatcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
@@ -33,14 +36,15 @@ import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.OutputType;
 import org.openqa.selenium.Point;
+import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.StaleElementReferenceException;
-import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WrapsDriver;
-import org.openqa.selenium.WrapsElement;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.interactions.Locatable;
 import org.openqa.selenium.remote.LocalFileDetector;
@@ -48,15 +52,11 @@ import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
-import org.openqa.selenium.support.ui.Sleeper;
-import org.openqa.selenium.support.ui.Wait;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 
 import com.zebrunner.carina.utils.IWebElement;
-import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.encryptor.EncryptorUtils;
@@ -66,747 +66,309 @@ import com.zebrunner.carina.utils.resources.L10N;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.capability.CapabilityUtils;
 import com.zebrunner.carina.webdriver.core.capability.DriverType;
-import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
-import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
 import com.zebrunner.carina.webdriver.listener.DriverListener;
-import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
-import com.zebrunner.carina.webdriver.locator.LocatorType;
-import com.zebrunner.carina.webdriver.locator.LocatorUtils;
-import com.zebrunner.carina.webdriver.locator.converter.FormatLocatorConverter;
-import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter;
-import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
 
-public class ExtendedWebElement implements IWebElement {
+import javax.annotation.Nullable;
 
+/**
+ * Base Extended WebElement
+ */
+public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWebElementHelper, ICommonsHelper, Cloneable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final long EXPLICIT_TIMEOUT = Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class);
-    private static final long RETRY_TIME = Configuration.getRequired(WebDriverConfiguration.Parameter.RETRY_INTERVAL, Long.class);
-    private final ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy
-            .valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.ELEMENT_LOADING_STRATEGY));
-    // we should keep both properties: driver and searchContext obligatory
-    // driver is used for actions, javascripts execution etc
-    // searchContext is used for searching element by default
+    private final String udid;
     private WebDriver driver;
     private SearchContext searchContext;
+    private By by = null;
     private WebElement element = null;
-    private String name;
-    private By by;
+    private String name = "n/a";
+    private Duration retryTime;
+    private Duration explicitTimeout;
+    private ElementLoadingStrategy loadingStrategy;
     private boolean isLocalized = false;
-    private boolean isSingleElement = true;
-    private boolean isRefreshSupport = true;
-    // Converted array of objects to String for dynamic element locators
-    private String formatValues = "";
 
-    public ExtendedWebElement(By by, String name, WebDriver driver, SearchContext searchContext, Object[] formatValues) {
-        this(by, name, driver, searchContext);
-        this.formatValues = Arrays.toString(formatValues);
-    }
-
-    public ExtendedWebElement(By by, String name, WebDriver driver, SearchContext searchContext) {
-        this(null, name, by);
-        if (driver == null) {
-            throw new IllegalArgumentException("Driver should not be null");
-        }
+    /**
+     * Required constructor
+     * 
+     * @param driver {@link WebDriver}
+     * @param searchContext {@link SearchContext}
+     */
+    public ExtendedWebElement(WebDriver driver, SearchContext searchContext) {
         this.driver = driver;
-        if (searchContext == null) {
-            throw new IllegalArgumentException("SearchContext should not be null");
-        }
         this.searchContext = searchContext;
+        this.udid = UUID.randomUUID().toString();
+        this.explicitTimeout = Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class));
+        this.retryTime = Duration.ofMillis(Configuration.getRequired(WebDriverConfiguration.Parameter.RETRY_INTERVAL, Long.class));
+        this.loadingStrategy = ElementLoadingStrategy.valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.ELEMENT_LOADING_STRATEGY));
     }
 
+    /**
+     * Optional constructor
+     * 
+     * @param by {@link By}
+     * @param name name of the element
+     * @param driver {@link WebDriver}
+     * @param searchContext {@link WebElement}
+     * @param formatValues unused
+     */
+    public ExtendedWebElement(By by, String name, WebDriver driver, SearchContext searchContext, @Deprecated Object[] formatValues) {
+        this(by, name, driver, searchContext);
+    }
+
+    /**
+     * Optional constructor
+     *
+     * @param element {@link WebElement}
+     * @param name name of the element
+     * @param by {@link By}
+     */
     public ExtendedWebElement(WebElement element, String name, By by) {
-        this(element, name);
-        if (by == null) {
-            throw new IllegalArgumentException("By should not be null");
+        this(by, name, ((WrapsDriver) element).getWrappedDriver(), ((WrapsDriver) element).getWrappedDriver());
+        this.element = element;
+    }
+
+    /**
+     * Optional constructor
+     * 
+     * @param by {@link By}
+     * @param name name of the element
+     * @param driver {@link WebDriver}
+     * @param searchContext {@link SearchContext}
+     */
+    public ExtendedWebElement(By by, String name, WebDriver driver, SearchContext searchContext) {
+        this(driver, searchContext);
+        this.by = by;
+        this.name = name;
+    }
+
+    ///////////// GETTERS/SETTERS /////////////
+
+    @Override
+    public Duration getWaitTimeout() {
+        return explicitTimeout;
+    }
+
+    @Override
+    public Duration getWaitInterval(Duration timeout) {
+        Duration retryInterval = retryTime;
+        if (timeout.toSeconds() >= 3 && timeout.toSeconds() <= 10) {
+            retryInterval = Duration.ofMillis(500);
         }
+        if (timeout.toSeconds() > 10) {
+            retryInterval = Duration.ofMillis(1000);
+        }
+        return retryInterval;
+    }
+
+    ///////////// GETTERS/SETTERS (FINAL) /////////////
+
+    @Override
+    public final WebDriver getDriver() {
+        return driver;
+    }
+
+    public final void setDriver(WebDriver driver) {
+        this.driver = Objects.requireNonNull(driver);
+    }
+
+    public final Optional<WebElement> getWebElement() {
+        return Optional.ofNullable(element);
+    }
+
+    public final void setWebElement(@Nullable WebElement element) {
+        this.element = element;
+    }
+
+    public final String getName() {
+        return name;
+    }
+
+    public final void setName(String name) {
+        this.name = Objects.requireNonNull(name);
+    }
+
+    public final String getUuid() {
+        return udid;
+    }
+
+    public final Optional<By> getLocator() {
+        return Optional.ofNullable(by);
+    }
+
+    public final void setLocator(@Nullable By by) {
         this.by = by;
     }
 
     /**
-     * For internal usage only
-     * 
-     * @param element see {@link WebElement}
-     * @param name name of the element
+     * @deprecated use {@link #getLocator()} instead
+     * @return {@link By} if available, null otherwise
      */
-    public ExtendedWebElement(WebElement element, String name) {
-        this.name = name;
-        this.element = element;
-
-        // read searchContext from not null elements only. It means that element was created using DriverHelper or by hands
-        if (this.element == null) {
-            return;
-        }
-
-        try {
-            if (element instanceof Proxy) {
-                // when element proxied by ExtendedElementLocator
-                InvocationHandler innerProxy = Proxy.getInvocationHandler(element);
-                ExtendedElementLocator locator = (ExtendedElementLocator) (FieldUtils.getDeclaredField(innerProxy.getClass(), "locator", true))
-                        .get(innerProxy);
-
-                this.isLocalized = locator.isLocalized();
-                if (isLocalized) {
-                    this.name = locator.getClassName() + "." + name;
-                }
-
-                this.searchContext = locator.getSearchContext();
-                this.driver = locator.getDriver();
-
-                // TODO: identify if it is a child element and
-                // 1. get rootBy
-                // 2. append current "by" to the rootBy
-                // -> it should allow to search via regular driver and fluent waits - getBy()
-                this.by = locator.getBy();
-            } else {
-                this.driver = ((WrapsDriver) element).getWrappedDriver();
-                this.searchContext = this.driver;
-            }
-            Objects.requireNonNull(this.searchContext, "review stacktrace to analyze why searchContext is not populated correctly via reflection!");
-        } catch (Exception e) {
-            throw new RuntimeException("Error when create instance of ExtendedWebElement.", e);
-        }
+    @Deprecated(forRemoval = true)
+    public final By getBy() {
+        return this.by;
     }
 
-    public WebElement getElement() {
+    /**
+     * @deprecated use {@link #setLocator(By)} ()} instead
+     */
+    public final void setBy(By by) {
+        this.by = by;
+    }
+
+    public final SearchContext getSearchContext() {
+        return searchContext;
+    }
+
+    public final void setSearchContext(SearchContext searchContext) {
+        this.searchContext = Objects.requireNonNull(searchContext);
+    }
+
+    public final Duration getRetryTime() {
+        return retryTime;
+    }
+
+    public final void setRetryTime(Duration retryTime) {
+        this.retryTime = Objects.requireNonNull(retryTime);
+    }
+
+    public final Duration getExplicitTimeout() {
+        return explicitTimeout;
+    }
+
+    public final void setExplicitTimeout(Duration explicitTimeout) {
+        this.explicitTimeout = Objects.requireNonNull(explicitTimeout);
+    }
+
+    public final ElementLoadingStrategy getLoadingStrategy() {
+        return loadingStrategy;
+    }
+
+    public final void setLoadingStrategy(ElementLoadingStrategy loadingStrategy) {
+        this.loadingStrategy = Objects.requireNonNull(loadingStrategy);
+    }
+
+    /**
+     * Get Selenium WebElement. This method will try to find/update element if needed
+     * 
+     * @return {@link WebElement}
+     */
+    public final WebElement getElement() {
         if (this.element == null) {
             this.element = this.findElement();
         }
         return this.element;
     }
 
-    /**
-     * Reinitialize the element according to its locator.
-     * If the element is part of the list, then its update will be performed only if the locator is XPath.
-     * (if the locator is not XPath in this case, an {@link UnsupportedOperationException} will be thrown in this case.
-     * Also, if the current element is part of a list, it is not recommended to use it, since it can lead to
-     * undefined behavior if the number of items to which the current item belongs changes.
-     * 
-     * @throws NoSuchElementException if the element was not found
-     * @throws UnsupportedOperationException if refreshing of the element is not supported
-     */
-    public void refresh() {
-        if (!isRefreshSupport) {
-            throw new UnsupportedOperationException(
-                    String.format("Refresh is not supported for this element:%n name: %s%n locator: %s", this.name, this.by));
-        }
-        LOGGER.debug("Performing refresh of the element with name '{}' and locator: {}", this.name, this.by);
-        if (!isSingleElement) {
-            LOGGER.debug("Refreshing an element that is part of the list is not a safe operation "
-                    + "in case of changing the number of the element after initialization");
-        }
-        this.element = this.findElement();
-    }
-    
-    /**
-     * Check that element present or visible.
-     *
-     * @return element presence status.
-     */
-    public boolean isPresent() {
-    	return isPresent(EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Check that element present or visible within specified timeout.
-     *
-     * @param timeout timeout.
-     * @return element existence status.
-     */
-    public boolean isPresent(long timeout) {
-        return isPresent(getBy(), timeout);
-    }
-
-    /**
-     * Check that element with By present within specified timeout.
-     *
-     * @param by      By.
-     * @param timeout timeout.
-     * @return element existence status.
-     */
-    public boolean isPresent(By by, long timeout) {
-        boolean res = false;
-        try {
-            res = waitUntil(getDefaultCondition(by), timeout);
-        } catch (StaleElementReferenceException e) {
-            // there is no sense to continue as StaleElementReferenceException captured
-            LOGGER.debug("waitUntil: StaleElementReferenceException", e);
-        }
-        return res;
-    }
-
-    /**
-     * Wait until any condition happens.
-     *
-     * @param condition ExpectedCondition.
-     * @param timeout   timeout.
-     * @return true if condition happen.
-     */
-    private boolean waitUntil(ExpectedCondition<?> condition, long timeout) {
-        if (timeout < 1) {
-            LOGGER.warn("Fluent wait less than 1sec timeout might hangs! Updating to 1 sec.");
-            timeout = 1;
-        }
-
-        long retryInterval = getRetryInterval(timeout);
-
-        // try to use better tickMillis clock
-        Wait<WebDriver> wait = new WebDriverWait(getDriver(), Duration.ofSeconds(timeout), Duration.ofMillis(retryInterval),
-                java.time.Clock.tickMillis(java.time.ZoneId.systemDefault()), Sleeper.SYSTEM_SLEEPER)
-                        .withTimeout(Duration.ofSeconds(timeout));
-
-        // [VD] Notes:
-        // do not ignore TimeoutException or NoSuchSessionException otherwise you can wait for minutes instead of timeout!
-        // [VD] note about NoSuchSessionException is pretty strange. Let's ignore here and return false only in case of
-        // TimeoutException putting details into the debug log message. All the rest shouldn't be ignored
-        
-        // 7.3.17-SNAPSHOT. Removed NoSuchSessionException (Mar-11-2022)
-        //.ignoring(NoSuchSessionException.class) // why do we ignore noSuchSession? Just to minimize errors?
-
-        // 7.3.20.1686-SNAPSHOT. Removed ignoring WebDriverException (Jun-03-2022).
-        // Goal to test if inside timeout happens first and remove interruption and future call
-        // removed ".ignoring(NoSuchElementException.class);" as NotFoundException ignored by waiter itself
-        // added explicit .withTimeout(Duration.ofSeconds(timeout));
-
-        LOGGER.debug("waitUntil: starting... timeout: {}", timeout);
-        boolean res = false;
-        try {
-            wait.until(condition);
-            res = true;
-        } catch (TimeoutException e) {
-            LOGGER.debug("waitUntil: org.openqa.selenium.TimeoutException", e);
-        } finally {
-            LOGGER.debug("waiter is finished. conditions: {}", condition);
-        }
-        return res;
-    }
-
-    private WebElement findElement() {
-        List<WebElement> elements = searchContext.findElements(this.by);
-        if (elements.isEmpty()) {
-            throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + this.by.toString());
-        }
-        if (elements.size() > 1) {
-            // TODO: think about moving into the debug or info level
-            LOGGER.warn("returned first but found {} elements by xpath: {}", elements.size(), getBy());
-        }
-        this.element = elements.get(0);
-        return element;
-    }
-    
-    public void setElement(WebElement element) {
+    @Deprecated(forRemoval = true)
+    public final void setElement(WebElement element) {
         this.element = element;
     }
 
-    /**
-     * For internal usage only!
-     * 
-     * @param isSingleElement true if element is single, false if element is a part of list
-     */
-    public void setIsSingle(boolean isSingleElement) {
-        this.isSingleElement = isSingleElement;
-    }
-
-    /**
-     * For internal usage only!
-     *
-     * @param isRefreshSupport true if element is support refresh, false otherwise
-     */
-    public void setIsRefreshSupport(boolean isRefreshSupport) {
-        this.isRefreshSupport = isRefreshSupport;
-    }
-
-    public String getName() {
-        return this.name + this.formatValues;
-    }
-
-    public String getNameWithLocator() {
+    public final String getNameWithLocator() {
         if (this.by != null) {
-            return this.name + this.formatValues + String.format(" (%s)", by);
+            return this.name + String.format(" (%s)", by);
         } else {
-            return this.name + this.formatValues + " (n/a)";
+            return this.name + " (n/a)";
         }
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-    
+    ///////////// PRESENCE/VISIBILITY /////////////
+
     /**
-     * Get element By.
+     * Check that element present or visible (depends on {@link ElementLoadingStrategy}).
      *
-     * @return By by
+     * @return true if element present or visible, false otherwise
      */
-    public By getBy() {
-        return this.by;
-    }
-
-    public void setBy(By by) {
-        this.by = by;
-    }
-
-	public void setSearchContext(SearchContext searchContext) {
-		this.searchContext = searchContext;
-	}
-
-	@Override
-    public String toString() {
-        return name;
+    public boolean isPresent() {
+        return isPresent(explicitTimeout);
     }
 
     /**
-     * Get element text.
+     * Check that element present or visible (depends on {@link ElementLoadingStrategy})
      *
-     * @return String text
+     * @param timeout timeout, in seconds
+     * @return true if element present or visible, false otherwise
      */
-    public String getText() {
-        return (String) doAction(ACTION_NAME.GET_TEXT, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
+    public boolean isPresent(long timeout) {
+        return isPresent(Duration.ofSeconds(timeout));
     }
 
     /**
-     * Get element location.
+     * Check that element present or visible (depends on {@link ElementLoadingStrategy})
      *
-     * @return Point location
+     * @param timeout {@link Duration}
+     * @return true if element present or visible, false otherwise
      */
-    public Point getLocation() {
-        return (Point) doAction(ACTION_NAME.GET_LOCATION, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Get element size.
-     *
-     * @return Dimension size
-     */
-    public Dimension getSize() {
-        return (Dimension) doAction(ACTION_NAME.GET_SIZE, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Get element attribute.
-     *
-     * @param name of attribute
-     * @return String attribute value
-     */
-    public String getAttribute(String name) {
-        return (String) doAction(ACTION_NAME.GET_ATTRIBUTE, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()), name);
-    }
-
-    /**
-     * Click on element.
-     */
-    public void click() {
-        click(EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Click on element.
-     *
-     * @param timeout to wait
-     */
-    public void click(long timeout) {
-        click(timeout, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Click on element.
-     *
-     * @param timeout       to wait
-     * @param waitCondition to check element conditions before action
-     */
-    public void click(long timeout, ExpectedCondition<?> waitCondition) {
-        doAction(ACTION_NAME.CLICK, timeout, waitCondition);
-    }
-
-    /**
-     * Click on element by javascript.
-     */
-    public void clickByJs() {
-        clickByJs(EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Click on element by javascript.
-     *
-     * @param timeout to wait
-     */
-    public void clickByJs(long timeout) {
-        clickByJs(timeout, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Click on element by javascript.
-     *
-     * @param timeout       to wait
-     * @param waitCondition to check element conditions before action
-     */
-    public void clickByJs(long timeout, ExpectedCondition<?> waitCondition) {
-        doAction(ACTION_NAME.CLICK_BY_JS, timeout, waitCondition);
-    }
-    
-    /**
-     * Click on element by Actions.
-     */
-    public void clickByActions() {
-        clickByActions(EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Click on element by Actions.
-     *
-     * @param timeout to wait
-     */
-    public void clickByActions(long timeout) {
-        clickByActions(timeout, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Click on element by Actions.
-     *
-     * @param timeout       to wait
-     * @param waitCondition to check element conditions before action
-     */
-    public void clickByActions(long timeout, ExpectedCondition<?> waitCondition) {
-        doAction(ACTION_NAME.CLICK_BY_ACTIONS, timeout, waitCondition);
-    }
-    
-    /**
-     * Double Click on element.
-     */
-    public void doubleClick() {
-    	doubleClick(EXPLICIT_TIMEOUT);
-    }
-    
-    /**
-     * Double Click on element.
-     *
-     * @param timeout to wait
-     */
-    public void doubleClick(long timeout) {
-        doubleClick(timeout, getDefaultCondition(getBy()));
-    }
-    /**
-     * Double Click on element.
-     *
-     * @param timeout to wait
-	 * @param waitCondition
-	 *            to check element conditions before action
-     */
-    public void doubleClick(long timeout, ExpectedCondition<?> waitCondition) {
-    	doAction(ACTION_NAME.DOUBLE_CLICK, timeout, waitCondition);
-    }
-
-    
-    /**
-     * Mouse RightClick on element.
-     */
-    public void rightClick() {
-    	rightClick(EXPLICIT_TIMEOUT);
-    }
-    
-    /**
-     * Mouse RightClick on element.
-     *
-     * @param timeout to wait
-     */
-    public void rightClick(long timeout) {
-        rightClick(timeout, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Mouse RightClick on element.
-     *
-     * @param timeout       to wait
-     * @param waitCondition to check element conditions before action
-     */
-    public void rightClick(long timeout, ExpectedCondition<?> waitCondition) {
-    	doAction(ACTION_NAME.RIGHT_CLICK, timeout, waitCondition);
-    }
-
-    /**
-     * MouseOver (Hover) an element.
-     */
-    public void hover() {
-        hover(null, null);
-    }
-
-    /**
-     * MouseOver (Hover) an element.
-	 * @param xOffset x offset for moving
-	 * @param yOffset y offset for moving
-     */
-    public void hover(Integer xOffset, Integer yOffset) {
-        doAction(ACTION_NAME.HOVER, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()), xOffset, yOffset);
-    }
-    
-    /**
-     * Click onto element if it present.
-     *
-     * @return boolean return true if clicked
-     */
-    public boolean clickIfPresent() {
-        return clickIfPresent(EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Click onto element if present.
-     *
-     * @param timeout timeout
-     * @return boolean return true if clicked
-     */
-    public boolean clickIfPresent(long timeout) {
-        boolean present = isElementPresent(timeout);
-        if (present) {
-            click();
-        }
-        return present;
-    }
-
-    /**
-     * Send Keys to element.
-     * 
-	 * @param keys Keys
-     */
-    public void sendKeys(Keys keys) {
-    	sendKeys(keys, EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Send Keys to element.
-     *
-     * @param keys    Keys
-     * @param timeout to wait
-     */
-    public void sendKeys(Keys keys, long timeout) {
-        sendKeys(keys, timeout, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Send Keys to element.
-     *
-     * @param keys          Keys
-     * @param timeout       to wait
-     * @param waitCondition to check element conditions before action
-     */
-    public void sendKeys(Keys keys, long timeout, ExpectedCondition<?> waitCondition) {
-        doAction(ACTION_NAME.SEND_KEYS, timeout, waitCondition, keys);
-    }
-
-    /**
-     * Type text to element.
-     *
-     * @param text String
-     */
-    public void type(String text) {
-    	type(text, EXPLICIT_TIMEOUT);
-    }
-
-    /**
-     * Type text to element.
-     *
-     * @param text    String
-     * @param timeout to wait
-     */
-    public void type(String text, long timeout) {
-        type(text, timeout, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Type text to element.
-     *
-     * @param text          String
-     * @param timeout       to wait
-     * @param waitCondition to check element conditions before action
-     */
-    public void type(String text, long timeout, ExpectedCondition<?> waitCondition) {
-        doAction(ACTION_NAME.TYPE, timeout, waitCondition, text);
-    }
-
-    /**
-     * Scroll to element (applied only for desktop).
-     * Useful for desktop with React
-     */
-    public void scrollTo() {
-        if (DriverType.MOBILE.equals(CapabilityUtils.getDriverType(((HasCapabilities) getDriver()).getCapabilities()))) {
-            LOGGER.debug("scrollTo javascript is unsupported for mobile devices!");
-            return;
-        }
+    public boolean isPresent(Duration timeout) {
+        boolean res = false;
         try {
-            Locatable locatableElement = (Locatable) this.findElement();
-            // [VD] onScreen should be updated onto onPage as only 2nd one
-            // returns real coordinates without scrolling... read below material
-            // for details
-            // https://groups.google.com/d/msg/selenium-developers/nJR5VnL-3Qs/uqUkXFw4FSwJ
-
-            // [CB] onPage -> inViewPort
-            // https://code.google.com/p/selenium/source/browse/java/client/src/org/openqa/selenium/remote/RemoteWebElement.java?r=abc64b1df10d5f5d72d11fba37fabf5e85644081
-            int y = locatableElement.getCoordinates().inViewPort().getY();
-            int offset = Configuration.getRequired(WebDriverConfiguration.Parameter.SCROLL_TO_ELEMENT_Y_OFFSET, Integer.class);
-            ((JavascriptExecutor) getDriver()).executeScript("window.scrollBy(0," + (y - offset) + ");");
-        } catch (Exception e) {
-        	//do nothing
+            res = waitUntil(getDefaultWaitCondition(), timeout);
+        } catch (StaleElementReferenceException e) {
+            // there is no sense to continue as StaleElementReferenceException captured
         }
-    }
-     
-    /* Inputs file path to specified element.
-     *
-     * @param filePath path
-     */
-    public void attachFile(String filePath) {
-        doAction(ACTION_NAME.ATTACH_FILE, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()), filePath);
+        return res;
     }
 
-    /**
-     * Check checkbox
-     * <p>
-     * for checkbox Element
-     */
-    public void check() {
-        doAction(ACTION_NAME.CHECK, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
+    @Deprecated(forRemoval = true)
+    public boolean isPresent(By by, long timeout) {
+        return isPresent(timeout);
     }
 
-    /**
-     * Uncheck checkbox
-     * <p>
-     * for checkbox Element
-     */
-    public void uncheck() {
-        doAction(ACTION_NAME.UNCHECK, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Get checkbox state.
-     *
-     * @return - current state
-     */
-    public boolean isChecked() {
-        return (boolean) doAction(ACTION_NAME.IS_CHECKED, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Get selected elements from one-value select.
-     *
-     * @return selected value
-     */
-    public String getSelectedValue() {
-        return (String) doAction(ACTION_NAME.GET_SELECTED_VALUE, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Get selected elements from multi-value select.
-     *
-     * @return selected values
-     */
-    @SuppressWarnings("unchecked")
-	public List<String> getSelectedValues() {
-        return (List<String>) doAction(ACTION_NAME.GET_SELECTED_VALUES, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()));
-    }
-
-    /**
-     * Selects text in specified select element.
-     *
-     * @param selectText select text
-     * @return true if item selected, otherwise false.
-     */
-    public boolean select(final String selectText) {
-        return (boolean) doAction(ACTION_NAME.SELECT, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()), selectText);
-    }
-
-    /**
-     * Select multiple text values in specified select element.
-     *
-     * @param values final String[]
-     * @return boolean.
-     */
-    public boolean select(final String[] values) {
-        return (boolean) doAction(ACTION_NAME.SELECT_VALUES, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()), values);
-    }
-
-    /**
-     * Selects value according to text value matcher.
-     *
-     * @param matcher {@link} BaseMatcher
-     * @return true if item selected, otherwise false.
-     *         <p>
-     *         Usage example: BaseMatcher&lt;String&gt; match=new
-     *         BaseMatcher&lt;String&gt;() { {@literal @}Override public boolean
-     *         matches(Object actual) { return actual.toString().contains(RequiredText);
-     *         } {@literal @}Override public void describeTo(Description description) {
-     *         } };
-     */
-    public boolean selectByMatcher(final BaseMatcher<String> matcher) {
-        return (boolean) doAction(ACTION_NAME.SELECT_BY_MATCHER, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()), matcher);
-    }
-
-    /**
-     * Selects first value according to partial text value.
-     *
-     * @param partialSelectText select by partial text
-     * @return true if item selected, otherwise false.
-     */
-    public boolean selectByPartialText(final String partialSelectText) {
-        return (boolean) doAction(ACTION_NAME.SELECT_BY_PARTIAL_TEXT, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()),
-                partialSelectText);
-    }
-
-    /**
-     * Selects item by index in specified select element.
-     *
-     * @param index to select by
-     * @return true if item selected, otherwise false.
-     */
-    public boolean select(final int index) {
-        return (boolean) doAction(ACTION_NAME.SELECT_BY_INDEX, EXPLICIT_TIMEOUT, getDefaultCondition(getBy()), index);
-    }
-
-    // --------------------------------------------------------------------------
-    // Base UI validations
-    // --------------------------------------------------------------------------
     /**
      * Check that element present and visible.
      *
-     * @return element existence status.
+     * @return true if present and visible, false otherwise
      */
     public boolean isElementPresent() {
-    	return isElementPresent(EXPLICIT_TIMEOUT);
+        return isElementPresent(explicitTimeout);
     }
 
     /**
-     * Check that element present and visible within specified timeout.
-     *
-     * @param timeout - timeout.
-     * @return element existence status.
+     * Check that element present and visible.
+     * 
+     * @param timeout timeout, in seconds
+     * @return true if present and visible, false otherwise
      */
     public boolean isElementPresent(long timeout) {
-		// perform at once super-fast single selenium call and only if nothing found move to waitAction
-		if (element != null) {
-			try {
-				if (element.isDisplayed()) {
-					return true;
-				}
-			} catch (Exception e) {
-				//do nothing as element is not found as expected here
-			}
-		}
+        return isElementPresent(Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Check that element present and visible
+     *
+     * @param timeout {@link Duration}
+     * @return true if present and visible, false otherwise
+     */
+    public boolean isElementPresent(Duration timeout) {
+        // perform at once super-fast single selenium call and only if nothing found move to waitAction
+        if (element != null) {
+            try {
+                if (element.isDisplayed()) {
+                    return true;
+                }
+            } catch (Exception e) {
+                // do nothing as element is not found as expected here
+            }
+        }
 
         // [VD] replace presenceOfElementLocated and visibilityOf conditions by single "visibilityOfElementLocated"
         // visibilityOf: Does not check for presence of the element as the error explains it.
         // visibilityOfElementLocated: Checks to see if the element is present and also visible. To check visibility, it makes sure that the element
         // has a height and width greater than 0.
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
+        if (element == null && by == null) {
+            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
+        }
 
         if (element != null) {
             conditions.add(ExpectedConditions.visibilityOf(element));
         }
 
-        if (isSingleElement) {
+        if (by != null) {
             if (searchContext instanceof WebElement) {
                 conditions.add(ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) searchContext, by));
             } else {
                 conditions.add(ExpectedConditions.visibilityOfElementLocated(by));
             }
-        }
-
-        if(conditions.isEmpty()) {
-            throw new RuntimeException("There should be at least one ExpectedCondition!");
         }
 
         try {
@@ -822,38 +384,49 @@ public class ExtendedWebElement implements IWebElement {
     }
 
     /**
-     * Check that element not present and not visible within specified timeout.
+     * Check that element not present and not visible
      *
-     * @param timeout - timeout.
-     * @return element existence status.
+     * @param timeout timeout, in seconds
+     * @return true if element is not present and not visible, false otherwise
      */
     public boolean isElementNotPresent(long timeout) {
         return !isElementPresent(timeout);
     }
 
     /**
-     * Checks that element clickable.
+     * Checks that element clickable
      *
-     * @return element click-ability status.
+     * @return true if element is clickable, false otherwise
      */
     public boolean isClickable() {
-        return isClickable(EXPLICIT_TIMEOUT);
+        return isClickable(explicitTimeout);
     }
 
     /**
-     * Check that element clickable within specified timeout.
-     *
-     * @param timeout - timeout.
-     * @return element click-ability status.
+     * Checks that element clickable
+     * 
+     * @param timeout timeout, in seconds
+     * @return true if element is clickable, false otherwise
      */
     public boolean isClickable(long timeout) {
-        List<ExpectedCondition<?>> conditions = new ArrayList<>();
+        return isClickable(Duration.ofSeconds(timeout));
+    }
 
+    /**
+     * Check that element clickable
+     *
+     * @param timeout {@link Duration}
+     * @return true if clickable, false otherwise
+     */
+    public boolean isClickable(Duration timeout) {
+        List<ExpectedCondition<?>> conditions = new ArrayList<>();
+        if (element == null && by == null) {
+            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
+        }
         if (element != null) {
             conditions.add(ExpectedConditions.elementToBeClickable(element));
         }
-
-        if (isSingleElement) {
+        if (by != null) {
             if (searchContext instanceof WebElement) {
                 ExpectedCondition<?> condition = new ExpectedCondition<WebElement>() {
                     @Override
@@ -880,45 +453,48 @@ public class ExtendedWebElement implements IWebElement {
                 conditions.add(ExpectedConditions.elementToBeClickable(by));
             }
         }
-
-        if(conditions.isEmpty()) {
-            throw new RuntimeException("There should be at least one ExpectedCondition!");
-        }
-
         return waitUntil(ExpectedConditions.or(conditions.toArray(new ExpectedCondition[0])), timeout);
     }
 
     /**
-     * Checks that element visible.
+     * Checks that element visible
      *
-     * @return element visibility status.
+     * @return true if element is visible, false otherwise
      */
     public boolean isVisible() {
-        return isVisible(EXPLICIT_TIMEOUT);
+        return isVisible(explicitTimeout);
     }
 
     /**
-     * Check that element is visible within specified timeout.
-     *
+     * Checks that element visible
+     * 
      * @param timeout timeout, in seconds
      * @return true if element is visible, false otherwise
      */
     public boolean isVisible(long timeout) {
+        return isVisible(Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Check that element is visible
+     *
+     * @param timeout {@link Duration}
+     * @return true if element is visible, false otherwise
+     */
+    public boolean isVisible(Duration timeout) {
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
+        if (element == null && by == null) {
+            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
+        }
         if (element != null) {
             conditions.add(ExpectedConditions.visibilityOf(element));
         }
-
-        if (isSingleElement) {
+        if (by != null) {
             if (searchContext instanceof WebElement) {
                 conditions.add(ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) searchContext, by));
             } else {
                 conditions.add(ExpectedConditions.visibilityOfElementLocated(by));
             }
-        }
-
-        if(conditions.isEmpty()) {
-            throw new RuntimeException("There should be at least one ExpectedCondition!");
         }
 
         boolean res = false;
@@ -930,34 +506,47 @@ public class ExtendedWebElement implements IWebElement {
         }
         return res;
     }
-	
+
     /**
-     * Check that element with text present.
+     * Check that element with text present
      *
      * @param text of element to check.
-     * @return element with text existence status.
+     * @return true if element with such test present, false otherwise
      */
     public boolean isElementWithTextPresent(final String text) {
-        return isElementWithTextPresent(text, EXPLICIT_TIMEOUT);
+        return isElementWithTextPresent(text, explicitTimeout);
     }
 
     /**
-     * Check that element with text present.
-     *
+     * Check that element with text present
+     * 
      * @param text of element to check.
-     * @param timeout - timeout.
-     * @return element with text existence status.
+     * @param timeout timeout, in seconds
+     * @return true if element with such test present, false otherwise
      */
     public boolean isElementWithTextPresent(final String text, long timeout) {
+        return isElementWithTextPresent(text, Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Check that element with text present
+     *
+     * @param text of element to check.
+     * @param timeout {@link Duration}
+     * @return true if element with such test present, false otherwise
+     */
+    public boolean isElementWithTextPresent(final String text, Duration timeout) {
         final String decryptedText = EncryptorUtils.decrypt(text);
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
-
+        if (element == null && by == null) {
+            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
+        }
         if (element != null) {
             conditions.add(ExpectedConditions.textToBePresentInElement(element, decryptedText));
         }
-        if (isSingleElement) {
+        if (by != null) {
             if (searchContext instanceof WebElement) {
-                ExpectedCondition<?> condition =  new ExpectedCondition<Boolean>() {
+                ExpectedCondition<?> condition = new ExpectedCondition<Boolean>() {
                     @Override
                     public Boolean apply(WebDriver driver) {
                         try {
@@ -981,36 +570,602 @@ public class ExtendedWebElement implements IWebElement {
             }
         }
 
-        if(conditions.isEmpty()) {
-            throw new RuntimeException("There should be at least one ExpectedCondition!");
-        }
-
-		return waitUntil(ExpectedConditions.or(conditions.toArray(new ExpectedCondition[0])), timeout);
-    	//TODO: restore below code as only projects are migrated to "isElementWithContainTextPresent"
-//    	return waitUntil(ExpectedConditions.and(ExpectedConditions.presenceOfElementLocated(getBy()),
-//				ExpectedConditions.textToBe(getBy(), decryptedText)), timeout);
+        return waitUntil(ExpectedConditions.or(conditions.toArray(new ExpectedCondition[0])), timeout);
+        // TODO: restore below code as only projects are migrated to "isElementWithContainTextPresent"
+        // return waitUntil(ExpectedConditions.and(ExpectedConditions.presenceOfElementLocated(getBy()),
+        // ExpectedConditions.textToBe(getBy(), decryptedText)), timeout);
 
     }
-    
+
+    ///////////// ELEMENT INFORMATION /////////////
+
+    /**
+     * Get checkbox state
+     *
+     * @return true if element is checked, false otherwise
+     */
+    public boolean isChecked() {
+        return (boolean) doAction(ACTION_NAME.IS_CHECKED, explicitTimeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Get selected elements from one-value select
+     *
+     * @return selected value
+     */
+    public String getSelectedValue() {
+        return (String) doAction(ACTION_NAME.GET_SELECTED_VALUE, explicitTimeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Get selected elements from multi-value select
+     *
+     * @return selected values
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> getSelectedValues() {
+        return (List<String>) doAction(ACTION_NAME.GET_SELECTED_VALUES, explicitTimeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Get element text
+     *
+     * @return text
+     */
+    public String getText() {
+        return (String) doAction(ACTION_NAME.GET_TEXT, explicitTimeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Get element location
+     *
+     * @return {@link Point}
+     */
+    public Point getLocation() {
+        return (Point) doAction(ACTION_NAME.GET_LOCATION, explicitTimeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Get element size.
+     *
+     * @return {@link Dimension}
+     */
+    public Dimension getSize() {
+        return (Dimension) doAction(ACTION_NAME.GET_SIZE, explicitTimeout, getDefaultWaitCondition());
+    }
+
+    @Override
+    public Rectangle getRect() {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public String getCssValue(String propertyName) {
+        throw new NotImplementedException();
+    }
+
+    /**
+     * Get element attribute.
+     *
+     * @param name of attribute
+     * @return attribute value
+     */
+    public String getAttribute(String name) {
+        return (String) doAction(ACTION_NAME.GET_ATTRIBUTE, explicitTimeout, getDefaultWaitCondition(), name);
+    }
+
+    @Override
+    public boolean isSelected() {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public String getTagName() {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public boolean isDisplayed() {
+        try {
+            return getElement().isDisplayed();
+        } catch (Exception e) {
+            // do nothing
+        }
+        return false;
+    }
+
+    @Override
+    public <X> X getScreenshotAs(OutputType<X> target) throws WebDriverException {
+        throw new NotImplementedException();
+    }
+
+    ///////////// ACTIONS /////////////
+
+    @Override
+    public void submit() {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public void sendKeys(CharSequence... keysToSend) {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public void clear() {
+        throw new NotImplementedException();
+    }
+
+    /**
+     * Click on element
+     */
+    public void click() {
+        click(explicitTimeout);
+    }
+
+    /**
+     * Click on element
+     * 
+     * @param timeout timeout, in seconds
+     */
+    public void click(long timeout) {
+        click(Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Click on element
+     *
+     * @param timeout {@link Duration}
+     */
+    public void click(Duration timeout) {
+        click(timeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Click on element
+     * 
+     * @param timeout timeout, in seconds
+     * @param waitCondition {@link ExpectedCondition}
+     */
+    public void click(long timeout, ExpectedCondition<?> waitCondition) {
+        click(Duration.ofSeconds(timeout), waitCondition);
+    }
+
+    /**
+     * Click on element
+     *
+     * @param timeout {@link Duration}
+     * @param waitCondition {@link ExpectedCondition} wait condition before action
+     */
+    public void click(Duration timeout, ExpectedCondition<?> waitCondition) {
+        doAction(ACTION_NAME.CLICK, timeout, waitCondition);
+    }
+
+    /**
+     * Click on element by javascript
+     */
+    public void clickByJs() {
+        clickByJs(explicitTimeout);
+    }
+
+    /**
+     * Click on element by javascript
+     * 
+     * @param timeout timeout, in seconds
+     */
+    public void clickByJs(long timeout) {
+        clickByJs(Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Click on element by javascript
+     *
+     * @param timeout {@link Duration}
+     */
+    public void clickByJs(Duration timeout) {
+        clickByJs(timeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Click on element by javascript
+     * 
+     * @param timeout timeout, in seconds
+     * @param waitCondition {@link ExpectedCondition}
+     */
+    public void clickByJs(long timeout, ExpectedCondition<?> waitCondition) {
+        clickByJs(Duration.ofSeconds(timeout), waitCondition);
+    }
+
+    /**
+     * Click on element by javascript
+     *
+     * @param timeout {@link Duration}
+     * @param waitCondition to check element conditions before action
+     */
+    public void clickByJs(Duration timeout, ExpectedCondition<?> waitCondition) {
+        doAction(ACTION_NAME.CLICK_BY_JS, timeout, waitCondition);
+    }
+
+    /**
+     * Click on element by {@link Actions}
+     */
+    public void clickByActions() {
+        clickByActions(explicitTimeout);
+    }
+
+    /**
+     * Click on element by {@link Actions}
+     * 
+     * @param timeout timeout, in seconds
+     */
+    public void clickByActions(long timeout) {
+        clickByActions(Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Click on element by {@link Actions}
+     *
+     * @param timeout {@link Duration}
+     */
+    public void clickByActions(Duration timeout) {
+        clickByActions(timeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Click on element by {@link Actions}
+     * 
+     * @param timeout timeout, in seconds
+     * @param waitCondition {@link ExpectedCondition}
+     */
+    public void clickByActions(long timeout, ExpectedCondition<?> waitCondition) {
+        clickByActions(Duration.ofSeconds(timeout), waitCondition);
+    }
+
+    /**
+     * Click on element by {@link Actions}
+     *
+     * @param timeout {@link Duration}
+     * @param waitCondition to check element conditions before action
+     */
+    public void clickByActions(Duration timeout, ExpectedCondition<?> waitCondition) {
+        doAction(ACTION_NAME.CLICK_BY_ACTIONS, timeout, waitCondition);
+    }
+
+    /**
+     * Double Click on element.
+     */
+    public void doubleClick() {
+        doubleClick(explicitTimeout);
+    }
+
+    public void doubleClick(long timeout) {
+        doubleClick(Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Double Click on element.
+     *
+     * @param timeout to wait
+     */
+    public void doubleClick(Duration timeout) {
+        doubleClick(timeout, getDefaultWaitCondition());
+    }
+
+    public void doubleClick(long timeout, ExpectedCondition<?> waitCondition) {
+        doubleClick(Duration.ofSeconds(timeout), waitCondition);
+    }
+
+    /**
+     * Double Click on element.
+     *
+     * @param timeout to wait
+     * @param waitCondition
+     *            to check element conditions before action
+     */
+    public void doubleClick(Duration timeout, ExpectedCondition<?> waitCondition) {
+        doAction(ACTION_NAME.DOUBLE_CLICK, timeout, waitCondition);
+    }
+
+    /**
+     * Mouse RightClick on element.
+     */
+    public void rightClick() {
+        rightClick(explicitTimeout);
+    }
+
+    public void rightClick(long timeout) {
+        rightClick(Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Mouse RightClick on element.
+     *
+     * @param timeout to wait
+     */
+    public void rightClick(Duration timeout) {
+        rightClick(timeout, getDefaultWaitCondition());
+    }
+
+    public void rightClick(long timeout, ExpectedCondition<?> waitCondition) {
+        rightClick(Duration.ofSeconds(timeout), waitCondition);
+    }
+
+    /**
+     * Mouse RightClick on element.
+     *
+     * @param timeout to wait
+     * @param waitCondition to check element conditions before action
+     */
+    public void rightClick(Duration timeout, ExpectedCondition<?> waitCondition) {
+        doAction(ACTION_NAME.RIGHT_CLICK, timeout, waitCondition);
+    }
+
+    /**
+     * MouseOver (Hover) an element.
+     */
+    public void hover() {
+        hover(null, null);
+    }
+
+    /**
+     * MouseOver (Hover) an element.
+     * 
+     * @param xOffset x offset for moving
+     * @param yOffset y offset for moving
+     */
+    public void hover(Integer xOffset, Integer yOffset) {
+        doAction(ACTION_NAME.HOVER, explicitTimeout, getDefaultWaitCondition(), xOffset, yOffset);
+    }
+
+    /**
+     * Click onto element if it present.
+     *
+     * @return boolean return true if clicked
+     */
+    public boolean clickIfPresent() {
+        return clickIfPresent(explicitTimeout);
+    }
+
+    public boolean clickIfPresent(long timeout) {
+        return clickIfPresent(Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Click onto element if present.
+     *
+     * @param timeout timeout
+     * @return boolean return true if clicked
+     */
+    public boolean clickIfPresent(Duration timeout) {
+        boolean present = isElementPresent(timeout);
+        if (present) {
+            click();
+        }
+        return present;
+    }
+
+    /**
+     * Send Keys to element.
+     * 
+     * @param keys Keys
+     */
+    public void sendKeys(Keys keys) {
+        sendKeys(keys, explicitTimeout);
+    }
+
+    public void sendKeys(Keys keys, long timeout) {
+        sendKeys(keys, Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Send Keys to element.
+     *
+     * @param keys Keys
+     * @param timeout to wait
+     */
+    public void sendKeys(Keys keys, Duration timeout) {
+        sendKeys(keys, timeout, getDefaultWaitCondition());
+    }
+
+    public void sendKeys(Keys keys, long timeout, ExpectedCondition<?> waitCondition) {
+        sendKeys(keys, Duration.ofSeconds(timeout), waitCondition);
+    }
+
+    /**
+     * Send Keys to element.
+     *
+     * @param keys Keys
+     * @param timeout to wait
+     * @param waitCondition to check element conditions before action
+     */
+    public void sendKeys(Keys keys, Duration timeout, ExpectedCondition<?> waitCondition) {
+        doAction(ACTION_NAME.SEND_KEYS, timeout, waitCondition, keys);
+    }
+
+    /**
+     * Type text to element.
+     *
+     * @param text String
+     */
+    public void type(String text) {
+        type(text, explicitTimeout);
+    }
+
+    public void type(String text, long timeout) {
+        type(text, Duration.ofSeconds(timeout));
+    }
+
+    /**
+     * Type text to element.
+     *
+     * @param text String
+     * @param timeout to wait
+     */
+    public void type(String text, Duration timeout) {
+        type(text, timeout, getDefaultWaitCondition());
+    }
+
+    public void type(String text, long timeout, ExpectedCondition<?> waitCondition) {
+        type(text, Duration.ofSeconds(timeout), waitCondition);
+    }
+
+    /**
+     * Type text to element.
+     *
+     * @param text String
+     * @param timeout to wait
+     * @param waitCondition to check element conditions before action
+     */
+    public void type(String text, Duration timeout, ExpectedCondition<?> waitCondition) {
+        doAction(ACTION_NAME.TYPE, timeout, waitCondition, text);
+    }
+
+    /**
+     * Scroll to element (applied only for desktop).
+     * Useful for desktop with React
+     */
+    public void scrollTo() {
+        if (DriverType.MOBILE.equals(CapabilityUtils.getDriverType(((HasCapabilities) getDriver()).getCapabilities()))) {
+            LOGGER.debug("scrollTo javascript is unsupported for mobile devices!");
+            return;
+        }
+        try {
+            Locatable locatableElement = (Locatable) this.findElement();
+            // [VD] onScreen should be updated onto onPage as only 2nd one
+            // returns real coordinates without scrolling... read below material
+            // for details
+            // https://groups.google.com/d/msg/selenium-developers/nJR5VnL-3Qs/uqUkXFw4FSwJ
+
+            // [CB] onPage -> inViewPort
+            // https://code.google.com/p/selenium/source/browse/java/client/src/org/openqa/selenium/remote/RemoteWebElement.java?r=abc64b1df10d5f5d72d11fba37fabf5e85644081
+            int y = locatableElement.getCoordinates().inViewPort().getY();
+            int offset = Configuration.getRequired(WebDriverConfiguration.Parameter.SCROLL_TO_ELEMENT_Y_OFFSET, Integer.class);
+            ((JavascriptExecutor) getDriver()).executeScript("window.scrollBy(0," + (y - offset) + ");");
+        } catch (Exception e) {
+            // do nothing
+        }
+    }
+
+    /*
+     * Inputs file path to specified element.
+     *
+     * @param filePath path
+     */
+    public void attachFile(String filePath) {
+        doAction(ACTION_NAME.ATTACH_FILE, explicitTimeout, getDefaultWaitCondition(), filePath);
+    }
+
+    /**
+     * Check checkbox
+     * <p>
+     * for checkbox Element
+     */
+    public void check() {
+        doAction(ACTION_NAME.CHECK, explicitTimeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Uncheck checkbox
+     * <p>
+     * for checkbox Element
+     */
+    public void uncheck() {
+        doAction(ACTION_NAME.UNCHECK, explicitTimeout, getDefaultWaitCondition());
+    }
+
+    /**
+     * Selects text in specified select element.
+     *
+     * @param selectText select text
+     * @return true if item selected, otherwise false.
+     */
+    public boolean select(final String selectText) {
+        return (boolean) doAction(ACTION_NAME.SELECT, explicitTimeout, getDefaultWaitCondition(), selectText);
+    }
+
+    /**
+     * Select multiple text values in specified select element.
+     *
+     * @param values final String[]
+     * @return boolean.
+     */
+    public boolean select(final String[] values) {
+        return (boolean) doAction(ACTION_NAME.SELECT_VALUES, explicitTimeout, getDefaultWaitCondition(), values);
+    }
+
+    /**
+     * Selects value according to text value matcher.
+     *
+     * @param matcher {@link} BaseMatcher
+     * @return true if item selected, otherwise false.
+     *         <p>
+     *         Usage example: BaseMatcher&lt;String&gt; match=new
+     *         BaseMatcher&lt;String&gt;() { {@literal @}Override public boolean
+     *         matches(Object actual) { return actual.toString().contains(RequiredText);
+     *         } {@literal @}Override public void describeTo(Description description) {
+     *         } };
+     */
+    public boolean selectByMatcher(final BaseMatcher<String> matcher) {
+        return (boolean) doAction(ACTION_NAME.SELECT_BY_MATCHER, explicitTimeout, getDefaultWaitCondition(), matcher);
+    }
+
+    /**
+     * Selects first value according to partial text value.
+     *
+     * @param partialSelectText select by partial text
+     * @return true if item selected, otherwise false.
+     */
+    public boolean selectByPartialText(final String partialSelectText) {
+        return (boolean) doAction(ACTION_NAME.SELECT_BY_PARTIAL_TEXT, explicitTimeout, getDefaultWaitCondition(),
+                partialSelectText);
+    }
+
+    /**
+     * Selects item by index in specified select element.
+     *
+     * @param index to select by
+     * @return true if item selected, otherwise false.
+     */
+    public boolean select(final int index) {
+        return (boolean) doAction(ACTION_NAME.SELECT_BY_INDEX, explicitTimeout, getDefaultWaitCondition(), index);
+    }
+
+    ///////////// ASSERTS /////////////
+
     public void assertElementWithTextPresent(final String text) {
-        assertElementWithTextPresent(text, EXPLICIT_TIMEOUT);
+        assertElementWithTextPresent(text, explicitTimeout);
     }
 
     public void assertElementWithTextPresent(final String text, long timeout) {
+        assertElementWithTextPresent(text, Duration.ofSeconds(timeout));
+    }
+
+    public void assertElementWithTextPresent(final String text, Duration timeout) {
         if (!isElementWithTextPresent(text, timeout)) {
             Assert.fail(Messager.ELEMENT_WITH_TEXT_NOT_PRESENT.getMessage(getNameWithLocator(), text));
         }
     }
-    
+
     public void assertElementPresent() {
-        assertElementPresent(EXPLICIT_TIMEOUT);
+        assertElementPresent(explicitTimeout);
     }
 
     public void assertElementPresent(long timeout) {
-		if (!isPresent(timeout)) {
-			Assert.fail(Messager.ELEMENT_NOT_PRESENT.getMessage(getNameWithLocator()));
-		}
+        assertElementPresent(Duration.ofSeconds(timeout));
     }
+
+    public void assertElementPresent(Duration timeout) {
+        if (!isPresent(timeout)) {
+            Assert.fail(Messager.ELEMENT_NOT_PRESENT.getMessage(getNameWithLocator()));
+        }
+    }
+
+    ///////////// OTHER /////////////
 
     /**
      * Find Extended Web Element on page using By starting search from this
@@ -1020,7 +1175,7 @@ public class ExtendedWebElement implements IWebElement {
      * @return ExtendedWebElement if exists otherwise null.
      */
     public ExtendedWebElement findExtendedWebElement(By by) {
-        return findExtendedWebElement(by, by.toString(), EXPLICIT_TIMEOUT);
+        return findExtendedWebElement(this, by);
     }
 
     /**
@@ -1032,7 +1187,7 @@ public class ExtendedWebElement implements IWebElement {
      * @return ExtendedWebElement if exists otherwise null.
      */
     public ExtendedWebElement findExtendedWebElement(By by, long timeout) {
-        return findExtendedWebElement(by, by.toString(), timeout);
+        return findExtendedWebElement(this, by, Duration.ofSeconds(timeout));
     }
 
     /**
@@ -1044,7 +1199,7 @@ public class ExtendedWebElement implements IWebElement {
      * @return ExtendedWebElement if exists otherwise null.
      */
     public ExtendedWebElement findExtendedWebElement(final By by, String name) {
-        return findExtendedWebElement(by, name, EXPLICIT_TIMEOUT);
+        return findExtendedWebElement(this, by, name);
     }
 
     /**
@@ -1057,16 +1212,11 @@ public class ExtendedWebElement implements IWebElement {
      * @return ExtendedWebElement if exists otherwise null.
      */
     public ExtendedWebElement findExtendedWebElement(final By by, String name, long timeout) {
-        ExtendedWebElement el = new ExtendedWebElement(by, name, this.driver, getElement());
-        if (!el.isPresent(timeout)) {
-            throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + by.toString());
-        }
-        el.refresh();
-        return el;
+        return findExtendedWebElement(this, by, name, Duration.ofSeconds(timeout));
     }
 
     public List<ExtendedWebElement> findExtendedWebElements(By by) {
-        return findExtendedWebElements(by, EXPLICIT_TIMEOUT);
+        return findExtendedWebElements(this, by, explicitTimeout);
     }
 
     /**
@@ -1077,32 +1227,7 @@ public class ExtendedWebElement implements IWebElement {
      * @return list of ExtendedWebElements if found, empty list otherwise
      */
     public List<ExtendedWebElement> findExtendedWebElements(final By by, long timeout) {
-        List<ExtendedWebElement> extendedWebElements = new ArrayList<>();
-        ExtendedWebElement firstElement = new ExtendedWebElement(by, "first element", getDriver(), getElement());
-        if (!firstElement.isPresent(timeout)) {
-            LOGGER.info("FAIL: element(s) '{}' is not found!", by);
-            return extendedWebElements;
-        }
-
-        Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(by);
-        boolean isByForListSupported = locatorType.isPresent() && locatorType.get().isIndexSupport();
-        String locatorAsString = by.toString();
-        List<WebElement> webElements = getElement().findElements(by);
-        int i = 0;
-        for (WebElement el : webElements) {
-            ExtendedWebElement tempElement = new ExtendedWebElement(by, String.format("ExtendedWebElement - [%d]", i), getDriver(), getElement());
-            tempElement.setElement(el);
-            tempElement.setIsSingle(false);
-            if (isByForListSupported) {
-                tempElement.setIsRefreshSupport(true);
-                tempElement.setBy(locatorType.get().buildLocatorWithIndex(locatorAsString, i));
-            } else {
-                tempElement.setIsRefreshSupport(false);
-            }
-            extendedWebElements.add(tempElement);
-            i++;
-        }
-        return extendedWebElements;
+        return findExtendedWebElements(this, by, Duration.ofSeconds(timeout));
     }
 
     /**
@@ -1137,258 +1262,90 @@ public class ExtendedWebElement implements IWebElement {
         return res;
     }
 
-    /**
-     * Get element with formatted locator.<br>
-     * <p>
-     * 1. If element created using {@link org.openqa.selenium.support.FindBy} or same annotations:<br>
-     * If parameters were passed to the method, the element will be recreated with a new locator,
-     * and if the format method with parameters was already called for this element, the element locator
-     * will be recreated based on the original.<br>
-     * <b>All original element statuses {@link CaseInsensitiveXPath},
-     * {@link Localized} are saved for new element</b>
-     *
-     * <p>
-     * 2. If element created using constructor (it is not recommended to create element by hands):<br>
-     * If parameters were passed to the method, the element will be recreated with a new locator.
-     *
-     * <p>
-     * For all cases: if the method is called with no parameters, no locator formatting is applied, but the element will be "recreated".<br>
-     *
-     * <b>This method does not change the object on which it is called</b>.
-     *
-     * @return new {@link ExtendedWebElement} with formatted locator
-     */
     public ExtendedWebElement format(Object... objects) {
-        ExtendedWebElement formattedElement;
-        // todo add support FindBys, FindAll and same annotations
-        if (this.element instanceof Proxy) {
-            /*
-             * if element created using annotation (FindBy, ExtendedFindBy and so on), it will be proxy, so we get it and re-generate locator
-             * with FormatLocatorConverter
-             */
-            try {
-                InvocationHandler innerProxy = Proxy.getInvocationHandler(this.element);
-                ExtendedElementLocator innerLocator = (ExtendedElementLocator) (FieldUtils.getDeclaredField(innerProxy.getClass(),
-                        "locator", true))
-                                .get(innerProxy);
-
-                if (Arrays.stream(objects).findAny().isPresent()) {
-                    // start of case when we have L10N only on this step
-                    boolean isTextContainsL10N = Arrays.stream(objects)
-                            .map(String::valueOf)
-                            .anyMatch(text -> LocalizeLocatorConverter.getL10nPattern().matcher(text).find());
-                    if (isTextContainsL10N) {
-                        boolean isAlreadyContainsL10NConverter = innerLocator.getLocatorConverters()
-                                .stream()
-                                .anyMatch(LocalizeLocatorConverter.class::isInstance);
-                        if (!isAlreadyContainsL10NConverter) {
-                            LocalizeLocatorConverter converter = new LocalizeLocatorConverter();
-                            innerLocator.getLocatorConverters().addFirst(converter);
-                        }
-                    }
-                    // end of case when we have L10N only on this step
-
-                    if (innerLocator.getLocatorConverters().stream()
-                            .anyMatch(FormatLocatorConverter.class::isInstance)) {
-                        LOGGER.debug("Called format method of ExtendedWebElement class with parameters, but FormatLocatorConverter already exists "
-                                + "for element: '{}', so locator will be recreated from original locator with new format parameters.", this.name);
-                        innerLocator.getLocatorConverters()
-                                .removeIf(FormatLocatorConverter.class::isInstance);
-                    }
-
-                    FormatLocatorConverter converter = new FormatLocatorConverter(objects);
-                    innerLocator.getLocatorConverters().addFirst(converter);
-                    innerLocator.buildConvertedBy();
-                }
-                WebElement proxy = (WebElement) Proxy.newProxyInstance(getClass().getClassLoader(),
-                        new Class[] { WebElement.class, WrapsElement.class, Locatable.class },
-                        innerProxy);
-                formattedElement = new ExtendedWebElement(proxy, this.name);
-            } catch (Exception e) {
-                throw new RuntimeException("Something went wrong when try to format locator.", e);
-            }
-        } else {
-            By by = this.by;
-
-            if (Arrays.stream(objects).findAny().isPresent()) {
-                String locator = by.toString();
-                by = Arrays.stream(LocatorType.values())
-                        .filter(lt -> lt.is(locator))
-                        .findFirst()
-                        .orElseThrow(
-                                () -> new RuntimeException(String.format("Locator formatting failed - no suitable locator type found for formatting. "
-                                        + "Investigate why '%s' was not formatted", locator)))
-                        .buildLocatorFromString(locator, objects);
-                LOGGER.debug("Formatted locator is : {}", by);
-            }
-            formattedElement = new ExtendedWebElement(by, name, this.driver, this.searchContext, objects);
-        }
-
-        formattedElement.setName(this.name);
-        return formattedElement;
+        return format(this, objects);
     }
 
-    /**
-     * Get list of elements with formatted locator.<br>
-     *
-     * <p>
-     * 1. If element created using {@link org.openqa.selenium.support.FindBy} or same annotations:<br>
-     * If parameters were passed to the method, the result elements will be created with a new locator,
-     * and if the format method with parameters was already called for this element, the element locator
-     * will be recreated based on the original.<br>
-     * <br>
-     * <b>All original element statuses {@link CaseInsensitiveXPath},
-     * {@link Localized} are saved for new elements</b>
-     * 
-     * <p>
-     * 2. If element created using constructor (it is not recommended to create element by hands):<br>
-     * If parameters were passed to the method, the result elements will be created with a new locator.
-     *
-     * For all cases: if the method is called with no parameters, no locator formatting is applied, but elements will be created using original
-     * locator.<br>
-     * 
-     * <b>This method does not change the object on which it is called</b>.
-     * 
-     * @param objects parameters
-     * @return {@link List} of {@link ExtendedWebElement} if found, empty list otherwise
-     */
     public List<ExtendedWebElement> formatToList(Object... objects) {
-        List<ExtendedWebElement> extendedWebElementList = new ArrayList<>();
+        return formatToList(this, objects);
+    }
+
+    @Override
+    public List<WebElement> findElements(By by) {
+        List<WebElement> elements = List.of();
         try {
-            if (this.element instanceof Proxy) {
-                /*
-                 * if element created using annotation (FindBy, ExtendedFindBy and so on), it will be proxy, so we get it and re-generate locator
-                 * with FormatLocatorConverter
-                 */
-                InvocationHandler innerProxy = Proxy.getInvocationHandler(this.element);
-                ExtendedElementLocator innerLocator = (ExtendedElementLocator) (FieldUtils.getDeclaredField(innerProxy.getClass(),
-                        "locator", true))
-                                .get(innerProxy);
-                if (Arrays.stream(objects).findAny().isPresent()) {
-                    // start of case when we have L10N only on this step
-                    boolean isTextContainsL10N = Arrays.stream(objects)
-                            .map(String::valueOf)
-                            .anyMatch(text -> LocalizeLocatorConverter.getL10nPattern().matcher(text).find());
-                    if (isTextContainsL10N) {
-                        boolean isAlreadyContainsL10NConverter = innerLocator.getLocatorConverters()
-                                .stream()
-                                .anyMatch(LocalizeLocatorConverter.class::isInstance);
-                        if (!isAlreadyContainsL10NConverter) {
-                            LocalizeLocatorConverter converter = new LocalizeLocatorConverter();
-                            innerLocator.getLocatorConverters().addFirst(converter);
-                        }
-                    }
-                    // end of case when we have L10N only on this step
-
-                    if (innerLocator.getLocatorConverters().stream()
-                            .anyMatch(FormatLocatorConverter.class::isInstance)) {
-                        LOGGER.debug(
-                                "Called formatToList method of ExtendedWebElement class with parameters, but FormatLocatorConverter already exists "
-                                        + "for element: '{}', so locator will be recreated from original locator with new format parameters.",
-                                this.name);
-                        innerLocator.getLocatorConverters()
-                                .removeIf(FormatLocatorConverter.class::isInstance);
-                    }
-
-                    FormatLocatorConverter converter = new FormatLocatorConverter(objects);
-                    innerLocator.getLocatorConverters()
-                            .addFirst(converter);
-                    innerLocator.buildConvertedBy();
-                    innerLocator.getLocatorConverters()
-                            .remove(converter);
-                }
-                ClassLoader classLoader = getClass().getClassLoader();
-
-                InvocationHandler handler = new LocatingListHandler(classLoader, innerLocator, this.name, ExtendedWebElement.class);
-                extendedWebElementList = (List<ExtendedWebElement>) Proxy.newProxyInstance(classLoader, new Class[] { List.class }, handler);
-            } else {
-                By by = this.by;
-                if (Arrays.stream(objects).findAny().isPresent()) {
-                    String locator = this.by.toString();
-                    by = Arrays.stream(LocatorType.values())
-                            .filter(lt -> lt.is(locator))
-                            .findFirst()
-                            .orElseThrow(
-                                    () -> new RuntimeException(
-                                            String.format("Locator formatting failed - no suitable locator type found for formatting. "
-                                                    + "Investigate why '%s' was not formatted", locator)))
-                            .buildLocatorFromString(locator, objects);
-                }
-                int i = 0;
-                for (WebElement el : this.searchContext.findElements(by)) {
-                    ExtendedWebElement extendedWebElement = new ExtendedWebElement(by, String.format("%s - [%s]", name, i++), driver, searchContext,
-                            objects);
-                    extendedWebElement.setElement(el);
-                    extendedWebElement.setIsSingle(false);
-                    extendedWebElementList.add(extendedWebElement);
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Something went wrong when try to format locator to list", e);
+            // do not use getBy method - getText method, for example, takes 3s instead of 1s or even ~600ms!
+            // elements = searchContext.findElements(getBy(by, searchContext));
+            elements = findElement().findElements(by);
+        } catch (NoSuchElementException e) {
+            LOGGER.debug("Unable to find elements: {}", e.getMessage());
         }
-        return extendedWebElementList;
+        return elements;
     }
 
-    /**
-     * Pause for specified timeout.
-     * 
-     * @param timeout in seconds.
-     */
-    public void pause(long timeout) {
-        CommonUtils.pause(timeout);
+    @Override
+    public WebElement findElement(By by) {
+        List<WebElement> elements = findElement().findElements(by);
+        WebElement element = null;
+        if (elements.size() == 1) {
+            element = elements.get(0);
+        } else if (elements.size() > 1) {
+            element = elements.get(0);
+            LOGGER.debug("{} elements detected by: {}", elements.size(), by.toString());
+        }
+        if (element == null) {
+            throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + by);
+        }
+        return element;
     }
 
-    public void pause(double timeout) {
-        CommonUtils.pause(timeout);
+    public interface ActionSteps {
+        void doClick();
+
+        void doClickByJs();
+
+        void doClickByActions();
+
+        void doDoubleClick();
+
+        void doRightClick();
+
+        void doHover(Integer xOffset, Integer yOffset);
+
+        void doType(String text);
+
+        void doSendKeys(Keys keys);
+
+        void doAttachFile(String filePath);
+
+        void doCheck();
+
+        void doUncheck();
+
+        boolean doIsChecked();
+
+        String doGetText();
+
+        Point doGetLocation();
+
+        Dimension doGetSize();
+
+        String doGetAttribute(String name);
+
+        boolean doSelect(String text);
+
+        boolean doSelectValues(final String[] values);
+
+        boolean doSelectByMatcher(final BaseMatcher<String> matcher);
+
+        boolean doSelectByPartialText(final String partialSelectText);
+
+        boolean doSelectByIndex(final int index);
+
+        String doGetSelectedValue();
+
+        List<String> doGetSelectedValues();
     }
-    
-	public interface ActionSteps {
-		void doClick();
-		
-		void doClickByJs();
-		
-		void doClickByActions();
-		
-		void doDoubleClick();
-
-		void doRightClick();
-		
-		void doHover(Integer xOffset, Integer yOffset);
-
-		void doType(String text);
-
-		void doSendKeys(Keys keys);
-
-		void doAttachFile(String filePath);
-
-		void doCheck();
-
-		void doUncheck();
-		
-		boolean doIsChecked();
-		
-		String doGetText();
-
-		Point doGetLocation();
-
-		Dimension doGetSize();
-
-		String doGetAttribute(String name);
-
-		boolean doSelect(String text);
-
-		boolean doSelectValues(final String[] values);
-
-		boolean doSelectByMatcher(final BaseMatcher<String> matcher);
-
-		boolean doSelectByPartialText(final String partialSelectText);
-
-		boolean doSelectByIndex(final int index);
-		
-		String doGetSelectedValue();
-		
-		List<String> doGetSelectedValues();
-	}
 
     private Object executeAction(ACTION_NAME actionName, ActionSteps actionSteps, Object... inputArgs) {
         Object result = null;
@@ -1469,35 +1426,35 @@ public class ExtendedWebElement implements IWebElement {
         return result;
     }
 
-	/**
-	 * doAction on element.
+    /**
+     * doAction on element.
      *
-	 * @param actionName
+     * @param actionName
      *            ACTION_NAME
-	 * @param timeout
+     * @param timeout
      *            long
-	 * @param waitCondition
-	 *            to check element conditions before action
+     * @param waitCondition
+     *            to check element conditions before action
      * @return
-     *            Object
-	 */
-	private Object doAction(ACTION_NAME actionName, long timeout, ExpectedCondition<?> waitCondition) {
-		// [VD] do not remove null args otherwise all actions without arguments will be broken!
-		Object nullArgs = null;
-		return doAction(actionName, timeout, waitCondition, nullArgs);
-	}
+     *         Object
+     */
+    private Object doAction(ACTION_NAME actionName, Duration timeout, ExpectedCondition<?> waitCondition) {
+        // [VD] do not remove null args otherwise all actions without arguments will be broken!
+        Object nullArgs = null;
+        return doAction(actionName, timeout, waitCondition, nullArgs);
+    }
 
-	private Object doAction(ACTION_NAME actionName, long timeout, ExpectedCondition<?> waitCondition,
-			Object...inputArgs) {
-		
-		if (waitCondition != null) {
-			//do verification only if waitCondition is not null
-			if (!waitUntil(waitCondition, timeout)) {
-				//TODO: think about raising exception otherwise we do extra call and might wait and hangs especially for mobile/appium
-				LOGGER.error(Messager.ELEMENT_CONDITION_NOT_VERIFIED.getMessage(actionName.getKey(), getNameWithLocator()));
-			}
-		}
-		
+    private Object doAction(ACTION_NAME actionName, Duration timeout, ExpectedCondition<?> waitCondition,
+            Object... inputArgs) {
+
+        if (waitCondition != null) {
+            // do verification only if waitCondition is not null
+            if (!waitUntil(waitCondition, timeout)) {
+                // TODO: think about raising exception otherwise we do extra call and might wait and hangs especially for mobile/appium
+                LOGGER.error(Messager.ELEMENT_CONDITION_NOT_VERIFIED.getMessage(actionName.getKey(), getNameWithLocator()));
+            }
+        }
+
         if (isLocalized) {
             isLocalized = false; // single verification is enough for this particular element
             L10N.verify(this);
@@ -1516,7 +1473,7 @@ public class ExtendedWebElement implements IWebElement {
             // try to find again using driver context and do action
             // [AS] do not try to refresh element if it created as part of list,
             // because it can find first element or different (not original) element - unexpected behaviour
-            if (isSingleElement) {
+            if (by != null) {
                 this.element = this.findElement();
                 output = overrideAction(actionName, inputArgs);
             } else {
@@ -1524,10 +1481,10 @@ public class ExtendedWebElement implements IWebElement {
             }
         }
         return output;
-	}
+    }
 
-	// single place for all supported UI actions in carina core
-	private Object overrideAction(ACTION_NAME actionName, Object...inputArgs) {
+    // single place for all supported UI actions in carina core
+    private Object overrideAction(ACTION_NAME actionName, Object... inputArgs) {
         return executeAction(actionName, new ActionSteps() {
             @Override
             public void doClick() {
@@ -1783,126 +1740,102 @@ public class ExtendedWebElement implements IWebElement {
             }
 
         }, inputArgs);
-	}
-
-    public WebDriver getDriver() {
-		if (driver == null) {
-            LOGGER.error("There is no any initialized driver for ExtendedWebElement: {}", getNameWithLocator());
-            throw new RuntimeException(
-                    "Driver isn't initialized. Review stacktrace to analyze why driver is not populated correctly via reflection!");
-        }
-		return driver;
     }
 
     /**
-     * @deprecated when we search list of elements we do not needed for generating by with index
+     * Get default waiting condition depends on {@link ElementLoadingStrategy}
+     * 
+     * @return {@link ExpectedCondition}
      */
-    @Deprecated(forRemoval = true, since = "8.0.1")
-    // TODO: investigate how can we merge the similar functionality in ExtendedWebElement, DriverHelper and LocalizedAnnotations
-    public By generateByForList(By by, int index) {
-        String locator = by.toString();
-        By resBy = null;
-
-        if (LocatorType.BY_ID.is(locator)) {
-            resBy = LocatorType.BY_ID.buildLocatorFromString(locator + "[" + index + "]");
-        } else if (LocatorType.BY_NAME.is(locator)) {
-            resBy = LocatorType.BY_NAME.buildLocatorFromString(locator + "[" + index + "]");
-        } else if (LocatorType.BY_XPATH.is(locator)) {
-            resBy = LocatorType.BY_XPATH.buildLocatorFromString(locator + "[" + index + "]");
-        } else if (LocatorType.BY_LINKTEXT.is(locator)) {
-            resBy = LocatorType.BY_LINKTEXT.buildLocatorFromString(locator + "[" + index + "]");
-        } else if (LocatorType.BY_CLASSNAME.is(locator)) {
-            resBy = LocatorType.BY_CLASSNAME.buildLocatorFromString(locator + "[" + index + "]");
-        } else if (LocatorType.BY_PARTIAL_LINK_TEXT.is(locator)) {
-            resBy = LocatorType.BY_PARTIAL_LINK_TEXT.buildLocatorFromString(locator + "[" + index + "]");
-        } else if (LocatorType.BY_CSS.is(locator)) {
-            resBy = LocatorType.BY_CSS.buildLocatorFromString(locator + ":nth-child(" + index + ")");
-        } else if (LocatorType.BY_TAG_NAME.is(locator)) {
-            resBy = LocatorType.BY_TAG_NAME.buildLocatorFromString(locator + "[" + index + "]");
-        } else if (LocatorType.APPIUM_BY_IOS_CLASS_CHAIN.is(locator)) {
-            resBy = LocatorType.APPIUM_BY_IOS_CLASS_CHAIN.buildLocatorFromString(locator + "[" + index + "]");
-        } else if (LocatorType.APPIUM_BY_IOS_NS_PREDICATE.is(locator)) {
-            resBy = LocatorType.APPIUM_BY_IOS_NS_PREDICATE.buildLocatorFromString(locator + "[" + index + "]");
-        } else if (LocatorType.APPIUM_BY_ACCESSIBILITY_ID.is(locator)) {
-            resBy = LocatorType.APPIUM_BY_ACCESSIBILITY_ID.buildLocatorFromString(locator + "[" + index + "]");
+    protected ExpectedCondition<?> getDefaultWaitCondition() {
+        if (element == null && by == null) {
+            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
         }
-        if (resBy == null) {
-            throw new RuntimeException(String.format("Generate by for list failed - no suitable locator type found."
-                    + " Investigate why '%s' was not detected.", locator));
-        }
-        return resBy;
-    }
-
-    /**
-     * Get element waiting condition depends on element loading strategy
-     */
-    private ExpectedCondition<?> getDefaultCondition(By by) {
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
-        // generate the most popular waitCondition to check if element visible or present
-        // need to get root element from with we will try to find element by By
-        switch (loadingStrategy) {
-        case BY_PRESENCE: {
+        if (loadingStrategy == ElementLoadingStrategy.BY_PRESENCE || loadingStrategy == ElementLoadingStrategy.BY_PRESENCE_OR_VISIBILITY) {
             if (element != null) {
                 conditions.add(ExpectedConditions.not(ExpectedConditions.stalenessOf(element)));
             }
-
-            if (isSingleElement) {
-                if (searchContext instanceof WebElement) {
-                    conditions.add(ExpectedConditions.presenceOfNestedElementLocatedBy((WebElement) searchContext, by));
-                } else {
-                    conditions.add(ExpectedConditions.presenceOfElementLocated(by));
-                }
+            if (by != null) {
+                conditions.add(getSearchContext() instanceof WebElement
+                        ? ExpectedConditions.presenceOfNestedElementLocatedBy((WebElement) searchContext, by)
+                        : ExpectedConditions.presenceOfElementLocated(by));
             }
-            break;
         }
-        case BY_VISIBILITY: {
+        if (loadingStrategy == ElementLoadingStrategy.BY_VISIBILITY || loadingStrategy == ElementLoadingStrategy.BY_PRESENCE_OR_VISIBILITY) {
             if (element != null) {
                 conditions.add(ExpectedConditions.not(ExpectedConditions.invisibilityOf(element)));
             }
-
-            if (isSingleElement) {
-                if (searchContext instanceof WebElement) {
-                    conditions.add(ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) searchContext, by));
-                } else {
-                    conditions.add(ExpectedConditions.visibilityOfElementLocated(by));
-                }
+            if (by != null) {
+                conditions.add(getSearchContext() instanceof WebElement
+                        ? ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) getSearchContext(), by)
+                        : ExpectedConditions.visibilityOfElementLocated(by));
             }
-            break;
         }
-        case BY_PRESENCE_OR_VISIBILITY:
-            if (element != null) {
-                conditions.add(ExpectedConditions.not(ExpectedConditions.stalenessOf(element)));
-                conditions.add(ExpectedConditions.not(ExpectedConditions.invisibilityOf(element)));
-            }
-
-            if (isSingleElement) {
-                if (searchContext instanceof WebElement) {
-                    conditions.add(ExpectedConditions.presenceOfNestedElementLocatedBy((WebElement) searchContext, by));
-                    conditions.add(ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) searchContext, by));
-                } else {
-                    conditions.add(ExpectedConditions.presenceOfElementLocated(by));
-                    conditions.add(ExpectedConditions.visibilityOfElementLocated(by));
-
-                }
-            }
-            break;
-        }
-
-        if(conditions.isEmpty()) {
-            throw new RuntimeException("There should be at least one ExpectedCondition!");
-        }
-
         return ExpectedConditions.or(conditions.toArray(new ExpectedCondition<?>[0]));
     }
 
-    private long getRetryInterval(long timeout) {
-        long retryInterval = RETRY_TIME;
-        if (timeout >= 3 && timeout <= 10) {
-            retryInterval = 500;
+    ///////////// UTILITY METHODS /////////////
+
+    private WebElement findElement() {
+        if (by == null) {
+            if (element == null) {
+                throw new IllegalArgumentException("Both 'By' and 'WebElement' could not be null.");
+            }
+            return element;
         }
-        if (timeout > 10) {
-            retryInterval = 1000;
+
+        if (element != null && !element.isDisplayed()) {
+            return element;
         }
-        return retryInterval;
+
+        List<WebElement> elements = searchContext.findElements(by);
+        if (elements.isEmpty()) {
+            throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + this.by.toString());
+        }
+        if (elements.size() > 1) {
+            // TODO: think about moving into the debug or info level
+            LOGGER.warn("returned first but found {} elements by xpath: {}", elements.size(), getLocator().orElseThrow());
+        }
+        element = elements.get(0);
+        return element;
+    }
+
+    private String getDetailedInfo() {
+        return this.getClass() + "{" +
+                "udid='" + udid + '\'' +
+                ", driver=" + driver +
+                ", searchContext=" + searchContext +
+                ", by=" + by +
+                ", element=" + element +
+                ", name='" + name + '\'' +
+                ", retryTime=" + retryTime +
+                ", explicitTimeout=" + explicitTimeout +
+                ", loadingStrategy=" + loadingStrategy +
+                ", isLocalized=" + isLocalized +
+                '}';
+    }
+
+    @Deprecated(forRemoval = true)
+    public void refresh() {
+        // nothing
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        try {
+            ExtendedWebElement clone = ConstructorUtils.invokeConstructor(this.getClass(), getDriver(), getSearchContext());
+            clone.setLocator(by);
+            clone.setWebElement(element);
+            clone.setName(name);
+            return clone;
+        } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException e) {
+            return ExceptionUtils.rethrow(e);
+        }
     }
 }

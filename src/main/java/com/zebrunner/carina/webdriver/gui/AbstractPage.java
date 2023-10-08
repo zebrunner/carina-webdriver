@@ -90,7 +90,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
             }
 
             if (!isOpened) {
-                LOGGER.warn("Loaded page url is as expected but page loading marker element is not visible: {}", uiLoadedMarker.getBy());
+                LOGGER.warn("Loaded page url is as expected but page loading marker element is not visible: {}", uiLoadedMarker.getLocator().orElse(null));
             }
             return isOpened;
         default:
@@ -122,7 +122,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
                 throw new RuntimeException("Please specify uiLoadedMarker for the page/screen to validate page opened state");
             }
             Assert.assertTrue(uiLoadedMarker.isElementPresent(timeout), String.format("%s not loaded: page loading marker element is not visible: %s",
-                    getPageClassName(), uiLoadedMarker.getBy().toString()));
+                    getPageClassName(), uiLoadedMarker.getLocator().orElse(null)));
             break;
         case BY_URL_AND_ELEMENT:
             if (!super.isPageOpened(this, timeout)) {
@@ -132,7 +132,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
             if (uiLoadedMarker != null) {
                 Assert.assertTrue(uiLoadedMarker.isElementPresent(timeout),
                         String.format("%s not loaded: url is correct but page loading marker element is not visible: %s", getPageClassName(),
-                                uiLoadedMarker.getBy().toString()));
+                                uiLoadedMarker.getLocator().orElse(null)));
             }
             break;
         default:

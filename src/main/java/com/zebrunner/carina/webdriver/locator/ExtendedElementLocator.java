@@ -93,6 +93,10 @@ public class ExtendedElementLocator implements ElementLocator {
         buildConvertedBy();
     }
 
+    public By getOriginalBy() {
+        return originalBy;
+    }
+
     public void buildConvertedBy() {
         // do not do converting if there are no locator converters at all
         if (locatorConverters.isEmpty()) {
