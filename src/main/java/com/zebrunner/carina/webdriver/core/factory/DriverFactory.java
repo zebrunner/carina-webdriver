@@ -86,7 +86,6 @@ public class DriverFactory {
 			throw new RuntimeException("Unsupported driver_type: " + driverType);
         }
 
-        LOGGER.info("Starting driver session...");
         WebDriver driver = factory.create(testName, capabilities, seleniumHost);
         driver = new EventFiringDecorator<WebDriver>(getEventListeners(driver))
                 .decorate(driver);

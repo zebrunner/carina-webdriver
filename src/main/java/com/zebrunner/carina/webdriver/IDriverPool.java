@@ -16,23 +16,31 @@
 package com.zebrunner.carina.webdriver;
 
 import java.lang.invoke.MethodHandles;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import com.beust.ah.A;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.SessionId;
 import org.openqa.selenium.support.decorators.Decorated;
+import org.openqa.selenium.support.ui.FluentWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -343,9 +351,14 @@ public interface IDriverPool {
         WebDriver drv = null;
         Device device = nullDevice;
 
+        boolean isInfinityRetryCount = StringUtils.equalsIgnoreCase(Configuration.get(Parameter.INIT_RETRY_COUNT), "infinity");
+
         // 1 - is default run without retry
-        int maxCount = Configuration.getInt(Parameter.INIT_RETRY_COUNT) + 1;
-        while (drv == null && count++ < maxCount) {
+        int maxCount = isInfinityRetryCount ? 1 : Configuration.getInt(Parameter.INIT_RETRY_COUNT) + 1;
+        while (drv == null && count < maxCount) {
+            if (!isInfinityRetryCount) {
+                count++;
+            }
             try {
                 POOL_LOGGER.debug("initDriver start...");
                 long threadId = Thread.currentThread().getId();
@@ -361,6 +374,9 @@ public interface IDriverPool {
                     throw new RuntimeException(String.format("Driver '%s' is already registered for thread: %s", name, threadId));
                 }
 
+               if(!isInfinityRetryCount) {
+                   POOL_LOGGER.info("Starting driver session...");
+               }
                 drv = DriverFactory.create(name, capabilities, seleniumHost);
 
                 if (currentDevice.get() != null) {
@@ -385,15 +401,19 @@ public interface IDriverPool {
                 }
             } catch (Exception e) {
                 device.disconnectRemote();
-                //TODO: [VD] think about excluding device from pool for explicit reasons like out of space etc
+                // TODO: [VD] think about excluding device from pool for explicit reasons like out of space etc
                 // but initially try to implement it on selenium-hub level
                 String msg = String.format("Driver initialization '%s' FAILED! Retry %d of %d time - %s", name, count,
                         maxCount, e.getMessage());
                 if (count == maxCount) {
                     throw e;
                 } else {
-                    // do not provide huge stacktrace as more retries exists. Only latest will generate full error + stacktrace
-                    POOL_LOGGER.error(msg);
+                    if(isInfinityRetryCount) {
+                        POOL_LOGGER.debug(msg);
+                    } else {
+                        // do not provide huge stacktrace as more retries exists. Only latest will generate full error + stacktrace
+                        POOL_LOGGER.error(msg);
+                    }
                 }
                 CommonUtils.pause(Configuration.getInt(Parameter.INIT_RETRY_INTERVAL));
             }
