@@ -208,8 +208,9 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     }
 
     /**
-     * @deprecated use {@link #setLocator(By)} ()} instead
+     * @deprecated use {@link #setLocator(By)} instead
      */
+    @Deprecated(forRemoval = true)
     public final void setBy(By by) {
         this.by = by;
     }
@@ -258,6 +259,9 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         return this.element;
     }
 
+    /**
+     * @deprecated use {@link #setWebElement(WebElement)} instead
+     */
     @Deprecated(forRemoval = true)
     public final void setElement(WebElement element) {
         this.element = element;
@@ -308,6 +312,9 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         return res;
     }
 
+    /**
+     * @deprecated wrong implementation
+     */
     @Deprecated(forRemoval = true)
     public boolean isPresent(By by, long timeout) {
         return isPresent(timeout);
@@ -571,10 +578,6 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         }
 
         return waitUntil(ExpectedConditions.or(conditions.toArray(new ExpectedCondition[0])), timeout);
-        // TODO: restore below code as only projects are migrated to "isElementWithContainTextPresent"
-        // return waitUntil(ExpectedConditions.and(ExpectedConditions.presenceOfElementLocated(getBy()),
-        // ExpectedConditions.textToBe(getBy(), decryptedText)), timeout);
-
     }
 
     ///////////// ELEMENT INFORMATION /////////////
@@ -1286,17 +1289,17 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     @Override
     public WebElement findElement(By by) {
         List<WebElement> elements = findElement().findElements(by);
-        WebElement element = null;
+        WebElement foundElement = null;
         if (elements.size() == 1) {
-            element = elements.get(0);
+            foundElement = elements.get(0);
         } else if (elements.size() > 1) {
-            element = elements.get(0);
-            LOGGER.debug("{} elements detected by: {}", elements.size(), by.toString());
+            foundElement = elements.get(0);
+            LOGGER.debug("{} elements detected by: {}", elements.size(), by);
         }
-        if (element == null) {
+        if (foundElement == null) {
             throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + by);
         }
-        return element;
+        return foundElement;
     }
 
     public interface ActionSteps {
@@ -1794,8 +1797,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
             throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + this.by.toString());
         }
         if (elements.size() > 1) {
-            // TODO: think about moving into the debug or info level
-            LOGGER.warn("returned first but found {} elements by xpath: {}", elements.size(), getLocator().orElseThrow());
+            LOGGER.info("returned first but found {} elements by locator: {}", elements.size(), getLocator().orElseThrow());
         }
         element = elements.get(0);
         return element;
@@ -1816,6 +1818,9 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                 '}';
     }
 
+    /**
+     * @deprecated useless method
+     */
     @Deprecated(forRemoval = true)
     public void refresh() {
         // nothing

@@ -245,7 +245,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
         while (index++ < counts) {
             for (T element : elements) {
                 if (element.isElementPresent(timeout)) {
-                    I_EXTENDED_WEB_ELEMENT_LOGGER.debug(element.getNameWithLocator() + " is present");
+                    I_EXTENDED_WEB_ELEMENT_LOGGER.debug("{} is present", element.getNameWithLocator());
                     return element;
                 }
             }
