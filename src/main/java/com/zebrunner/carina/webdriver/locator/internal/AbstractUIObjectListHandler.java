@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
@@ -49,13 +50,14 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
     private final ClassLoader loader;
     private final Class<?> clazz;
     private final WebDriver webDriver;
-    private final ElementLocator locator;
+    private final ExtendedElementLocator locator;
     private final String name;
 
     private final By locatorBy;
     private final Field field;
 
-    public AbstractUIObjectListHandler(ClassLoader loader, Class<?> clazz, WebDriver webDriver, ElementLocator locator, String name, Field field) {
+    public AbstractUIObjectListHandler(ClassLoader loader, Class<?> clazz, WebDriver webDriver, ExtendedElementLocator locator, String name,
+            Field field) {
         this.loader = loader;
         this.clazz = clazz;
         this.webDriver = webDriver;
@@ -67,23 +69,23 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
 
     @SuppressWarnings("unchecked")
     public Object invoke(Object object, Method method, Object[] objects) throws Throwable {
-    	
-		// Hotfix for huge and expected regression in carina: we lost managed
-		// time delays with lists manipulations
-		// Temporary we are going to restore explicit waiter here with hardcoded
-		// timeout before we find better solution
-		// Pros: super fast regression issue which block UI execution
-		// Cons: there is no way to manage timeouts in this places
+
+        // Hotfix for huge and expected regression in carina: we lost managed
+        // time delays with lists manipulations
+        // Temporary we are going to restore explicit waiter here with hardcoded
+        // timeout before we find better solution
+        // Pros: super fast regression issue which block UI execution
+        // Cons: there is no way to manage timeouts in this places
 
         // #1458: AbstractUIObjectListHandler waitUntil pause
-//    	waitUntil(ExpectedConditions.and(ExpectedConditions.presenceOfElementLocated(locatorBy),
-//    			ExpectedConditions.visibilityOfElementLocated(locatorBy)));
+        // waitUntil(ExpectedConditions.and(ExpectedConditions.presenceOfElementLocated(locatorBy),
+        // ExpectedConditions.visibilityOfElementLocated(locatorBy)));
 
-    	List<WebElement> elements = locator.findElements();
+        List<WebElement> elements = locator.findElements();
         Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(locatorBy);
         boolean isByForListSupported = locatorType.isPresent() && locatorType.get().isIndexSupport();
         String locatorAsString = locatorBy.toString();
-        List<T> uIObjects = new ArrayList<T>();
+        List<T> uIObjects = new ArrayList<>();
         int index = 0;
         if (elements != null) {
             for (WebElement element : elements) {
@@ -114,16 +116,14 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                             e);
                 }
 
-
-                ExtendedWebElement webElement = new ExtendedWebElement(proxy, String.format("%s - %d", name, index), locatorBy);
-                webElement.setIsSingle(false);
+                ExtendedWebElement foundElement = new ExtendedWebElement(webDriver, locator.getSearchContext());
+                foundElement.setWebElement(element);
                 if (isByForListSupported) {
-                    webElement.setIsRefreshSupport(true);
-                    webElement.setBy(locatorType.get().buildLocatorWithIndex(locatorAsString, index));
-                } else {
-                    webElement.setIsRefreshSupport(false);
+                    foundElement.setLocator(locatorType.get().buildLocatorWithIndex(locatorAsString, index));
                 }
-                uiObject.setRootExtendedElement(webElement);
+                foundElement.setName(String.format("%s - %d", name, index));
+
+                uiObject.setRootExtendedElement(foundElement);
                 uiObject.setName(String.format("%s - %d", name, index));
                 uiObject.setRootElement(element);
                 uiObject.setRootBy(locatorBy);
@@ -138,13 +138,13 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
             throw e.getCause();
         }
     }
-    
+
     private By getLocatorBy(ElementLocator locator) {
-        //TODO: get root by annotation from ElementLocator to be able to append by for those elements and reuse fluent waits
+        // TODO: get root by annotation from ElementLocator to be able to append by for those elements and reuse fluent waits
         By rootBy = null;
         try {
-            Field byContextField = null;
-            byContextField = locator.getClass().getDeclaredField("by");
+            Field byContextField = locator.getClass()
+                    .getDeclaredField("by");
             byContextField.setAccessible(true);
             rootBy = (By) byContextField.get(locator);
         } catch (Exception e) {

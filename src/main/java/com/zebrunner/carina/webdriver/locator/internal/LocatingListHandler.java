@@ -24,8 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.lang3.reflect.ConstructorUtils;
 import org.openqa.selenium.By;
-import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WrapsDriver;
@@ -39,40 +39,32 @@ import com.zebrunner.carina.webdriver.locator.LocatorType;
 import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 
 public class LocatingListHandler<T extends ExtendedWebElement> implements InvocationHandler {
-    private final ElementLocator locator;
+    private final ExtendedElementLocator locator;
     private final String name;
     private final ClassLoader loader;
     private final Class<?> clazz;
 
-    public LocatingListHandler(ClassLoader loader, ElementLocator locator, Field field, Class<?> clazz) {
+    public LocatingListHandler(ClassLoader loader, ExtendedElementLocator locator, Field field, Class<?> clazz) {
         this.loader = loader;
         this.locator = locator;
         this.name = field.getName();
         this.clazz = clazz;
     }
 
-    public LocatingListHandler(ClassLoader loader, ElementLocator locator, String name, Class<?> clazz) {
-        this.loader = loader;
-        this.locator = locator;
-        this.name = name;
-        this.clazz = clazz;
-    }
-
     @SuppressWarnings("unchecked")
     public Object invoke(Object object, Method method, Object[] objects) throws Throwable {
-		// Hotfix for huge and expected regression in carina: we lost managed
-		// time delays with lists manipulations
-		// Temporary we are going to restore explicit waiter here with hardcoded
-		// timeout before we find better solution
-		// Pros: super fast regression issue which block UI execution
-		// Cons: there is no way to manage timeouts in this places
-//    	if (!waitUntil(ExpectedConditions.or(ExpectedConditions.presenceOfElementLocated(by),
-//    			ExpectedConditions.visibilityOfElementLocated(by)))) {
-//    		LOGGER.error("List is not present: " + by);
-//    	}
+        // Hotfix for huge and expected regression in carina: we lost managed
+        // time delays with lists manipulations
+        // Temporary we are going to restore explicit waiter here with hardcoded
+        // timeout before we find better solution
+        // Pros: super fast regression issue which block UI execution
+        // Cons: there is no way to manage timeouts in this places
+        // if (!waitUntil(ExpectedConditions.or(ExpectedConditions.presenceOfElementLocated(by),
+        // ExpectedConditions.visibilityOfElementLocated(by)))) {
+        // LOGGER.error("List is not present: " + by);
+        // }
 
-    	
-    	List<WebElement> elements = locator.findElements();
+        List<WebElement> elements = locator.findElements();
         By by = getLocatorBy(locator);
         Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(by);
         boolean isByForListSupported = locatorType.isPresent() && locatorType.get().isIndexSupport();
@@ -86,31 +78,24 @@ public class LocatingListHandler<T extends ExtendedWebElement> implements Invoca
                 WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,
                         new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
                         handler);
-                T webElement;
+                T extendedElement;
                 try {
-                    webElement = (T) clazz.getConstructor(WebElement.class, String.class).newInstance(proxy, name + i);
+                    extendedElement = (T) ConstructorUtils.invokeConstructor(clazz, locator.getDriver(),
+                            locator.getSearchContext());
                 } catch (NoSuchMethodException e) {
                     throw new RuntimeException(
                             "Implement appropriate AbstractUIObject constructor for auto-initialization!", e);
                 } catch (Exception e) {
                     throw new RuntimeException("Error creating ExtendedWebElement!", e);
                 }
-                
-                webElement.setIsSingle(false);
                 if (isByForListSupported) {
-                    webElement.setIsRefreshSupport(true);
-                    webElement.setBy(locatorType.get().buildLocatorWithIndex(locatorAsString, i));
-                } else {
-                    webElement.setIsRefreshSupport(false);
+                    extendedElement.setLocator(locatorType.get().buildLocatorWithIndex(locatorAsString, i));
                 }
-                Field searchContextField = locator.getClass().getDeclaredField("searchContext");
-                searchContextField.setAccessible(true);
-                webElement.setSearchContext((SearchContext) searchContextField.get(locator));
-                extendedWebElements.add(webElement);
+                extendedElement.setName(name + i);
+                extendedWebElements.add(extendedElement);
                 i++;
             }
         }
-
         try {
             return method.invoke(extendedWebElements, objects);
         } catch (InvocationTargetException e) {
