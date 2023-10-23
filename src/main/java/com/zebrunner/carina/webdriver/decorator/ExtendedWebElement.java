@@ -76,11 +76,19 @@ import javax.annotation.Nullable;
 public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWebElementHelper, ICommonsHelper, Cloneable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final String udid;
-    private WebDriver driver;
+    /**
+     * @deprecated this field will be hided. Use {@link #getDriver()} instead
+     */
+    @Deprecated(forRemoval = true)
+    protected WebDriver driver;
     private SearchContext searchContext;
     private By by = null;
     private WebElement element = null;
-    private String name = "n/a";
+    /**
+     * @deprecated this field will be hided. Use {@link #getName()} instead
+     */
+    @Deprecated(forRemoval = true)
+    protected String name = "n/a";
     private Duration retryTime;
     private Duration explicitTimeout;
     private ElementLoadingStrategy loadingStrategy;
