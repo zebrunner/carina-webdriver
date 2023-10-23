@@ -20,6 +20,8 @@ import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import com.zebrunner.carina.webdriver.DriverHelper;
+import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.ui.ExpectedCondition;
@@ -47,15 +49,26 @@ import com.zebrunner.carina.webdriver.screenshot.ExplicitFullSizeScreenshotRule;
  *
  * @author Alex Khursevich
  */
-public abstract class AbstractPage extends AbstractUIObject implements ICustomTypePageFactory {
+public abstract class AbstractPage extends DriverHelper implements ICustomTypePageFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private PageOpeningStrategy pageOpeningStrategy = PageOpeningStrategy
             .valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.PAGE_OPENING_STRATEGY));
+    protected ExtendedWebElement uiLoadedMarker;
+
 
     protected AbstractPage(WebDriver driver) {
         super(driver);
         uiLoadedMarker = null;
+    }
+
+
+    public ExtendedWebElement getUiLoadedMarker() {
+        return uiLoadedMarker;
+    }
+
+    public void setUiLoadedMarker(ExtendedWebElement uiLoadedMarker) {
+        this.uiLoadedMarker = uiLoadedMarker;
     }
 
     public PageOpeningStrategy getPageOpeningStrategy() {

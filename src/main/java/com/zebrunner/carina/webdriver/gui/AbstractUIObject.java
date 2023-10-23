@@ -25,7 +25,6 @@ import org.testng.Assert;
 
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.messager.Messager;
-import com.zebrunner.carina.webdriver.DriverHelper;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.factory.ExtendedPageFactory;
 import com.zebrunner.carina.webdriver.decorator.ElementLoadingStrategy;
@@ -33,9 +32,8 @@ import com.zebrunner.carina.webdriver.decorator.ExtendedFieldDecorator;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocatorFactory;
 
-public abstract class AbstractUIObject extends DriverHelper {
+public abstract class AbstractUIObject extends ExtendedWebElement {
 
-    protected String name;
     /**
      * @deprecated use {@link #getRootExtendedElement()} instead
      */
@@ -49,13 +47,6 @@ public abstract class AbstractUIObject extends DriverHelper {
 
     protected ExtendedWebElement uiLoadedMarker;
     private ExtendedWebElement rootExtendedElement;
-
-    /**
-     * @deprecated useless variable
-     */
-    @Deprecated(forRemoval = true, since = "1.0.0")
-    private ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy
-            .valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.ELEMENT_LOADING_STRATEGY));
 
     /**
      * Initializes UI object using {@link PageFactory}. Whole browser window is used as search context
@@ -75,11 +66,11 @@ public abstract class AbstractUIObject extends DriverHelper {
      * Note: implement this constructor if you want your {@link AbstractUIObject} instances marked with {@link FindBy}
      * to be auto-initialized on {@link AbstractPage} inheritors
      *
-     * @param driver        WebDriver instance to initialize UI Object fields using PageFactory
+     * @param driver WebDriver instance to initialize UI Object fields using PageFactory
      * @param searchContext Window area that will be used for locating of internal elements
      */
     protected AbstractUIObject(WebDriver driver, SearchContext searchContext) {
-        super(driver);
+        super(driver, searchContext);
         ExtendedElementLocatorFactory factory = new ExtendedElementLocatorFactory(driver, searchContext);
         PageFactory.initElements(new ExtendedFieldDecorator(factory, driver), this);
         ExtendedPageFactory.initElementsContext(this);
@@ -108,32 +99,6 @@ public abstract class AbstractUIObject extends DriverHelper {
 
     public void setUiLoadedMarker(ExtendedWebElement uiLoadedMarker) {
         this.uiLoadedMarker = uiLoadedMarker;
-    }
-
-    /**
-     * @deprecated to interact with the current component
-     * (getting information about the current element) use {@link #rootExtendedElement}
-     */
-    @Deprecated(since = "8.0.4", forRemoval = true)
-    public ElementLoadingStrategy getLoadingStrategy() {
-        return loadingStrategy;
-    }
-
-    /**
-     * @deprecated to interact with the current component
-     * (getting information about the current element) use {@link #rootExtendedElement}
-     */
-    @Deprecated(since = "8.0.4", forRemoval = true)
-    public void setLoadingStrategy(ElementLoadingStrategy loadingStrategy) {
-        this.loadingStrategy = loadingStrategy;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     /**
@@ -189,7 +154,7 @@ public abstract class AbstractUIObject extends DriverHelper {
      * Checks presence of UIObject root element on the page and throws Assertion error in case if it's missing
      */
     public void assertUIObjectPresent() {
-        assertUIObjectPresent(EXPLICIT_TIMEOUT);
+        assertUIObjectPresent(getWaitTimeout().toSeconds());
     }
 
     /**
@@ -207,7 +172,7 @@ public abstract class AbstractUIObject extends DriverHelper {
      * Checks missing of UIObject root element on the page and throws Assertion error in case if it presents
      */
     public void assertUIObjectNotPresent() {
-        assertUIObjectNotPresent(EXPLICIT_TIMEOUT);
+        assertUIObjectNotPresent(getWaitTimeout().toSeconds());
     }
 
     /**
