@@ -20,15 +20,16 @@ import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.zebrunner.agent.core.config.ConfigurationHolder;
 import com.zebrunner.agent.core.registrar.Label;
+import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
+import io.appium.java_client.MobileCommand;
+import io.appium.java_client.ios.IOSDriver;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.openqa.selenium.HasCapabilities;
@@ -39,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.agent.core.registrar.Artifact;
-import com.zebrunner.carina.commons.artifact.IArtifactManager;
 import com.zebrunner.carina.utils.Configuration;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
@@ -52,12 +52,10 @@ import com.zebrunner.carina.webdriver.core.capability.impl.mobile.UiAutomator2Ca
 import com.zebrunner.carina.webdriver.core.capability.impl.mobile.XCUITestCapabilities;
 import com.zebrunner.carina.webdriver.core.factory.AbstractFactory;
 import com.zebrunner.carina.webdriver.device.Device;
-import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 
 import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.internal.CapabilityHelpers;
-import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.remote.AutomationName;
 import io.appium.java_client.remote.MobileCapabilityType;
 
@@ -128,12 +126,13 @@ public class MobileFactory extends AbstractFactory {
 
         try {
             String mobilePlatformName = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
-            AppiumClientConfig config = AppiumClientConfig.defaultConfig()
-                    .baseUrl(new URL(seleniumHost))
-                    .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout")));
+            EventFiringAppiumCommandExecutor eventFiringAppiumCommandExecutor = new EventFiringAppiumCommandExecutor(MobileCommand.commandRepository,
+                    AppiumClientConfig.defaultConfig()
+                            .baseUrl(new URL(seleniumHost))
+                            .readTimeout(Duration.ofSeconds(R.CONFIG.getLong("read_timeout"))));
 
             if (SpecialKeywords.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
-                driver = new AndroidDriver(config, capabilities);
+                driver = new AndroidDriver(eventFiringAppiumCommandExecutor, capabilities);
                 // todo do not create TVOSDriver for now
                 // }
                 // else if (SpecialKeywords.IOS.equalsIgnoreCase(mobilePlatformName) &&
@@ -143,7 +142,7 @@ public class MobileFactory extends AbstractFactory {
                     SpecialKeywords.TVOS.equalsIgnoreCase(mobilePlatformName)) {
                 // can't create a SafariDriver as it has no advantages over IOSDriver, but needs revision in the future
                 // SafariDriver only limits functionality
-                driver = new IOSDriver(config, capabilities);
+                driver = new IOSDriver(eventFiringAppiumCommandExecutor, capabilities);
             } else {
                 throw new InvalidConfigurationException("Unsupported mobile platform: " + mobilePlatformName);
             }
@@ -168,7 +167,7 @@ public class MobileFactory extends AbstractFactory {
         } catch (Exception e) {
             // use-case when something wrong happen during initialization and registration device information.
             // the most common problem might be due to the adb connection problem
-            
+
             // make sure to initiate driver quit
             LOGGER.error("Unable to register device!", e);
             //TODO: try to handle use-case if quit in this place can hangs for minutes!
@@ -251,5 +250,5 @@ public class MobileFactory extends AbstractFactory {
 
         return paramValue;
     }
-    
+
 }
