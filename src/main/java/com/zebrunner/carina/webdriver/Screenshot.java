@@ -34,6 +34,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.imageio.ImageIO;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.imgscalr.Scalr;
 import org.openqa.selenium.Beta;
@@ -88,7 +89,7 @@ public class Screenshot {
     private static final String ACTUAL_RANGE_OF_SCREENSHOT_RULES_MESSAGE = "Actual range of screenshot rules: {}";
 
     private Screenshot() {
-    	//hide default constructor
+        // hide default constructor
     }
 
     /**
@@ -358,8 +359,8 @@ public class Screenshot {
         Objects.requireNonNull(rule, "comment to screenshot must not be null");
 
         if (!rule.isTakeScreenshot() ||
-                // [VD] do not write something to log as this original exception is used as original exception for failure
-                // invalid driver for screenshot capture
+        // [VD] do not write something to log as this original exception is used as original exception for failure
+        // invalid driver for screenshot capture
                 !isCaptured(comment)) {
             return Optional.empty();
         }
@@ -408,7 +409,7 @@ public class Screenshot {
 
             String fileExtension = "png"; // https://w3c.github.io/webdriver/#screen-capture
             String fileName = System.currentTimeMillis() + "." + fileExtension;
-            Path file =  ReportContext.getTestDirectory()
+            Path file = ReportContext.getTestDirectory()
                     .resolve(fileName)
                     .toAbsolutePath();
 
@@ -416,11 +417,8 @@ public class Screenshot {
 
             screenshotPath = file;
 
-            if (!comment.isEmpty()) {
+            if (StringUtils.isNotBlank(comment)) {
                 LOGGER.info(comment);
-                // add screenshot comment to collector
-                //todo think about renaming screenshot
-                //ReportContext.addScreenshotComment(screenshotFileName, comment);
             }
 
             // upload screenshot to the Zebrunner Reporting
@@ -471,7 +469,8 @@ public class Screenshot {
                     return screenName;
                 }
                 // Define test screenshot root
-                File testScreenRootDir = ReportContext.getTestDir();
+                File testScreenRootDir = ReportContext.getTestDirectory()
+                        .toFile();
 
                 // Capture full page screenshot and resize
                 screenName = System.currentTimeMillis() + ".png";
@@ -538,9 +537,6 @@ public class Screenshot {
 
                 if (!comment.isEmpty()) {
                     LOGGER.info(comment);
-                    // add screenshot comment to collector
-                    //todo think about renaming screenshot
-                    //ReportContext.addScreenshotComment(screenName, comment);
                 }
                 // upload screenshot to Zebrunner Reporting
                 com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(screenshot.toPath()), Instant.now().toEpochMilli());
@@ -640,7 +636,7 @@ public class Screenshot {
      */
     private static BufferedImage takeVisibleScreenshot(Wait<TakesScreenshot> wait) throws IOException {
         File capturedScreenshot = wait.until(screenshotContext -> screenshotContext.getScreenshotAs(OutputType.FILE));
-            return ImageIO.read(capturedScreenshot);
+        return ImageIO.read(capturedScreenshot);
     }
 
     /**
@@ -650,65 +646,66 @@ public class Screenshot {
      * @param message error message (stacktrace).
      * @return true if screenshot already captured (or cannot be captured), false otherwise
      */
-	public static boolean isCaptured(String message){
-		// [VD] do not use below line as it is too common!
-		// || message.contains("timeout")
-		if (message == null) {
-			// unable to detect driver invalid status so return true
-			return true;
-		}
-		// disable screenshot if error message contains any of this info
-		boolean isContains = message.contains("StaleObjectException")
-		        || message.contains("NoSuchSessionException")
-				|| message.contains("StaleElementReferenceException")
-				|| message.contains("stale_element_reference.html")
-				|| message.contains("Error executing JavaScript")
-				|| message.contains("Session ID is null. Using WebDriver after calling quit")
-				|| message.contains("A session is either terminated or not started")
+    public static boolean isCaptured(String message) {
+        // [VD] do not use below line as it is too common!
+        // || message.contains("timeout")
+        if (message == null) {
+            // unable to detect driver invalid status so return true
+            return true;
+        }
+        // disable screenshot if error message contains any of this info
+        boolean isContains = message.contains("StaleObjectException")
+                || message.contains("NoSuchSessionException")
+                || message.contains("StaleElementReferenceException")
+                || message.contains("stale_element_reference.html")
+                || message.contains("Error executing JavaScript")
+                || message.contains("Session ID is null. Using WebDriver after calling quit")
+                || message.contains("A session is either terminated or not started")
                 || message.contains("invalid session id")
                 || message.contains("Session does not exist")
                 || message.contains("not found in active sessions")
-				|| message.contains("Session timed out or not found")
-				|| message.contains("Unable to determine type from: <. Last 1 characters read")
-				|| message.contains("not available and is not among the last 1000 terminated sessions")
-				|| message.contains("cannot forward the request")
+                || message.contains("Session timed out or not found")
+                || message.contains("Unable to determine type from: <. Last 1 characters read")
+                || message.contains("not available and is not among the last 1000 terminated sessions")
+                || message.contains("cannot forward the request")
                 || message.contains("connect ECONNREFUSED")
-				|| message.contains("was terminated due to") // FORWARDING_TO_NODE_FAILED, CLIENT_STOPPED_SESSION, PROXY_REREGISTRATION, TIMEOUT, BROWSER_TIMEOUT etc
-				|| message.contains("InvalidElementStateException")
-				|| message.contains("no such element: Unable to locate element")
-				|| message.contains("https://www.seleniumhq.org/exceptions/no_such_element.html") // use-case for Safari driver
-				|| message.contains("no such window: window was already closed")
-				|| message.contains("Method is not implemented") //to often exception for mobile native app testing
-				// [VD] exclude below condition otherwise we overload appium when fluent wait looking for device and doing screenshot in a loop
-				|| message.contains("An element could not be located on the page using the given search parameters")
-				|| message.contains("current view have 'secure' flag set")
-				|| message.contains("Error communicating with the remote browser. It may have died")
-				|| message.contains("unexpected alert open")
-				|| message.contains("chrome not reachable")
-				|| message.contains("cannot forward the request Connect to")
-				|| message.contains("Could not proxy command to remote server. Original error:") // Error: socket hang up, Error: read ECONNRESET etc
-				|| message.contains("Could not proxy command to the remote server. Original error:") // Different messages on some Appium versions
-				|| message.contains("Unable to find elements by Selenium")
-				|| message.contains("generateUiDump") //do not generate screenshot if getPageSource is invalid
-				|| message.contains("Expected to read a START_MAP but instead have: END") // potential drivers issues fix for moon
-				|| message.contains("An unknown error has occurred") //
-				|| message.contains("Unable to find element with")
-				|| message.contains("Unable to locate element")
-				|| message.contains("Illegal base64 character 2e")
-				|| message.contains("javascript error: Cannot read property 'outerHTML' of null")
-				|| message.contains("Driver connection refused")
+                || message.contains("was terminated due to") // FORWARDING_TO_NODE_FAILED, CLIENT_STOPPED_SESSION, PROXY_REREGISTRATION, TIMEOUT,
+                                                             // BROWSER_TIMEOUT etc
+                || message.contains("InvalidElementStateException")
+                || message.contains("no such element: Unable to locate element")
+                || message.contains("https://www.seleniumhq.org/exceptions/no_such_element.html") // use-case for Safari driver
+                || message.contains("no such window: window was already closed")
+                || message.contains("Method is not implemented") // to often exception for mobile native app testing
+                // [VD] exclude below condition otherwise we overload appium when fluent wait looking for device and doing screenshot in a loop
+                || message.contains("An element could not be located on the page using the given search parameters")
+                || message.contains("current view have 'secure' flag set")
+                || message.contains("Error communicating with the remote browser. It may have died")
+                || message.contains("unexpected alert open")
+                || message.contains("chrome not reachable")
+                || message.contains("cannot forward the request Connect to")
+                || message.contains("Could not proxy command to remote server. Original error:") // Error: socket hang up, Error: read ECONNRESET etc
+                || message.contains("Could not proxy command to the remote server. Original error:") // Different messages on some Appium versions
+                || message.contains("Unable to find elements by Selenium")
+                || message.contains("generateUiDump") // do not generate screenshot if getPageSource is invalid
+                || message.contains("Expected to read a START_MAP but instead have: END") // potential drivers issues fix for moon
+                || message.contains("An unknown error has occurred") //
+                || message.contains("Unable to find element with")
+                || message.contains("Unable to locate element")
+                || message.contains("Illegal base64 character 2e")
+                || message.contains("javascript error: Cannot read property 'outerHTML' of null")
+                || message.contains("Driver connection refused")
                 || message.contains("tab crashed")
-				// carina based errors which means that driver is not ready for screenshoting
-				|| message.contains("Unable to open url during");
+                // carina based errors which means that driver is not ready for screenshoting
+                || message.contains("Unable to open url during");
 
-		if (!isContains) {
-		    // for released builds put below message to debug
+        if (!isContains) {
+            // for released builds put below message to debug
             LOGGER.debug("isCaptured->message: '{}'", message);
-		    // for snapshot builds use info to get more useful information
-		    //LOGGER.info("isCaptured->message: '" + message + "'");
-		}
-		return !isContains;
-	}
+            // for snapshot builds use info to get more useful information
+            // LOGGER.info("isCaptured->message: '" + message + "'");
+        }
+        return !isContains;
+    }
 
     /**
      * Compares two screenshots.
@@ -718,7 +715,7 @@ public class Screenshot {
      * @param markupPolicy {@link DiffMarkupPolicy}
      * @return boolean true if images differ, false if not
      */
-    public static boolean hasDiff(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual, DiffMarkupPolicy markupPolicy){
+    public static boolean hasDiff(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual, DiffMarkupPolicy markupPolicy) {
         return compare(bufferedImageExpected, bufferedImageActual, markupPolicy).isPresent();
     }
 
@@ -730,7 +727,8 @@ public class Screenshot {
      * @param markupPolicy {@link DiffMarkupPolicy}
      * @return Optional of BufferedImage. If empty there is no difference between images
      */
-    public static Optional<BufferedImage> compare(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual, DiffMarkupPolicy markupPolicy) {
+    public static Optional<BufferedImage> compare(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual,
+            DiffMarkupPolicy markupPolicy) {
         ImageDiffer imageDiffer = new ImageDiffer();
         imageDiffer.withDiffMarkupPolicy(markupPolicy);
         ImageDiff diff = imageDiffer.makeDiff(bufferedImageExpected, bufferedImageActual);
@@ -751,7 +749,8 @@ public class Screenshot {
      * @param artifact true if attach to test run as artifact, false if upload as screenshot
      * @return boolean true if images differ, false if not
      */
-    public static boolean compare(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual, String fileNameDiffImage, boolean artifact) {
+    public static boolean compare(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual, String fileNameDiffImage,
+            boolean artifact) {
         return compare(bufferedImageExpected, bufferedImageActual, fileNameDiffImage, artifact, new PointsMarkupPolicy());
     }
 
@@ -767,7 +766,7 @@ public class Screenshot {
      * @return boolean true if images differ, false if not
      */
     public static boolean compare(BufferedImage bufferedImageExpected, BufferedImage bufferedImageActual,
-                                  String fileNameDiffImage, boolean artifact, DiffMarkupPolicy markupPolicy) {
+            String fileNameDiffImage, boolean artifact, DiffMarkupPolicy markupPolicy) {
 
         Optional<BufferedImage> markedImage = compare(bufferedImageExpected, bufferedImageActual, markupPolicy);
         if (markedImage.isEmpty()) {
@@ -779,11 +778,10 @@ public class Screenshot {
             BufferedImage screen = markedImage.get();
             String screenName;
             // Define test screenshot root
-            File testScreenRootDir = ReportContext.getTestDirectory()
-                    .toFile();
+            Path testScreenRootDir = ReportContext.getTestDirectory();
 
             screenName = fileNameDiffImage + ".png";
-            String screenPath = testScreenRootDir.getAbsolutePath() + "/" + screenName;
+            Path screenPath = testScreenRootDir.resolve(screenName);
 
             Optional<Integer> screenWidth = Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_WIDTH, Integer.class);
             Optional<Integer> screenHeight = Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_HEIGHT, Integer.class);
@@ -791,16 +789,15 @@ public class Screenshot {
                 screen = resizeImg(screen, screenWidth.get(), screenHeight.get());
             }
 
-            File screenshot;
-            screenshot = new File(screenPath);
+            File screenshot = screenPath.toFile();
             FileUtils.touch(screenshot);
             ImageIO.write(screen, "PNG", screenshot);
 
             // Uploading comparative screenshot to Amazon S3
             if (artifact) {
-                com.zebrunner.agent.core.registrar.Artifact.attachToTest(screenName, screenshot);
+                com.zebrunner.agent.core.registrar.Artifact.attachToTest(screenName, screenPath);
             } else {
-                com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(screenshot.toPath()), Instant.now().toEpochMilli());
+                com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(screenPath), Instant.now().toEpochMilli());
             }
         } catch (IOException e) {
             LOGGER.warn("Unable to compare screenshots due to the I/O issues!");
@@ -880,7 +877,7 @@ public class Screenshot {
         try {
             drv.manage().timeouts().pageLoadTimeout(timeout);
         } catch (UnsupportedCommandException e) {
-            //TODO: review upcoming appium 2.0 changes
+            // TODO: review upcoming appium 2.0 changes
             LOGGER.debug("Appium: Not implemented yet for pageLoad timeout!");
         }
     }
@@ -888,11 +885,11 @@ public class Screenshot {
     private static Duration getDefaultPageLoadTimeout() {
         return DEFAULT_PAGE_LOAD_TIMEOUT;
         // #1705: limit pageLoadTimeout driver timeout by idleTimeout
-//      if (!R.CONFIG.get("capabilities.idleTimeout").isEmpty()) {
-//          long idleTimeout = R.CONFIG.getLong("capabilities.idleTimeout");
-//          if (idleTimeout < timeout) {
-//              timeout = idleTimeout;
-//          }
-//      }
+        // if (!R.CONFIG.get("capabilities.idleTimeout").isEmpty()) {
+        // long idleTimeout = R.CONFIG.getLong("capabilities.idleTimeout");
+        // if (idleTimeout < timeout) {
+        // timeout = idleTimeout;
+        // }
+        // }
     }
 }

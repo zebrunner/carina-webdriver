@@ -35,7 +35,6 @@ import com.itextpdf.text.RectangleReadOnly;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.factory.ICustomTypePageFactory;
-import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.utils.report.SessionContext;
 import com.zebrunner.carina.webdriver.Screenshot;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;

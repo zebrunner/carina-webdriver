@@ -1750,6 +1750,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * 
      * @return {@link ExpectedCondition}
      */
+    @SuppressWarnings("squid:S1452")
     protected ExpectedCondition<?> getDefaultWaitCondition() {
         if (element == null && by == null) {
             throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
@@ -1831,6 +1832,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         return name;
     }
 
+    @SuppressWarnings({ "squid:S2975", "squid:S1182" })
     @Override
     public Object clone() throws CloneNotSupportedException {
         try {

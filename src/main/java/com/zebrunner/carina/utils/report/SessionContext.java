@@ -9,6 +9,7 @@ import java.lang.invoke.MethodHandles;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,7 +58,8 @@ public final class SessionContext {
         LOGGER.debug("Trying to get artifacts folder.");
         try {
             // renamed to downloads to avoid automatic upload on our old Zebrunner ci-pipeline versions
-            Path directory = Path.of(ReportContext.getTestDir().getCanonicalPath()).resolve("downloads");
+            Path directory = ReportContext.getTestDirectory()
+                    .resolve("downloads");
             // artifacts directory should use canonical path otherwise auto download feature is broken in browsers
             Optional<String> customArtifactsFolder = Configuration.get(WebDriverConfiguration.Parameter.CUSTOM_ARTIFACTS_FOLDER);
             if (customArtifactsFolder.isPresent()) {
@@ -314,7 +316,7 @@ public final class SessionContext {
         }
         // 1-st username, 2-nd password
         String[] credentials = userInfo.split(":");
-        return Optional.of(new ReportContext.CustomAuthenticator(credentials[0], credentials[1]));
+        return Optional.of(new CustomAuthenticator(credentials[0], credentials[1]));
     }
 
     /**
@@ -378,5 +380,21 @@ public final class SessionContext {
             // do nothing
         }
         return isFound;
+    }
+
+    private static class CustomAuthenticator extends Authenticator {
+
+        String username;
+        String password;
+
+        public CustomAuthenticator(String username, String password) {
+            this.username = username;
+            this.password = password;
+        }
+
+        @Override
+        protected PasswordAuthentication getPasswordAuthentication() {
+            return new PasswordAuthentication(username, password.toCharArray());
+        }
     }
 }

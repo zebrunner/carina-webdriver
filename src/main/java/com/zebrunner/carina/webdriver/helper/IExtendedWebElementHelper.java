@@ -43,7 +43,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public interface IExtendedWebElementHelper extends IDriverPool {
     Logger I_EXTENDED_WEB_ELEMENT_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    @SuppressWarnings("squid:S2386")
     Map<String, LinkedList<LocatorConverter>> LOCATOR_CONVERTERS = new ConcurrentHashMap<>();
+    @SuppressWarnings("squid:S2386")
     Map<String, By> ORIGINAL_LOCATORS = new ConcurrentHashMap<>();
     Duration DEFAULT_EXPLICIT_TIMEOUT = Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class));
     Duration SHORT_TIMEOUT = Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class) / 3);
