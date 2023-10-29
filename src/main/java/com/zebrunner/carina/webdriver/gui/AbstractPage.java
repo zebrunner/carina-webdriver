@@ -151,13 +151,13 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
     public Path savePageAsPdf(boolean scaled, String fileName) {
         try {
             String pdfName = "";
-            String screenshot = Screenshot.capture(getDriver(), getDriver(), new ExplicitFullSizeScreenshotRule(), "")
+            Path path = Screenshot.capture(getDriver(), getDriver(), new ExplicitFullSizeScreenshotRule(), "")
                     .orElseThrow();
             String fileID = fileName.replaceAll("\\W+", "_") + "-" + System.currentTimeMillis();
             pdfName = fileID + ".pdf";
             Path pdfPath = SessionContext.getArtifactsFolder().resolve(pdfName);
 
-            Image image = Image.getInstance(Path.of(ReportContext.getTestDir().getAbsolutePath()).resolve(screenshot).toString());
+            Image image = Image.getInstance(path.toAbsolutePath().toString());
             Document document;
             if (scaled) {
                 document = new Document(PageSize.A4, 10, 10, 10, 10);

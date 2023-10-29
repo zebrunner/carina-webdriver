@@ -630,7 +630,7 @@ public class Device implements IDriverPool {
             String pageSource = driver.getPageSource();
             pageSource = pageSource.replaceAll(SpecialKeywords.ANDROID_START_NODE, SpecialKeywords.ANDROID_START_UIX_NODE).
                     replaceAll(SpecialKeywords.ANDROID_END_NODE, SpecialKeywords.ANDROID_END_UIX_NODE);
-            Path dumpFile = Path.of(ReportContext.getTestDir().getAbsolutePath())
+            Path dumpFile = ReportContext.getTestDirectory()
                     .resolve(String.format("%s.uix", screenshotName.replace(".png", "")));
             Path file = null;
             try {

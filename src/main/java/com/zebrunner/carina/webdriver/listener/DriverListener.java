@@ -211,7 +211,7 @@ public class DriverListener implements WebDriverListener, IDriverPool {
                 // in case of failure try full size if allowed
                 // do not generate UI dump if no screenshot
                 Screenshot.capture(driver, ScreenshotType.UNSUCCESSFUL_DRIVER_ACTION)
-                        .ifPresent(s -> generateDump(driver, s));
+                        .ifPresent(s -> generateDump(driver, s.getFileName().toString()));
             } else {
                 LOGGER.info(comment);
                 Screenshot.capture(driver, ScreenshotType.SUCCESSFUL_DRIVER_ACTION);
@@ -231,11 +231,13 @@ public class DriverListener implements WebDriverListener, IDriverPool {
             return;
         }
         // use the same naming but with zip extension. Put into the test artifacts folder
-        Path dumpArtifact = SessionContext.getArtifactsFolder().resolve(screenName.replace(".png", ".zip"));
+        Path dumpArtifact = SessionContext.getArtifactsFolder()
+                .resolve(screenName.replace(".png", ".zip"));
         LOGGER.debug("UI Dump artifact: {}", dumpArtifact);
 
         // build path to screenshot using name
-        Path screenFile = Path.of(ReportContext.getTestDir().getAbsolutePath()).resolve(screenName);
+        Path screenFile = ReportContext.getTestDirectory()
+                .resolve(screenName);
 
         // archive page source dump and screenshot both together
         FileManager.zipFiles(dumpArtifact.toAbsolutePath().toString(), uiDumpFile.get().toFile(), screenFile.toFile());
