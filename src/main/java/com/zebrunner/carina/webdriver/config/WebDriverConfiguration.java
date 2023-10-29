@@ -1,9 +1,13 @@
 package com.zebrunner.carina.webdriver.config;
 
 import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.openqa.selenium.remote.CapabilityType;
@@ -23,6 +27,8 @@ import io.appium.java_client.remote.MobileCapabilityType;
 
 public final class WebDriverConfiguration extends Configuration {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Set<String> RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES = Collections.synchronizedSet(new HashSet<>());
+
     private static final String CAPABILITIES_PREFIX = "capabilities.";
 
     public enum Parameter implements IParameter {
@@ -102,6 +108,7 @@ public final class WebDriverConfiguration extends Configuration {
 
         /**
          * If it is true browsers will be running in headless mode. <b>Default: {@code false}</b>
+         * 
          * @deprecated headless mode removed by Selenium
          */
         @Deprecated(forRemoval = true, since = "1.2.8")
@@ -377,14 +384,14 @@ public final class WebDriverConfiguration extends Configuration {
 
     public static Optional<String> getZebrunnerCapability(String capabilityName) {
         return Optional.ofNullable(get(CAPABILITIES_PREFIX + "zebrunner:" + capabilityName)
-                .orElseGet(() ->get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName)
-                        .orElseGet(() ->get(CAPABILITIES_PREFIX + capabilityName).orElse(null))));
+                .orElseGet(() -> get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName)
+                        .orElseGet(() -> get(CAPABILITIES_PREFIX + capabilityName).orElse(null))));
     }
 
     public static Optional<String> getZebrunnerCapability(String capabilityName, ConfigurationOption... options) {
         return Optional.ofNullable(get(CAPABILITIES_PREFIX + "zebrunner:" + capabilityName, options)
-                .orElseGet(() ->get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName, options)
-                        .orElseGet(() ->get(CAPABILITIES_PREFIX + capabilityName, options).orElse(null))));
+                .orElseGet(() -> get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName, options)
+                        .orElseGet(() -> get(CAPABILITIES_PREFIX + capabilityName, options).orElse(null))));
     }
 
     public static Optional<String> getCapability(String capabilityName) {
@@ -397,9 +404,9 @@ public final class WebDriverConfiguration extends Configuration {
 
     public static Optional<String> getCapability(String capabilityName, String providerPrefix, ConfigurationOption... options) {
         Optional<String> value = get(CAPABILITIES_PREFIX + providerPrefix + capabilityName, options);
-            if (value.isPresent()) {
-                return value;
-            }
+        if (value.isPresent()) {
+            return value;
+        }
         return get(CAPABILITIES_PREFIX + capabilityName, options);
     }
 
@@ -448,5 +455,23 @@ public final class WebDriverConfiguration extends Configuration {
         }
 
         throw new IllegalArgumentException(String.format("Cannot detect driver type. Unsupported platform: '%s'", platform.get()));
+    }
+
+    /**
+     * Add root exception messages, when they appear (when create session) we should retry new session command
+     *
+     * @param messages root error message(s)
+     */
+    public static void addIgnoredNewSessionErrorMessages(String... messages) {
+        RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES.addAll(Arrays.asList(messages));
+    }
+
+    /**
+     * <b>For internal usage only</b>
+     *
+     * @return {@link Set}
+     */
+    public static Set<String> getIgnoredNewSessionErrorMessages() {
+        return RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES;
     }
 }
