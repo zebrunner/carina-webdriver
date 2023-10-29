@@ -8,7 +8,7 @@ import java.util.Set;
 
 public class PlatformsCondition extends BasePlatformCondition implements FindCondition<FindByPlatform.FindByPlatforms> {
 
-    private final Set<FindByPlatform.Type> ALREADY_DEFINED_PLATFORMS = new HashSet<>();
+    private final Set<FindByPlatform.Type> alreadyDefinedPlatforms = new HashSet<>();
 
     public PlatformsCondition(LocatorCreatorContext locatorCreatorContext) {
         super(locatorCreatorContext);
@@ -20,12 +20,12 @@ public class PlatformsCondition extends BasePlatformCondition implements FindCon
             super.assertValidAnnotations(findByPlatform.value());
 
             for (FindByPlatform.Type type : findByPlatform.value()) {
-                if (ALREADY_DEFINED_PLATFORMS.contains(type)) {
+                if (alreadyDefinedPlatforms.contains(type)) {
                     throw new IllegalArgumentException("If you use a '@FindByPlatform' annotation, you must use unique platforms only");
                 }
             }
 
-            ALREADY_DEFINED_PLATFORMS.addAll(Arrays.asList(findByPlatform.value()));
+            alreadyDefinedPlatforms.addAll(Arrays.asList(findByPlatform.value()));
         }
     }
 

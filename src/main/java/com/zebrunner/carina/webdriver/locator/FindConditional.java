@@ -22,6 +22,10 @@ public @interface FindConditional {
 
     class Builder {
 
+        private Builder() {
+            //hide
+        }
+
         public static Optional<By> buildIt(Field field, LocatorCreatorContext locatorCreatorContext) {
             return getFirstConditionalFindBy(field, locatorCreatorContext)
                     .map(fb -> new FindBy.FindByBuilder().buildIt(fb, field));
@@ -76,6 +80,10 @@ public @interface FindConditional {
     }
 
     class Helper {
+
+        private Helper() {
+            //hide
+        }
 
         public static Optional<Annotation> getAnnotatedElement(AnnotatedElement annotatedElement) {
             return Arrays.stream(annotatedElement.getDeclaredAnnotations())

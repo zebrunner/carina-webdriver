@@ -252,7 +252,6 @@ public interface IExtendedWebElementHelper extends IDriverPool {
                 }
             }
         }
-        // throw exception anyway if nothing was returned inside for cycle
         I_EXTENDED_WEB_ELEMENT_LOGGER.error("All elements are not present");
         throw new RuntimeException("Unable to find any element from array: " + Arrays.toString(elements));
     }

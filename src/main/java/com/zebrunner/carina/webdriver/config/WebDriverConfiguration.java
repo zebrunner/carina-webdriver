@@ -1,6 +1,5 @@
 package com.zebrunner.carina.webdriver.config;
 
-import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -11,8 +10,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.openqa.selenium.remote.CapabilityType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
