@@ -1832,7 +1832,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     }
 
     @Override
-    protected Object clone() throws CloneNotSupportedException {
+    public Object clone() throws CloneNotSupportedException {
         try {
             ExtendedWebElement clone = ConstructorUtils.invokeConstructor(this.getClass(), getDriver(), getSearchContext());
             clone.setLocator(by);
