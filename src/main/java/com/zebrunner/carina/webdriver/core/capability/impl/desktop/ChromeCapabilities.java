@@ -131,9 +131,5 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
         if (!mobileEmulation.isEmpty()) {
             options.setExperimentalOption("mobileEmulation", mobileEmulation);
         }
-
-        if (Configuration.get(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class).orElse(false)) {
-            options.setHeadless(true);
-        }
     }
 }

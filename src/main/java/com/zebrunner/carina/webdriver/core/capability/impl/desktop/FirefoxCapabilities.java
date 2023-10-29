@@ -97,11 +97,6 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
                         }
                     });
         });
-
-        if (Configuration.get(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class)
-                .orElse(false)) {
-            options.setHeadless(true);
-        }
     }
 
     /**
