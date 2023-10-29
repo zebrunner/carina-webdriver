@@ -673,7 +673,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
             return extendedElement;
         }
         LinkedList<LocatorConverter> converters = new LinkedList<>(Optional.ofNullable(LOCATOR_CONVERTERS.get(extendedElement.getUuid()))
-                .orElse(new LinkedList<>()));
+                .orElseGet(LinkedList::new));
         boolean isTextContainsL10N = Arrays.stream(objects)
                 .map(String::valueOf)
                 .anyMatch(text -> LocalizeLocatorConverter.getL10nPattern().matcher(text).find());

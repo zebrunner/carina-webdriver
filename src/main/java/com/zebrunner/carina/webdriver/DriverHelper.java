@@ -146,7 +146,7 @@ public class DriverHelper implements IChromeDevToolsHelper, IExtendedWebElementH
         String baseURL;
         if (Configuration.get(Configuration.Parameter.ENV).isPresent()) {
             baseURL = Configuration.get("base", StandardConfigurationOption.ENVIRONMENT)
-                    .orElse(Configuration.getRequired(Parameter.URL));
+                    .orElseGet(() ->Configuration.getRequired(Parameter.URL));
         } else {
             baseURL = Configuration.getRequired(Parameter.URL);
         }

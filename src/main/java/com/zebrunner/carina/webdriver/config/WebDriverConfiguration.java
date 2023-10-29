@@ -375,14 +375,14 @@ public final class WebDriverConfiguration extends Configuration {
 
     public static Optional<String> getZebrunnerCapability(String capabilityName) {
         return Optional.ofNullable(get(CAPABILITIES_PREFIX + "zebrunner:" + capabilityName)
-                .orElse(get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName)
-                        .orElse(get(CAPABILITIES_PREFIX + capabilityName).orElse(null))));
+                .orElseGet(() ->get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName)
+                        .orElseGet(() ->get(CAPABILITIES_PREFIX + capabilityName).orElse(null))));
     }
 
     public static Optional<String> getZebrunnerCapability(String capabilityName, ConfigurationOption... options) {
         return Optional.ofNullable(get(CAPABILITIES_PREFIX + "zebrunner:" + capabilityName, options)
-                .orElse(get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName, options)
-                        .orElse(get(CAPABILITIES_PREFIX + capabilityName, options).orElse(null))));
+                .orElseGet(() ->get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName, options)
+                        .orElseGet(() ->get(CAPABILITIES_PREFIX + capabilityName, options).orElse(null))));
     }
 
     public static Optional<String> getCapability(String capabilityName) {
