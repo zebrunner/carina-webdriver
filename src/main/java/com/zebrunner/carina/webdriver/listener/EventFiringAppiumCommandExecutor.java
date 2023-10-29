@@ -8,7 +8,6 @@ import io.appium.java_client.remote.AppiumCommandExecutor;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.remote.Command;
 import org.openqa.selenium.remote.CommandInfo;
@@ -26,7 +25,6 @@ import java.util.Map;
 
 /**
  * EventFiringAppiumCommandExecutor triggers event listener before/after execution of the command.
- * Please track {@link AppiumCommandExecutor} for latest changes.
  *
  * @author akhursevich
  */

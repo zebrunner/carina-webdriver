@@ -53,16 +53,16 @@ public class LocatingListHandler<T extends ExtendedWebElement> implements Invoca
 
     @SuppressWarnings("unchecked")
     public Object invoke(Object object, Method method, Object[] objects) throws Throwable {
-        // Hotfix for huge and expected regression in carina: we lost managed
-        // time delays with lists manipulations
-        // Temporary we are going to restore explicit waiter here with hardcoded
-        // timeout before we find better solution
-        // Pros: super fast regression issue which block UI execution
-        // Cons: there is no way to manage timeouts in this places
-        // if (!waitUntil(ExpectedConditions.or(ExpectedConditions.presenceOfElementLocated(by),
-        // ExpectedConditions.visibilityOfElementLocated(by)))) {
-        // LOGGER.error("List is not present: " + by);
-        // }
+		// Hotfix for huge and expected regression in carina: we lost managed
+		// time delays with lists manipulations
+		// Temporary we are going to restore explicit waiter here with hardcoded
+		// timeout before we find better solution
+		// Pros: super fast regression issue which block UI execution
+		// Cons: there is no way to manage timeouts in this places
+//    	if (!waitUntil(ExpectedConditions.or(ExpectedConditions.presenceOfElementLocated(by),
+//    			ExpectedConditions.visibilityOfElementLocated(by)))) {
+//    		LOGGER.error("List is not present: " + by);
+//    	}
 
         List<WebElement> elements = locator.findElements();
         By by = getLocatorBy(locator);

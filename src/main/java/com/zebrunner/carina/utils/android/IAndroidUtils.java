@@ -487,10 +487,7 @@ public interface IAndroidUtils extends IMobileUtils {
                 if (ele.isDisplayed()) {
                     UTILS_LOGGER.info("Element found!!!");
                     // initializing with driver context because scrollBy consists from container and element selectors
-                    extendedWebElement = new ExtendedWebElement(drv, drv);
-                    extendedWebElement.setName(scrollToEle);
-                    extendedWebElement.setLocator(scrollBy);
-
+                    extendedWebElement = new ExtendedWebElement(scrollBy, scrollToEle, drv, drv);
                     break;
                 }
             } catch (NoSuchElementException noSuchElement) {
@@ -555,9 +552,7 @@ public interface IAndroidUtils extends IMobileUtils {
                 if (ele.isDisplayed()) {
                     UTILS_LOGGER.info("Element found!!!");
                     // initializing with driver context because scrollBy consists from container and element selectors
-                    extendedWebElement = new ExtendedWebElement(drv, drv);
-                    extendedWebElement.setLocator(scrollBy);
-                    extendedWebElement.setName(scrollToEle);
+                    extendedWebElement = new ExtendedWebElement(scrollBy, scrollToEle, drv, drv);
                     break;
                 }
             } catch (NoSuchElementException noSuchElement) {
@@ -619,9 +614,7 @@ public interface IAndroidUtils extends IMobileUtils {
                 if (ele.isDisplayed()) {
                     UTILS_LOGGER.info("Element found!!!");
                     // initializing with driver context because scrollBy consists from container and element selectors
-                    extendedWebElement = new ExtendedWebElement(drv, drv);
-                    extendedWebElement.setLocator(scrollBy);
-                    extendedWebElement.setName(scrollToEle);
+                    extendedWebElement = new ExtendedWebElement(scrollBy, scrollToEle, drv, drv);
                     break;
                 }
             } catch (NoSuchElementException noSuchElement) {
@@ -649,9 +642,6 @@ public interface IAndroidUtils extends IMobileUtils {
      *
      **/
     default String getScrollContainerSelector(ExtendedWebElement scrollableContainer, SelectorType containerSelectorType) {
-        UTILS_LOGGER.debug(scrollableContainer.getLocator()
-                .orElseThrow()
-                .toString());
         String scrollableContainerBy;
         String scrollViewContainerFinder = "";
 
@@ -1226,10 +1216,10 @@ public interface IAndroidUtils extends IMobileUtils {
         executeAdbCommand("shell am start -a android.settings.APPLICATION_SETTINGS");
 
         // initializing appItem with ExtendedWebElement constructor that initialize search context
-        ExtendedWebElement appItem = new ExtendedWebElement(getDriver(), getDriver());
-        appItem.setLocator(By.xpath(String.format("//*[contains(@text, '%s')]", appName)));
-        appItem.setName("notifications");
+        ExtendedWebElement appItem = new ExtendedWebElement(By.xpath(String.format("//*[contains(@text, '%s')]", appName)), "notifications",
+                getDriver(), getDriver());
         swipe(appItem);
+
         appItem.click();
     }
 
@@ -1244,15 +1234,13 @@ public interface IAndroidUtils extends IMobileUtils {
 
         WebDriver driver = getDriver();
         // initializing with driver context
-        ExtendedWebElement element = new ExtendedWebElement(driver, driver);
-        element.setLocator(By.xpath("//*[contains(@text, 'Notifications') or contains(@text, 'notifications')]"));
-        element.setName("notifications");
+        ExtendedWebElement element = new ExtendedWebElement(By.xpath("//*[contains(@text, 'Notifications') or contains(@text, 'notifications')]"),
+                "notifications", driver, driver);
         element.click();
 
         // initializing with driver context
-        element = new ExtendedWebElement(driver, driver);
-        element.setLocator(By.xpath("//*[@resource-id='com.android.settings:id/switch_text']/following-sibling::android.widget.Switch"));
-        element.setName("toggle");
+        element = new ExtendedWebElement(By.xpath("//*[@resource-id='com.android.settings:id/switch_text']/following-sibling::android.widget.Switch"),
+                "toggle", driver, driver);
         if (Boolean.parseBoolean(element.getAttribute("checked")) != setValue) {
             element.click();
         }

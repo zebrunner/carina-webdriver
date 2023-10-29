@@ -18,7 +18,6 @@ package com.zebrunner.carina.utils.exception;
 import java.util.Arrays;
 import java.util.List;
 
-import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.remote.CapabilityType;

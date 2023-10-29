@@ -26,7 +26,6 @@ import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.remote.MobileCapabilityType;
 
 public final class WebDriverConfiguration extends Configuration {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final Set<String> RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES = Collections.synchronizedSet(new HashSet<>());
 
     private static final String CAPABILITIES_PREFIX = "capabilities.";
@@ -458,10 +457,13 @@ public final class WebDriverConfiguration extends Configuration {
     }
 
     /**
-     * Add root exception messages, when they appear (when create session) we should retry new session command
+     * Add root exception messages that should be ignored during session startup.
+     * So when we try to create session, and we got such exception,
+     * we will retry new session command with random pause between 30..70 s.
      *
-     * @param messages root error message(s)
+     * @param messages root exception message(s)
      */
+    @SuppressWarnings("unused")
     public static void addIgnoredNewSessionErrorMessages(String... messages) {
         RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES.addAll(Arrays.asList(messages));
     }
