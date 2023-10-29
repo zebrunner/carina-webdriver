@@ -72,12 +72,8 @@ public class LocatingListHandler<T extends ExtendedWebElement> implements Invoca
         List<T> extendedWebElements = null;
         int i = 0;
         if (elements != null) {
-            extendedWebElements = new ArrayList<T>();
+            extendedWebElements = new ArrayList<>();
             for (WebElement element : elements) {
-                InvocationHandler handler = new LocatingListsElementHandler(element, locator);
-                WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,
-                        new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
-                        handler);
                 T extendedElement;
                 try {
                     extendedElement = (T) ConstructorUtils.invokeConstructor(clazz, locator.getDriver(),
@@ -92,6 +88,7 @@ public class LocatingListHandler<T extends ExtendedWebElement> implements Invoca
                     extendedElement.setLocator(locatorType.get().buildLocatorWithIndex(locatorAsString, i));
                 }
                 extendedElement.setName(name + i);
+                extendedElement.setWebElement(element);
                 extendedWebElements.add(extendedElement);
                 i++;
             }
