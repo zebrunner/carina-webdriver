@@ -67,9 +67,5 @@ public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
             caps.setExperimentalOption("prefs", prefs);
         }
         caps.setCapability("ms:edgeChrominum", true);
-
-        if (Configuration.get(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class).orElse(false)) {
-            caps.setHeadless(true);
-        }
     }
 }

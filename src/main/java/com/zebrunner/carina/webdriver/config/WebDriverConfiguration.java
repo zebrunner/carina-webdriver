@@ -102,7 +102,9 @@ public final class WebDriverConfiguration extends Configuration {
 
         /**
          * If it is true browsers will be running in headless mode. <b>Default: {@code false}</b>
+         * @deprecated headless mode removed by Selenium
          */
+        @Deprecated(forRemoval = true, since = "1.2.8")
         HEADLESS("headless"),
 
         /**
