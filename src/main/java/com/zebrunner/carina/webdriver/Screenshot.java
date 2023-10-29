@@ -288,7 +288,7 @@ public class Screenshot {
      * @return {@link Optional} with name of screenshot file (file name with extension) if captured and successfully saved, {@link Optional#empty()}
      *         otherwise.
      */
-    public static Optional<String> capture(WebDriver driver, ScreenshotType screenshotType) {
+    public static Optional<Path> capture(WebDriver driver, ScreenshotType screenshotType) {
         return capture(driver, screenshotType, "");
     }
 
@@ -302,7 +302,7 @@ public class Screenshot {
      * @return {@link Optional} with name of screenshot file (file name with extension) if captured and successfully saved, {@link Optional#empty()}
      *         otherwise.
      */
-    public static Optional<String> capture(WebElement element, ScreenshotType screenshotType) {
+    public static Optional<Path> capture(WebElement element, ScreenshotType screenshotType) {
         return capture(element, screenshotType, "");
     }
 
@@ -316,7 +316,7 @@ public class Screenshot {
      * @return {@link Optional} with name of screenshot file (file name with extension) if captured and successfully saved, {@link Optional#empty()}
      *         otherwise.
      */
-    public static Optional<String> capture(WebDriver driver, ScreenshotType screenshotType, String comment) {
+    public static Optional<Path> capture(WebDriver driver, ScreenshotType screenshotType, String comment) {
         return RULES.stream()
                 .filter(rule -> rule.getScreenshotType().equals(screenshotType))
                 .findFirst()
@@ -334,7 +334,7 @@ public class Screenshot {
      * @return {@link Optional} with name of screenshot file (file name with extension) if captured and successfully saved, {@link Optional#empty()}
      *         otherwise.
      */
-    public static Optional<String> capture(WebElement element, ScreenshotType screenshotType, String comment) {
+    public static Optional<Path> capture(WebElement element, ScreenshotType screenshotType, String comment) {
         return RULES.stream()
                 .filter(rule -> rule.getScreenshotType().equals(screenshotType))
                 .findFirst()
@@ -353,12 +353,11 @@ public class Screenshot {
      *         otherwise.
      */
     @Beta
-    public static Optional<String> capture(WebDriver driver, SearchContext screenshotContext, IScreenshotRule rule, String comment) {
+    public static Optional<Path> capture(WebDriver driver, SearchContext screenshotContext, IScreenshotRule rule, String comment) {
         Objects.requireNonNull(rule, "screenshot rule param must not be null");
         Objects.requireNonNull(rule, "comment to screenshot must not be null");
 
         if (!rule.isTakeScreenshot() ||
-                (rule.isEnableValidation() && !isRuleValid(rule)) ||
                 // [VD] do not write something to log as this original exception is used as original exception for failure
                 // invalid driver for screenshot capture
                 !isCaptured(comment)) {
@@ -402,19 +401,20 @@ public class Screenshot {
             return Optional.empty();
         }
 
-        String screenshotFileName = null;
+        Path screenshotPath = null;
         try {
             Pair<Integer, Integer> dimensions = rule.getImageResizeDimensions();
             screenshot = resizeImg(screenshot, dimensions.getLeft(), dimensions.getRight());
 
             String fileExtension = "png"; // https://w3c.github.io/webdriver/#screen-capture
-            String fileName = rule.getFilename() + "." + fileExtension;
-            Path file = Path.of(rule.getSaveFolder().toString(), fileName)
+            String fileName = System.currentTimeMillis() + "." + fileExtension;
+            Path file =  ReportContext.getTestDirectory()
+                    .resolve(fileName)
                     .toAbsolutePath();
 
             ImageIO.write(screenshot, fileExtension, file.toFile());
 
-            screenshotFileName = fileName;
+            screenshotPath = file;
 
             if (!comment.isEmpty()) {
                 LOGGER.info(comment);
@@ -422,7 +422,9 @@ public class Screenshot {
                 //todo think about renaming screenshot
                 //ReportContext.addScreenshotComment(screenshotFileName, comment);
             }
-            rule.after(file);
+
+            // upload screenshot to the Zebrunner Reporting
+            com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(file), Instant.now().toEpochMilli());
         } catch (NoSuchWindowException e) {
             LOGGER.warn("Unable to capture screenshot due to NoSuchWindowException!");
             LOGGER.debug(ERROR_STACKTRACE, e);
@@ -438,46 +440,7 @@ public class Screenshot {
         } finally {
             LOGGER.debug("Screenshot->capture finished.");
         }
-        return Optional.ofNullable(screenshotFileName);
-    }
-
-    /**
-     * Check is rule valid
-     * 
-     * @param rule {@link IScreenshotRule}
-     * @return true if screenshot rule valid, false otherwise
-     */
-    private static boolean isRuleValid(IScreenshotRule rule) {
-        StringBuilder errMsgBuilder = new StringBuilder();
-        if (rule.getFilename() == null || rule.getFilename().isEmpty()) {
-            errMsgBuilder.append("Filename must not be null or empty.\n");
-        }
-
-        if (rule.getTimeout() == null || rule.getTimeout().toSeconds() < 0) {
-            errMsgBuilder.append("Timeout must not be null or less than 0 seconds.\n");
-        }
-
-        if (rule.getScreenshotType() == null) {
-            errMsgBuilder.append("Event type must not be null.\n");
-        }
-
-        if (rule.getImageResizeDimensions() == null ||
-                rule.getImageResizeDimensions().getLeft() == null ||
-                rule.getImageResizeDimensions().getRight() == null) {
-            errMsgBuilder.append("Image resize dimensions must not be null.\n");
-        }
-
-        if (rule.getSaveFolder() == null || !Files.isDirectory(rule.getSaveFolder())) {
-            errMsgBuilder.append("Save folder is null or is not a folder.\n");
-        }
-
-        boolean isValid = errMsgBuilder.length() <= 0;
-        if (!isValid) {
-            errMsgBuilder.append("Rule class: ")
-                    .append(rule.getClass());
-            LOGGER.error("{}", errMsgBuilder);
-        }
-        return isValid;
+        return Optional.ofNullable(screenshotPath);
     }
 
     /**
@@ -816,7 +779,8 @@ public class Screenshot {
             BufferedImage screen = markedImage.get();
             String screenName;
             // Define test screenshot root
-            File testScreenRootDir = ReportContext.getTestDir();
+            File testScreenRootDir = ReportContext.getTestDirectory()
+                    .toFile();
 
             screenName = fileNameDiffImage + ".png";
             String screenPath = testScreenRootDir.getAbsolutePath() + "/" + screenName;
