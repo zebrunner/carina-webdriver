@@ -1789,8 +1789,12 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
             return element;
         }
 
-        if (element != null && !element.isDisplayed()) {
-            return element;
+        try {
+            if (element != null && !element.isDisplayed()) {
+                return element;
+            }
+        } catch (StaleElementReferenceException e) {
+            // do not return element if it is stale
         }
 
         List<WebElement> elements = searchContext.findElements(by);
