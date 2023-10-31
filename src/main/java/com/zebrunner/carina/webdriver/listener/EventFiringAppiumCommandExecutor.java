@@ -47,6 +47,8 @@ import java.util.Map;
  */
 public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private final Integer initRetryInterval;
+    private boolean startPause = false;
 
     public EventFiringAppiumCommandExecutor(
             @Nonnull Map<String, CommandInfo> additionalCommands,
@@ -54,6 +56,10 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
             @Nullable HttpClient.Factory httpClientFactory,
             @Nonnull AppiumClientConfig appiumClientConfig) {
         super(additionalCommands, service, httpClientFactory, appiumClientConfig);
+        initRetryInterval = Configuration.getInt(Configuration.Parameter.INIT_RETRY_INTERVAL);
+        if (Configuration.getInt(Configuration.Parameter.THREAD_COUNT) >= 75) {
+            startPause = true;
+        }
     }
 
     public EventFiringAppiumCommandExecutor(Map<String, CommandInfo> additionalCommands, AppiumClientConfig appiumClientConfig) {
@@ -66,6 +72,10 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
         Response response = null;
         do {
             try {
+                if (startPause && DriverCommand.NEW_SESSION.equals(command.getName())) {
+                    CommonUtils.pause(RandomUtils.nextInt(1, initRetryInterval));
+                    startPause = false;
+                }
                 response = super.execute(command);
                 retry = false;
             } catch (Throwable e) {
@@ -76,7 +86,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
                     LOGGER.debug("NEW_SESSION exception (retry): {}", ExceptionUtils.getRootCauseMessage(e));
                     setCommandCodec(null);
                     retry = true;
-                    CommonUtils.pause(RandomUtils.nextInt(1, Configuration.getInt(Configuration.Parameter.INIT_RETRY_INTERVAL)));
+                    CommonUtils.pause(RandomUtils.nextInt(1, initRetryInterval));
                 } else {
                     throw e;
                 }
