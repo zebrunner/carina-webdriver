@@ -1,6 +1,7 @@
 package com.zebrunner.carina.webdriver.listener;
 
 import com.zebrunner.carina.utils.common.CommonUtils;
+import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import io.appium.java_client.AppiumClientConfig;
@@ -30,6 +31,8 @@ import java.util.Map;
  */
 public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private final Integer initRetryInterval;
+    private boolean startPause = false;
 
     public EventFiringAppiumCommandExecutor(
             @Nonnull Map<String, CommandInfo> additionalCommands,
@@ -37,6 +40,11 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
             @Nullable HttpClient.Factory httpClientFactory,
             @Nonnull AppiumClientConfig appiumClientConfig) {
         super(additionalCommands, service, httpClientFactory, appiumClientConfig);
+        initRetryInterval = Configuration.getRequired(WebDriverConfiguration.Parameter.INIT_RETRY_INTERVAL, Integer.class);
+        // On current level we have no access to the TestConfiguration.Parameter.THREAD_COUNT, so we will use "thread_count" instead
+        if (Configuration.getRequired("thread_count", Integer.class) >= 75) {
+            startPause = true;
+        }
     }
 
     public EventFiringAppiumCommandExecutor(Map<String, CommandInfo> additionalCommands, AppiumClientConfig appiumClientConfig) {
@@ -49,6 +57,10 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
         Response response = null;
         do {
             try {
+                if (startPause && DriverCommand.NEW_SESSION.equals(command.getName())) {
+                    CommonUtils.pause(RandomUtils.nextInt(1, initRetryInterval));
+                    startPause = false;
+                }
                 response = super.execute(command);
                 retry = false;
             } catch (Throwable e) {
@@ -59,8 +71,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
                     LOGGER.debug("NEW_SESSION exception (retry): {}", ExceptionUtils.getRootCauseMessage(e));
                     setCommandCodec(null);
                     retry = true;
-                    int timeout = RandomUtils.nextInt(30, 70);
-                    CommonUtils.pause(timeout);
+                    CommonUtils.pause(RandomUtils.nextInt(1, initRetryInterval));
                 } else {
                     throw e;
                 }
