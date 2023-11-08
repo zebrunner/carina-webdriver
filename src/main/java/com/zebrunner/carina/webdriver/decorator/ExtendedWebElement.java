@@ -1790,7 +1790,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         }
 
         try {
-            if (element != null && !element.isDisplayed()) {
+            if (element != null && element.isDisplayed()) {
                 return element;
             }
         } catch (StaleElementReferenceException e) {
