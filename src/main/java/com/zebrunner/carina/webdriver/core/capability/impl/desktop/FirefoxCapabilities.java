@@ -80,6 +80,10 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
                         .map(String::trim)
                         .forEach(options::addArguments));
 
+        if(Configuration.getRequired(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class)) {
+            options.addArguments("--headless=new");
+        }
+
         // add all custom firefox preferences
         Configuration.get(WebDriverConfiguration.Parameter.FIREFOX_PREFERENCES).ifPresent(preferences -> {
             Arrays.stream(preferences.split(","))

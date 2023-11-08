@@ -69,6 +69,10 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
             needsPrefs.set(true);
         });
 
+        if(Configuration.getRequired(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class)) {
+            options.addArguments("--headless=new");
+        }
+
         if (Configuration.get(WebDriverConfiguration.Parameter.AUTO_DOWNLOAD, Boolean.class).orElse(false)) {
             chromePrefs.put("download.prompt_for_download", false);
             // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)

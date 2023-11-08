@@ -44,18 +44,22 @@ public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
         return options;
     }
 
-    private void addEdgeOptions(EdgeOptions caps) {
+    private void addEdgeOptions(EdgeOptions options) {
         Map<String, Object> prefs = new HashMap<>();
         AtomicBoolean needsPrefs = new AtomicBoolean(false);
         // disable the "unsupported flag" prompt
-        caps.addArguments("--test-type");
+        options.addArguments("--test-type");
         // update browser language
         Configuration.get(WebDriverConfiguration.Parameter.BROWSER_LANGUAGE).ifPresent(language -> {
             LOGGER.info("Set Edge language to: {}", language);
-            caps.addArguments("--lang=" + language);
+            options.addArguments("--lang=" + language);
             prefs.put("intl.accept_languages", language);
             needsPrefs.set(true);
         });
+
+        if(Configuration.getRequired(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class)) {
+            options.addArguments("--headless=new");
+        }
 
         if (Configuration.get(WebDriverConfiguration.Parameter.AUTO_DOWNLOAD, Boolean.class).orElse(false)) {
             prefs.put("download.prompt_for_download", false);
@@ -64,8 +68,8 @@ public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
         }
 
         if (needsPrefs.get()) {
-            caps.setExperimentalOption("prefs", prefs);
+            options.setExperimentalOption("prefs", prefs);
         }
-        caps.setCapability("ms:edgeChrominum", true);
+        options.setCapability("ms:edgeChrominum", true);
     }
 }
