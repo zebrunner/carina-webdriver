@@ -17,6 +17,10 @@ package com.zebrunner.carina.webdriver.decorator;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +30,7 @@ import java.util.UUID;
 
 import com.zebrunner.carina.webdriver.helper.ICommonsHelper;
 import com.zebrunner.carina.webdriver.helper.IExtendedWebElementHelper;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
@@ -1564,7 +1569,12 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
             @Override
             public void doAttachFile(String filePath) {
-                final String decryptedText = EncryptorUtils.decrypt(filePath);
+                Path path = Path.of(filePath);
+                if(Files.notExists(path)) {
+                    LOGGER.warn("Looks like there are no {} file. Trying to create absolute path.", filePath);
+                    path = Path.of(URLDecoder.decode(System.getProperty("user.dir"), StandardCharsets.UTF_8)).resolve(filePath);
+                }
+                final String decryptedText = EncryptorUtils.decrypt(FilenameUtils.separatorsToUnix(path.toString()));
 
                 String textLog = (!decryptedText.equals(filePath) ? "********" : filePath);
 
