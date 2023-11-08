@@ -1569,12 +1569,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
             @Override
             public void doAttachFile(String filePath) {
-                Path path = Path.of(filePath);
-                if(Files.notExists(path)) {
-                    LOGGER.warn("Looks like there are no {} file. Trying to create absolute path.", filePath);
-                    path = Path.of(URLDecoder.decode(System.getProperty("user.dir"), StandardCharsets.UTF_8)).resolve(filePath);
-                }
-                final String decryptedText = EncryptorUtils.decrypt(FilenameUtils.separatorsToUnix(path.toString()));
+                final String decryptedText = EncryptorUtils.decrypt(FilenameUtils.separatorsToUnix(filePath));
 
                 String textLog = (!decryptedText.equals(filePath) ? "********" : filePath);
 
