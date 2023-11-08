@@ -54,6 +54,8 @@ import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.interactions.Locatable;
 import org.openqa.selenium.remote.LocalFileDetector;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.RemoteWebElement;
+import org.openqa.selenium.support.decorators.Decorated;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
@@ -1577,8 +1579,10 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                         Messager.FILE_NOT_ATTACHED.getMessage(textLog, getNameWithLocator()));
 
                 ((JavascriptExecutor) getDriver()).executeScript("arguments[0].style.display = 'block';", element);
-                DriverListener.castDriver(getDriver(), RemoteWebDriver.class).setFileDetector(new LocalFileDetector());
-                element.sendKeys(decryptedText);
+                WebElement originalWebElement = element instanceof Decorated<?> ? (WebElement) ((Decorated<?>) element).getOriginal()
+                        : element;
+                ((RemoteWebElement) originalWebElement).setFileDetector(new LocalFileDetector());
+                originalWebElement.sendKeys(decryptedText);
             }
 
             @Override
