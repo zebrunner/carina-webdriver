@@ -260,10 +260,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return {@link WebElement}
      */
     public final WebElement getElement() {
-        if (this.element == null) {
-            this.element = this.findElement();
-        }
-        return this.element;
+        return this.findElement();
     }
 
     /**
