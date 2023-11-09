@@ -15,11 +15,20 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.capability.impl.mobile;
 
+import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 
 import io.appium.java_client.android.options.EspressoOptions;
+import io.appium.java_client.android.options.localization.SupportsLocaleScriptOption;
+import org.apache.commons.lang3.LocaleUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.invoke.MethodHandles;
+import java.util.Locale;
 
 public class EspressoCapabilities extends AbstractCapabilities<EspressoOptions> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @Override
     public EspressoOptions getCapability(String testName) {
@@ -28,5 +37,38 @@ public class EspressoCapabilities extends AbstractCapabilities<EspressoOptions> 
         setLocaleAndLanguage(options);
         addConfigurationCapabilities(options);
         return options;
+    }
+
+    /**
+     * Add locale, language and localeScript capabilities<br>
+     * <b>Locale capability could be:</b> <br>
+     * US - USA<br>
+     * JP - Japan<br>
+     * <br>
+     * <b>Language capability could be:</b><br>
+     * en - English<br>
+     * fr - French<br>
+     * de - German<br>
+     *
+     * <b>LocaleScript capability could be :</b> Hans<br>
+     *
+     * @param options {@link EspressoOptions}
+     */
+    private void setLocaleAndLanguage(EspressoOptions options) {
+        Locale locale = WebDriverConfiguration.getLocale();
+        if (LocaleUtils.isAvailableLocale(locale)) {
+            options.setLocale(locale.getCountry());
+            options.setLanguage(locale.getLanguage());
+            String script = locale.getScript();
+            if (!script.isEmpty()) {
+                // Example: language_tag = zh-Hans-HK, where {@code Hans} - script
+                options.setLocaleScript(script);
+            }
+        } else {
+            // locale could be used not only for changing language on the device, so we should not throw exception
+            LOGGER.warn("Looks like there are no '{}' locale, so 'en_US' will be used instead for the device.", locale);
+            options.setLocale("US");
+            options.setLanguage("en");
+        }
     }
 }
