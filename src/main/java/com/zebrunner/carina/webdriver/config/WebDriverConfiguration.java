@@ -4,11 +4,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
+import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.remote.CapabilityType;
 
 import com.zebrunner.carina.utils.R;
@@ -322,6 +325,12 @@ public final class WebDriverConfiguration extends Configuration {
         LANGUAGE("language"),
 
         /**
+         * language tag
+         * todo add description
+         */
+        LANGUAGE_TAG("language_tag"),
+
+        /**
          * todo add description
          */
         SCROLL_TO_ELEMENT_Y_OFFSET("scroll_to_element_y_offset");
@@ -453,7 +462,7 @@ public final class WebDriverConfiguration extends Configuration {
     /**
      * Add root exception messages that should be ignored during session startup.
      * So when we try to create session, and we got such exception,
-     * we will retry new session command with random pause between 30..70 s.
+     * we will retry new session command.
      *
      * @param messages root exception message(s)
      */
@@ -469,5 +478,47 @@ public final class WebDriverConfiguration extends Configuration {
      */
     public static Set<String> getIgnoredNewSessionErrorMessages() {
         return RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES;
+    }
+
+    /**
+     * Get configuration locale<br>
+     * Priority:<br>
+     * 1 - language_tag parameter<br>
+     * 2 - locale and language parameters (legacy)<br>
+     *
+     * @return {@link Locale}
+     */
+    public static Locale getLocale() {
+        Locale locale;
+        Optional<String> languageTag = Configuration.get(Parameter.LANGUAGE_TAG);
+        if (languageTag.isPresent()) {
+            locale = Locale.forLanguageTag(languageTag.get());
+            if (locale.getCountry().isEmpty()) {
+                throw new InvalidConfigurationException("'language_tag' parameter should contains country.");
+            }
+            if (locale.getLanguage().isEmpty()) {
+                throw new InvalidConfigurationException("'language_tag' parameter should contains language.");
+            }
+            return locale;
+        } else {
+            // this legacy logic do not support languages with scripts
+            // could be US or en_US
+            String localeAsString = Configuration.getRequired(WebDriverConfiguration.Parameter.LOCALE);
+            String[] arr = StringUtils.split(localeAsString, "_");
+            if (arr.length == 2) {
+                locale = new Locale.Builder()
+                        .setLanguage(arr[0])
+                        .setRegion(arr[1])
+                        .build();
+            } else if (arr.length == 1) {
+                locale = new Locale.Builder()
+                        .setLanguage(Configuration.getRequired(WebDriverConfiguration.Parameter.LANGUAGE))
+                        .setRegion(localeAsString)
+                        .build();
+            } else {
+                throw new InvalidConfigurationException("Provided locale parameter is invalid: " + localeAsString);
+            }
+        }
+        return locale;
     }
 }
