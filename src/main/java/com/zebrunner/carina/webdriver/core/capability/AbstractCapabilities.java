@@ -35,13 +35,10 @@ import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.proxy.ProxyUtils;
 import com.zebrunner.carina.utils.Configuration;
-import com.zebrunner.carina.utils.Configuration.Parameter;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
 import com.zebrunner.carina.webdriver.proxy.ZebrunnerProxyBuilder;
-
-import io.appium.java_client.remote.MobileCapabilityType;
 
 public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     // TODO: [VD] reorganize in the same way Firefox profiles args/options if any and review other browsers
@@ -212,17 +209,17 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
         } else {
             pair.setLeft(capabilityName);
             if (W3C_STRING_CAPABILITIES.contains(capabilityName)) {
-               pair.setRight(capabilityValue);
-           } else if (W3C_BOOLEAN_CAPABILITIES.contains(capabilityName)) {
-               if ("true".equalsIgnoreCase(capabilityValue)) {
-                   pair.setRight(true);
-               } else if ("false".equalsIgnoreCase(capabilityValue)) {
-                   pair.setRight(false);
-               } else {
-                   throw new InvalidArgumentException(String.format("Invalid value '%s' for '%s' capability. It should be true or false.",
-                           capabilityValue, capabilityName));
-               }
-           } else if (isNumber(capabilityValue)) {
+                pair.setRight(capabilityValue);
+            } else if (W3C_BOOLEAN_CAPABILITIES.contains(capabilityName)) {
+                if ("true".equalsIgnoreCase(capabilityValue)) {
+                    pair.setRight(true);
+                } else if ("false".equalsIgnoreCase(capabilityValue)) {
+                    pair.setRight(false);
+                } else {
+                    throw new InvalidArgumentException(String.format("Invalid value '%s' for '%s' capability. It should be true or false.",
+                            capabilityValue, capabilityName));
+                }
+            } else if (isNumber(capabilityValue)) {
                 pair.setRight(Integer.parseInt(capabilityValue));
             } else if ("true".equalsIgnoreCase(capabilityValue)) {
                 pair.setRight(true);
@@ -247,46 +244,8 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
         return true;
     }
 
-    /**
-     * Add locale and language capabilities to caps param
-     */
-    protected T setLocaleAndLanguage(T caps) {
-        /*
-         * http://appium.io/docs/en/writing-running-appium/caps/ locale and language
-         * Locale to set for iOS (XCUITest driver only) and Android.
-         * fr_CA format for iOS. CA format (country name abbreviation) for Android
-         */
-        // parse locale param as it has language and country by default like en_US
-        String localeValue = Configuration.get(Parameter.LOCALE);
-        LOGGER.debug("Default locale value is : {}", localeValue);
-        String[] values = localeValue.split("_");
-        if (values.length == 1) {
-            // only locale is present!
-            caps.setCapability(MobileCapabilityType.LOCALE, localeValue);
-            String langValue = Configuration.get(Parameter.LANGUAGE);
-            if (!langValue.isEmpty()) {
-                LOGGER.debug("Default language value is : {}", langValue);
-                // provide extra capability language only if it exists among config parameters...
-                caps.setCapability(MobileCapabilityType.LANGUAGE, langValue);
-            }
-        } else if (values.length == 2) {
-            if (Configuration.getPlatform().equalsIgnoreCase(SpecialKeywords.ANDROID)) {
-                LOGGER.debug("Put language and locale to android capabilities. language: {}; locale: {}", values[0], values[1]);
-                caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
-                caps.setCapability(MobileCapabilityType.LOCALE, values[1]);
-            } else if (Configuration.getPlatform().equalsIgnoreCase(SpecialKeywords.IOS)) {
-                LOGGER.debug("Put language and locale to iOS capabilities. language: {}; locale: {}", values[0], localeValue);
-                caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
-                caps.setCapability(MobileCapabilityType.LOCALE, localeValue);
-            }
-        } else {
-            LOGGER.error("Undefined locale provided (ignoring for mobile capabilitites): {}", localeValue);
-        }
-        return caps;
-    }
-
     // todo remove when params will be added to the Configuration class
-    private static String getConfigurationValue(String param) {
+    protected static String getConfigurationValue(String param) {
         String value = R.CONFIG.get(param);
         return !(value == null || value.equalsIgnoreCase(SpecialKeywords.NULL)) ? value : StringUtils.EMPTY;
     }
