@@ -52,7 +52,7 @@
         <imgscalr-lib.version>4.2</imgscalr-lib.version>
         <carina-utils.version>1.2.6.P1-SNAPSHOT</carina-utils.version>
         <carina-commons.version>1.0.2</carina-commons.version>
-        <zebrunner-testng-pluggable.version>1.9.7</zebrunner-testng-pluggable.version>
+        <zebrunner-testng-pluggable.version>1.9.8</zebrunner-testng-pluggable.version>
         <slf4j.version>2.0.7</slf4j.version>
         <pdfbox.version>2.0.28</pdfbox.version>
         <!-- byte-buddy should be 1.14.5 -->
