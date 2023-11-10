@@ -27,6 +27,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.zebrunner.agent.core.registrar.Label;
+import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
+import io.appium.java_client.MobileCommand;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -109,13 +111,16 @@ public class MobileFactory extends AbstractFactory {
             if (readTimeout.isPresent()) {
                 clientConfig = clientConfig.readTimeout(Duration.ofSeconds(readTimeout.get()));
             }
+
+            EventFiringAppiumCommandExecutor commandExecutor = new EventFiringAppiumCommandExecutor(MobileCommand.commandRepository, clientConfig);
+
             if (MobilePlatform.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
-                driver = new AndroidDriver(clientConfig, capabilities);
+                driver = new AndroidDriver(commandExecutor, capabilities);
             } else if (MobilePlatform.IOS.equalsIgnoreCase(mobilePlatformName) ||
                     MobilePlatform.TVOS.equalsIgnoreCase(mobilePlatformName)) {
                 // can't create a SafariDriver as it has no advantages over IOSDriver, but needs revision in the future
                 // SafariDriver only limits functionality
-                driver = new IOSDriver(clientConfig, capabilities);
+                driver = new IOSDriver(commandExecutor, capabilities);
             } else {
                 throw new InvalidConfigurationException("Unsupported mobile platform: " + mobilePlatformName);
             }
