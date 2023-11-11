@@ -50,7 +50,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
         <imgscalr-lib.version>4.2</imgscalr-lib.version>
-        <carina-utils.version>1.2.6.P1-SNAPSHOT</carina-utils.version>
+        <carina-utils.version>1.2.6</carina-utils.version>
         <carina-commons.version>1.0.2</carina-commons.version>
         <zebrunner-testng-pluggable.version>1.9.8</zebrunner-testng-pluggable.version>
         <slf4j.version>2.0.7</slf4j.version>
@@ -78,7 +78,7 @@
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
     </properties>
 
-    <repositories>
+    <!--repositories>
         <repository>
             <id>zebrunner_snapshots</id>
             <name>zebrunner Snapshots</name>
@@ -90,7 +90,7 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
-    </repositories>
+    </repositories-->
 
     <dependencies>
         <dependency>
