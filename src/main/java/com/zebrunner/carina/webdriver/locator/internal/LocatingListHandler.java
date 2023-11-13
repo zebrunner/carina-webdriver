@@ -88,7 +88,7 @@ public class LocatingListHandler<T extends ExtendedWebElement> implements Invoca
                     extendedElement.setLocator(locatorType.get().buildLocatorWithIndex(locatorAsString, i));
                 }
                 extendedElement.setName(name + i);
-                extendedElement.setWebElement(element);
+                extendedElement.setElement(element);
                 extendedWebElements.add(extendedElement);
                 i++;
             }

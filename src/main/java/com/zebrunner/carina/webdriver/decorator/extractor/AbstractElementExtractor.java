@@ -83,7 +83,7 @@ public abstract class AbstractElementExtractor implements IDriverPool {
             throw new RuntimeException("Zero or more than 1 element was found using coordinates.");
         }
         ExtendedWebElement element = new ExtendedWebElement(getDriver(), getDriver());
-        element.setWebElement(elements.get(0));
+        element.setElement(elements.get(0));
         element.setName(name);
         return element;
     }

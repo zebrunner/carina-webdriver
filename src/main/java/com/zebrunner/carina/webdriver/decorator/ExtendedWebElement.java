@@ -16,11 +16,9 @@
 package com.zebrunner.carina.webdriver.decorator;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,14 +44,15 @@ import org.openqa.selenium.Point;
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WrapsDriver;
+import org.openqa.selenium.WrapsElement;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.interactions.Locatable;
 import org.openqa.selenium.remote.LocalFileDetector;
-import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.RemoteWebElement;
 import org.openqa.selenium.support.decorators.Decorated;
 import org.openqa.selenium.support.ui.ExpectedCondition;
@@ -177,14 +176,6 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         this.driver = Objects.requireNonNull(driver);
     }
 
-    public final Optional<WebElement> getWebElement() {
-        return Optional.ofNullable(element);
-    }
-
-    public final void setWebElement(@Nullable WebElement element) {
-        this.element = element;
-    }
-
     public final String getName() {
         return name;
     }
@@ -255,18 +246,17 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     }
 
     /**
-     * Get Selenium WebElement. This method will try to find/update element if needed
+     * Get Selenium WebElement (Proxy).
      * 
      * @return {@link WebElement}
      */
     public final WebElement getElement() {
-        return this.findElement();
+        InvocationHandler handler = new ExtendedWebElementHandler(by, element, searchContext);
+        return (WebElement) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
+                handler);
     }
 
-    /**
-     * @deprecated use {@link #setWebElement(WebElement)} instead
-     */
-    @Deprecated(forRemoval = true)
     public final void setElement(WebElement element) {
         this.element = element;
     }
@@ -679,7 +669,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     @Override
     public boolean isDisplayed() {
         try {
-            return getElement().isDisplayed();
+            return findElement().isDisplayed();
         } catch (Exception e) {
             // do nothing
         }
@@ -1470,7 +1460,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         Object output = null;
 
         try {
-            this.element = getElement();
+            this.element = findElement();
             output = overrideAction(actionName, inputArgs);
         } catch (StaleElementReferenceException e) {
             // TODO: analyze mobile testing for staled elements. Potentially it should be fixed by appium java client already
@@ -1667,7 +1657,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                 DriverListener.setMessages(Messager.SELECT_BY_TEXT_PERFORMED.getMessage(textLog, getName()),
                         Messager.SELECT_BY_TEXT_NOT_PERFORMED.getMessage(textLog, getNameWithLocator()));
 
-                final Select s = new Select(getElement());
+                final Select s = new Select(findElement());
                 // [VD] do not use selectByValue as modern controls could have only visible value without value
                 s.selectByVisibleText(decryptedSelectText);
                 return true;
@@ -1690,7 +1680,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                 DriverListener.setMessages(Messager.SELECT_BY_MATCHER_TEXT_PERFORMED.getMessage(matcher.toString(), getName()),
                         Messager.SELECT_BY_MATCHER_TEXT_NOT_PERFORMED.getMessage(matcher.toString(), getNameWithLocator()));
 
-                final Select s = new Select(getElement());
+                final Select s = new Select(findElement());
                 String fullTextValue = null;
                 for (WebElement option : s.getOptions()) {
                     if (matcher.matches(option.getText())) {
@@ -1709,7 +1699,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                         Messager.SELECT_BY_TEXT_PERFORMED.getMessage(partialSelectText, getName()),
                         Messager.SELECT_BY_TEXT_NOT_PERFORMED.getMessage(partialSelectText, getNameWithLocator()));
 
-                final Select s = new Select(getElement());
+                final Select s = new Select(findElement());
                 String fullTextValue = null;
                 for (WebElement option : s.getOptions()) {
                     if (option.getText().contains(partialSelectText)) {
@@ -1727,20 +1717,20 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                         Messager.SELECT_BY_INDEX_PERFORMED.getMessage(String.valueOf(index), getName()),
                         Messager.SELECT_BY_INDEX_NOT_PERFORMED.getMessage(String.valueOf(index), getNameWithLocator()));
 
-                final Select s = new Select(getElement());
+                final Select s = new Select(findElement());
                 s.selectByIndex(index);
                 return true;
             }
 
             @Override
             public String doGetSelectedValue() {
-                final Select s = new Select(getElement());
+                final Select s = new Select(findElement());
                 return s.getAllSelectedOptions().get(0).getText();
             }
 
             @Override
             public List<String> doGetSelectedValues() {
-                final Select s = new Select(getElement());
+                final Select s = new Select(findElement());
                 List<String> values = new ArrayList<>();
                 for (WebElement we : s.getAllSelectedOptions()) {
                     values.add(we.getText());
@@ -1796,7 +1786,8 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         }
 
         try {
-            if (element != null && element.isDisplayed()) {
+            if (element != null) {
+                element.isDisplayed();
                 return element;
             }
         } catch (StaleElementReferenceException e) {
@@ -1848,7 +1839,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         try {
             ExtendedWebElement clone = ConstructorUtils.invokeConstructor(this.getClass(), getDriver(), getSearchContext());
             clone.setLocator(by);
-            clone.setWebElement(element);
+            clone.setElement(element);
             clone.setName(name);
             return clone;
         } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException e) {

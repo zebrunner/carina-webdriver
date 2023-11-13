@@ -459,7 +459,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
         for (WebElement webElement : getDriver().findElements(by)) {
             ExtendedWebElement foundElement = new ExtendedWebElement(getDriver(), getDriver());
             foundElement.setName(String.format("ExtendedWebElement - [%d]", i));
-            foundElement.setWebElement(webElement);
+            foundElement.setElement(webElement);
             extendedWebElements.add(foundElement);
             i++;
         }
@@ -560,7 +560,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
             for (WebElement webElement : extendedElement.findElements(by)) {
                 T foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(), extendedElement);
                 foundElement.setName(String.format("ExtendedWebElement - [%d]", i));
-                foundElement.setWebElement(webElement);
+                foundElement.setElement(webElement);
                 extendedWebElements.add(foundElement);
                 i++;
             }
@@ -722,7 +722,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
                     .orElseThrow(() -> new IllegalStateException("Element do not contains locator.")))) {
                 T extendedElementOfList = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(),
                         extendedElement);
-                extendedElementOfList.setWebElement(element);
+                extendedElementOfList.setElement(element);
                 extendedElementOfList.setLocator(null);
                 extendedElementOfList.setName(String.format("%s - [%s]", extendedElement.getName(), index++));
                 extendedElements.add(extendedElementOfList);

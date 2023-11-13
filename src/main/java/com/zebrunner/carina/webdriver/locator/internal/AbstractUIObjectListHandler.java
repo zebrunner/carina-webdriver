@@ -117,7 +117,7 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                 }
 
                 ExtendedWebElement foundElement = new ExtendedWebElement(webDriver, locator.getSearchContext());
-                foundElement.setWebElement(element);
+                foundElement.setElement(element);
                 if (isByForListSupported) {
                     foundElement.setLocator(locatorType.get().buildLocatorWithIndex(locatorAsString, index));
                 }
