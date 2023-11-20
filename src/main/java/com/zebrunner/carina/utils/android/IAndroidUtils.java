@@ -642,38 +642,62 @@ public interface IAndroidUtils extends IMobileUtils {
      *
      **/
     default String getScrollContainerSelector(ExtendedWebElement scrollableContainer, SelectorType containerSelectorType) {
-        UTILS_LOGGER.debug(scrollableContainer.getBy().toString());
         String scrollableContainerBy;
         String scrollViewContainerFinder = "";
 
         switch (containerSelectorType) {
         case TEXT:
-            scrollableContainerBy = scrollableContainer.getBy().toString().replace("By.text:", "").trim();
+            scrollableContainerBy = scrollableContainer.getLocator()
+                    .orElseThrow()
+                    .toString()
+                    .replace("By.text:", "").trim();
             scrollViewContainerFinder = "new UiSelector().text(\"" + scrollableContainerBy + "\")";
             break;
         case TEXT_CONTAINS:
-            scrollableContainerBy = scrollableContainer.getBy().toString().replace("By.textContains:", "").trim();
+            scrollableContainerBy = scrollableContainer.getLocator()
+                    .orElseThrow()
+                    .toString()
+                    .replace("By.textContains:", "").trim();
             scrollViewContainerFinder = "new UiSelector().textContains(\"" + scrollableContainerBy + "\")";
             break;
         case TEXT_STARTS_WITH:
-            scrollableContainerBy = scrollableContainer.getBy().toString().replace("By.textStartsWith:", "").trim();
+            scrollableContainerBy = scrollableContainer.getLocator()
+                    .orElseThrow()
+                    .toString()
+                    .replace("By.textStartsWith:", "")
+                    .trim();
             scrollViewContainerFinder = "new UiSelector().textStartsWith(\"" + scrollableContainerBy + "\")";
             break;
         case ID:
-            scrollableContainerBy = scrollableContainer.getBy().toString().replace("By.id:", "").trim();
+            scrollableContainerBy = scrollableContainer.getLocator()
+                    .orElseThrow()
+                    .toString()
+                    .replace("By.id:", "")
+                    .trim();
             scrollViewContainerFinder = "new UiSelector().resourceId(\"" + scrollableContainerBy + "\")";
             break;
         case DESCRIPTION:
-            scrollableContainerBy = scrollableContainer.getBy().toString().replace("By.description:", "").trim();
+            scrollableContainerBy = scrollableContainer.getLocator()
+                    .orElseThrow()
+                    .toString()
+                    .replace("By.description:", "")
+                    .trim();
             scrollViewContainerFinder = "new UiSelector().description(\"" + scrollableContainerBy + "\")";
             break;
         case DESCRIPTION_CONTAINS:
-            scrollableContainerBy = scrollableContainer.getBy().toString().replace("By.descriptionContains:", "")
+            scrollableContainerBy = scrollableContainer.getLocator()
+                    .orElseThrow()
+                    .toString()
+                    .replace("By.descriptionContains:", "")
                     .trim();
             scrollViewContainerFinder = "new UiSelector().descriptionContains(\"" + scrollableContainerBy + "\")";
             break;
         case CLASS_NAME:
-            scrollableContainerBy = scrollableContainer.getBy().toString().replace("By.className:", "").trim();
+            scrollableContainerBy = scrollableContainer.getLocator()
+                    .orElseThrow()
+                    .toString()
+                    .replace("By.className:", "")
+                    .trim();
             scrollViewContainerFinder = "new UiSelector().className(\"" + scrollableContainerBy + "\")";
             break;
         default:

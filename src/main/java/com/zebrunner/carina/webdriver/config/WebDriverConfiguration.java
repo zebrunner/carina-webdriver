@@ -1,14 +1,18 @@
 package com.zebrunner.carina.webdriver.config;
 
-import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
+import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.remote.CapabilityType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
@@ -22,7 +26,8 @@ import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.remote.MobileCapabilityType;
 
 public final class WebDriverConfiguration extends Configuration {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Set<String> RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES = Collections.synchronizedSet(new HashSet<>());
+
     private static final String CAPABILITIES_PREFIX = "capabilities.";
 
     public enum Parameter implements IParameter {
@@ -320,6 +325,12 @@ public final class WebDriverConfiguration extends Configuration {
         LANGUAGE("language"),
 
         /**
+         * language tag
+         * todo add description
+         */
+        LANGUAGE_TAG("language_tag"),
+
+        /**
          * todo add description
          */
         SCROLL_TO_ELEMENT_Y_OFFSET("scroll_to_element_y_offset");
@@ -375,14 +386,14 @@ public final class WebDriverConfiguration extends Configuration {
 
     public static Optional<String> getZebrunnerCapability(String capabilityName) {
         return Optional.ofNullable(get(CAPABILITIES_PREFIX + "zebrunner:" + capabilityName)
-                .orElse(get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName)
-                        .orElse(get(CAPABILITIES_PREFIX + capabilityName).orElse(null))));
+                .orElseGet(() -> get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName)
+                        .orElseGet(() -> get(CAPABILITIES_PREFIX + capabilityName).orElse(null))));
     }
 
     public static Optional<String> getZebrunnerCapability(String capabilityName, ConfigurationOption... options) {
         return Optional.ofNullable(get(CAPABILITIES_PREFIX + "zebrunner:" + capabilityName, options)
-                .orElse(get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName, options)
-                        .orElse(get(CAPABILITIES_PREFIX + capabilityName, options).orElse(null))));
+                .orElseGet(() -> get(CAPABILITIES_PREFIX + "zebrunner:options." + capabilityName, options)
+                        .orElseGet(() -> get(CAPABILITIES_PREFIX + capabilityName, options).orElse(null))));
     }
 
     public static Optional<String> getCapability(String capabilityName) {
@@ -395,9 +406,9 @@ public final class WebDriverConfiguration extends Configuration {
 
     public static Optional<String> getCapability(String capabilityName, String providerPrefix, ConfigurationOption... options) {
         Optional<String> value = get(CAPABILITIES_PREFIX + providerPrefix + capabilityName, options);
-            if (value.isPresent()) {
-                return value;
-            }
+        if (value.isPresent()) {
+            return value;
+        }
         return get(CAPABILITIES_PREFIX + capabilityName, options);
     }
 
@@ -446,5 +457,68 @@ public final class WebDriverConfiguration extends Configuration {
         }
 
         throw new IllegalArgumentException(String.format("Cannot detect driver type. Unsupported platform: '%s'", platform.get()));
+    }
+
+    /**
+     * Add root exception messages that should be ignored during session startup.
+     * So when we try to create session, and we got such exception,
+     * we will retry new session command.
+     *
+     * @param messages root exception message(s)
+     */
+    @SuppressWarnings("unused")
+    public static void addIgnoredNewSessionErrorMessages(String... messages) {
+        RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES.addAll(Arrays.asList(messages));
+    }
+
+    /**
+     * <b>For internal usage only</b>
+     *
+     * @return {@link Set}
+     */
+    public static Set<String> getIgnoredNewSessionErrorMessages() {
+        return RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES;
+    }
+
+    /**
+     * Get configuration locale<br>
+     * Priority:<br>
+     * 1 - language_tag parameter<br>
+     * 2 - locale and language parameters (legacy)<br>
+     *
+     * @return {@link Locale}
+     */
+    public static Locale getLocale() {
+        Locale locale;
+        Optional<String> languageTag = Configuration.get(Parameter.LANGUAGE_TAG);
+        if (languageTag.isPresent()) {
+            locale = Locale.forLanguageTag(languageTag.get());
+            if (locale.getCountry().isEmpty()) {
+                throw new InvalidConfigurationException("'language_tag' parameter should contains country.");
+            }
+            if (locale.getLanguage().isEmpty()) {
+                throw new InvalidConfigurationException("'language_tag' parameter should contains language.");
+            }
+            return locale;
+        } else {
+            // this legacy logic do not support languages with scripts
+            // could be US or en_US
+            String localeAsString = Configuration.getRequired(WebDriverConfiguration.Parameter.LOCALE);
+            String[] arr = StringUtils.split(localeAsString, "_");
+            if (arr.length == 2) {
+                locale = new Locale.Builder()
+                        .setLanguage(arr[0])
+                        .setRegion(arr[1])
+                        .build();
+            } else if (arr.length == 1) {
+                locale = new Locale.Builder()
+                        .setLanguage(Configuration.getRequired(WebDriverConfiguration.Parameter.LANGUAGE))
+                        .setRegion(localeAsString)
+                        .build();
+            } else {
+                throw new InvalidConfigurationException("Provided locale parameter is invalid: " + localeAsString);
+            }
+        }
+        return locale;
     }
 }

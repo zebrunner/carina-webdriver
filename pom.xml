@@ -49,13 +49,14 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
-        <carina-utils.version>1.1.5</carina-utils.version>
+        <imgscalr-lib.version>4.2</imgscalr-lib.version>
+        <carina-utils.version>1.2.6</carina-utils.version>
         <carina-commons.version>1.0.2</carina-commons.version>
-        <zebrunner-testng-pluggable.version>1.9.7</zebrunner-testng-pluggable.version>
-        <slf4j.version>1.7.30</slf4j.version>
+        <zebrunner-testng-pluggable.version>1.9.8</zebrunner-testng-pluggable.version>
+        <slf4j.version>2.0.7</slf4j.version>
         <pdfbox.version>2.0.28</pdfbox.version>
-        <selenium.version>4.7.0</selenium.version>
-        <appium.version>8.3.0</appium.version>
+        <selenium.version>4.13.0</selenium.version>
+        <appium.version>8.6.0</appium.version>
         <cdt-java-client.version>4.0.0</cdt-java-client.version>
         <ashot.version>1.5.4</ashot.version>
         <itext.version>5.5.13.3</itext.version>
@@ -66,8 +67,8 @@
         <org.json.version>20160810</org.json.version>
         <joda-time.version>2.9.9</joda-time.version>
         <mockito-core.version>3.2.4</mockito-core.version>
-        <testng.version>7.7.1</testng.version>
-        <guava.version>31.1-jre</guava.version>
+        <testng.version>7.8.0</testng.version>
+        <guava.version>32.1.2-jre</guava.version>
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
@@ -95,16 +96,6 @@
             <groupId>com.zebrunner</groupId>
             <artifactId>carina-utils</artifactId>
             <version>${carina-utils.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.testng</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.seleniumhq.selenium</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
@@ -165,6 +156,18 @@
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-edge-driver</artifactId>
+            <version>${selenium.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-ie-driver</artifactId>
+            <version>${selenium.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-safari-driver</artifactId>
             <version>${selenium.version}</version>
         </dependency>
 
@@ -291,6 +294,12 @@
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>${org.json.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.imgscalr</groupId>
+            <artifactId>imgscalr-lib</artifactId>
+            <version>${imgscalr-lib.version}</version>
         </dependency>
 
         <dependency>

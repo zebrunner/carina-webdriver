@@ -15,8 +15,13 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.core.capability;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,18 +34,15 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.MutableCapabilities;
+import org.openqa.selenium.Proxy;
 import org.openqa.selenium.remote.CapabilityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.proxy.ProxyUtils;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
-
-import io.appium.java_client.remote.MobileCapabilityType;
-import io.appium.java_client.remote.MobilePlatform;
 
 public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     // TODO: [VD] reorganize in the same way Firefox profiles args/options if any and review other browsers
@@ -71,16 +73,109 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
      * @param capabilities see {@link T}
      */
     protected void addProxy(T capabilities) {
-        Configuration.get(WebDriverConfiguration.Parameter.PROXY_TYPE).ifPresent(proxyType -> {
-            if (proxyType.equalsIgnoreCase("Zebrunner")) {
-                capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, true);
-                Configuration.get(WebDriverConfiguration.Parameter.PROXY_ZEBRUNNER_ARGS).ifPresent(args -> {
-                    capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args);
-                });
-            } else {
-                ProxyUtils.getSeleniumProxy().ifPresent(proxy -> capabilities.setCapability(CapabilityType.PROXY, proxy));
+        Optional<String> proxyType = Configuration.get(WebDriverConfiguration.Parameter.PROXY_TYPE);
+
+        if (proxyType.isEmpty()) {
+            return;
+        }
+
+        if (proxyType.get().equalsIgnoreCase("Zebrunner")) {
+            capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, true);
+            Configuration.get(WebDriverConfiguration.Parameter.PROXY_ZEBRUNNER_ARGS)
+                    .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args));
+            return;
+        }
+
+        Proxy proxy = new Proxy();
+        switch (Proxy.ProxyType.valueOf(proxyType.get())) {
+        case DIRECT:
+            proxy.setProxyType(Proxy.ProxyType.DIRECT);
+            break;
+        case MANUAL:
+            proxy = getManualSeleniumProxy();
+            break;
+        case PAC:
+            String autoConfigURL = Configuration.get(WebDriverConfiguration.Parameter.PROXY_AUTOCONFIG_URL)
+                    .orElseThrow(() -> new InvalidConfigurationException(
+                            "ProxyType is PAC, but proxy_autoconfig_url is empty. Please, provide autoconfig url"));
+            if (Configuration.get(WebDriverConfiguration.Parameter.PROXY_PAC_LOCAL, Boolean.class).orElse(false)) {
+                Path path = Path.of(autoConfigURL);
+                if (!Files.exists(path)) {
+                    throw new InvalidConfigurationException("'proxy_pac_local' parameter value is true, "
+                            + "but there is no file on the path specified in parameter 'proxy_autoconfig_url'. Path: " + path);
+                }
+                if (Files.isDirectory(path)) {
+                    throw new InvalidConfigurationException("'proxy_pac_local' parameter value is true, "
+                            + "but the path specified in the 'proxy_pac_local' parameter does not point to the file, "
+                            + "but to the directory. Specify the path to the file. Path: " + path);
+                }
+                autoConfigURL = encodePAC(path);
             }
-        });
+            proxy.setProxyAutoconfigUrl(autoConfigURL);
+            break;
+        case UNSPECIFIED:
+            // do nothing - unspecified is set by default
+            break;
+        case AUTODETECT:
+            proxy.setAutodetect(true);
+            break;
+        case SYSTEM:
+            proxy.setProxyType(Proxy.ProxyType.SYSTEM);
+            break;
+        default:
+            throw new InvalidConfigurationException("ProxyType was not detected.");
+        }
+        capabilities.setCapability(CapabilityType.PROXY, proxy);
+    }
+
+    /**
+     * Encode PAC file to encoded link with Base64
+     *
+     * @param pathToPac {@link Path} to the pac file
+     * @return encoded link to pac file
+     * @throws UncheckedIOException if error happens when try to read/encode content of the file
+     */
+    private static String encodePAC(Path pathToPac) {
+        try {
+            return String.format("data:application/x-javascript-config;base64,%s",
+                    new String(Base64.getEncoder().encode(Files.readAllBytes(pathToPac))));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static Proxy getManualSeleniumProxy() {
+        String proxyHost = Configuration.get(WebDriverConfiguration.Parameter.PROXY_HOST)
+                .orElseThrow(() -> new InvalidConfigurationException(
+                        "Provided 'MANUAL' proxy type, but 'proxy_host' parameter is not specified."));
+        String proxyPort = Configuration.get(WebDriverConfiguration.Parameter.PROXY_PORT)
+                .orElseThrow(() -> new InvalidConfigurationException(
+                        "Provided 'MANUAL' proxy type, but 'proxy_port' parameter is not specified."));
+        List<String> protocols = Arrays.asList(Configuration.get(WebDriverConfiguration.Parameter.PROXY_PROTOCOLS).orElseThrow(
+                () -> new InvalidConfigurationException(
+                        "Provided 'MANUAL' proxy type, but 'proxy_protocols' parameter is not specified."))
+                .split("[\\s,]+"));
+
+        Proxy proxy = new Proxy();
+        String proxyAddress = String.format("%s:%s", proxyHost, proxyPort);
+        if (protocols.contains("http")) {
+            LOGGER.info("Http proxy will be set: {}:{}", proxyHost, proxyPort);
+            proxy.setHttpProxy(proxyAddress);
+        }
+        if (protocols.contains("https")) {
+            LOGGER.info("Https proxy will be set: {}:{}", proxyHost, proxyPort);
+            proxy.setSslProxy(proxyAddress);
+        }
+        if (protocols.contains("ftp")) {
+            LOGGER.info("FTP proxy will be set: {}:{}", proxyHost, proxyPort);
+            proxy.setFtpProxy(proxyAddress);
+        }
+        if (protocols.contains("socks")) {
+            LOGGER.info("Socks proxy will be set: {}:{}", proxyHost, proxyPort);
+            proxy.setSocksProxy(proxyAddress);
+        }
+        Configuration.get(WebDriverConfiguration.Parameter.NO_PROXY).ifPresent(proxy::setNoProxy);
+        return proxy;
     }
 
     /**
@@ -227,17 +322,17 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
         } else {
             pair.setLeft(capabilityName);
             if (W3C_STRING_CAPABILITIES.contains(capabilityName)) {
-               pair.setRight(capabilityValue);
-           } else if (W3C_BOOLEAN_CAPABILITIES.contains(capabilityName)) {
-               if ("true".equalsIgnoreCase(capabilityValue)) {
-                   pair.setRight(true);
-               } else if ("false".equalsIgnoreCase(capabilityValue)) {
-                   pair.setRight(false);
-               } else {
-                   throw new InvalidArgumentException(String.format("Invalid value '%s' for '%s' capability. It should be true or false.",
-                           capabilityValue, capabilityName));
-               }
-           } else if (isNumber(capabilityValue)) {
+                pair.setRight(capabilityValue);
+            } else if (W3C_BOOLEAN_CAPABILITIES.contains(capabilityName)) {
+                if ("true".equalsIgnoreCase(capabilityValue)) {
+                    pair.setRight(true);
+                } else if ("false".equalsIgnoreCase(capabilityValue)) {
+                    pair.setRight(false);
+                } else {
+                    throw new InvalidArgumentException(String.format("Invalid value '%s' for '%s' capability. It should be true or false.",
+                            capabilityValue, capabilityName));
+                }
+            } else if (isNumber(capabilityValue)) {
                 pair.setRight(Integer.parseInt(capabilityValue));
             } else if ("true".equalsIgnoreCase(capabilityValue)) {
                 pair.setRight(true);
@@ -260,45 +355,5 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
             return false;
         }
         return true;
-    }
-
-    /**
-     * Add locale and language capabilities to caps param
-     */
-    protected T setLocaleAndLanguage(T caps) {
-        /*
-         * http://appium.io/docs/en/writing-running-appium/caps/ locale and language
-         * Locale to set for iOS (XCUITest driver only) and Android.
-         * fr_CA format for iOS. CA format (country name abbreviation) for Android
-         */
-        // parse locale param as it has language and country by default like en_US
-        Configuration.get(WebDriverConfiguration.Parameter.LOCALE).ifPresent(locale -> {
-            LOGGER.debug("Default locale value is : {}", locale);
-            String[] values = locale.split("_");
-            if (values.length == 1) {
-                // only locale is present!
-                caps.setCapability(MobileCapabilityType.LOCALE, locale);
-                Configuration.get(WebDriverConfiguration.Parameter.LANGUAGE).ifPresent(language -> {
-                    LOGGER.debug("Default language value is : {}", language);
-                    // provide extra capability language only if it exists among config parameters...
-                    caps.setCapability(MobileCapabilityType.LANGUAGE, language);
-                });
-            } else if (values.length == 2) {
-                WebDriverConfiguration.getCapability(CapabilityType.PLATFORM_NAME).ifPresent(platformName -> {
-                    if (MobilePlatform.ANDROID.equalsIgnoreCase(platformName)) {
-                        LOGGER.debug("Put language and locale to android capabilities. language: {}; locale: {}", values[0], values[1]);
-                        caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
-                        caps.setCapability(MobileCapabilityType.LOCALE, values[1]);
-                    } else if (MobilePlatform.IOS.equalsIgnoreCase(platformName)) {
-                        LOGGER.debug("Put language and locale to iOS capabilities. language: {}; locale: {}", values[0], locale);
-                        caps.setCapability(MobileCapabilityType.LANGUAGE, values[0]);
-                        caps.setCapability(MobileCapabilityType.LOCALE, locale);
-                    }
-                });
-            } else {
-                LOGGER.error("Undefined locale provided (ignoring for mobile capabilities): {}", locale);
-            }
-        });
-        return caps;
     }
 }

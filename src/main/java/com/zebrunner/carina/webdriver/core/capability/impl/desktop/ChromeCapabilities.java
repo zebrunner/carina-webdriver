@@ -69,7 +69,13 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
             needsPrefs.set(true);
         });
 
+        if(Configuration.getRequired(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class)) {
+            options.addArguments("--headless=new");
+        }
+
         if (Configuration.get(WebDriverConfiguration.Parameter.AUTO_DOWNLOAD, Boolean.class).orElse(false)) {
+            options.addArguments("--disable-features=DownloadBubble");
+            options.addArguments("--disable-features=DownloadBubbleV2");
             chromePrefs.put("download.prompt_for_download", false);
             // don't override auto download dir for Zebrunner Selenium Grid (Selenoid)
             chromePrefs.put("download.default_directory", SessionContext.getArtifactsFolder().toString());
@@ -130,10 +136,6 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
 
         if (!mobileEmulation.isEmpty()) {
             options.setExperimentalOption("mobileEmulation", mobileEmulation);
-        }
-
-        if (Configuration.get(WebDriverConfiguration.Parameter.HEADLESS, Boolean.class).orElse(false)) {
-            options.setHeadless(true);
         }
     }
 }

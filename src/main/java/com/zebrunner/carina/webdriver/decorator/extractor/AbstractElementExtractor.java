@@ -18,6 +18,7 @@ package com.zebrunner.carina.webdriver.decorator.extractor;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 
+import com.zebrunner.carina.webdriver.IDriverPool;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebDriver;
@@ -27,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 
-public abstract class AbstractElementExtractor {
+public abstract class AbstractElementExtractor implements IDriverPool {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -81,6 +82,9 @@ public abstract class AbstractElementExtractor {
         if (elements.size() != 1) {
             throw new RuntimeException("Zero or more than 1 element was found using coordinates.");
         }
-        return new ExtendedWebElement(elements.get(0), name);
+        ExtendedWebElement element = new ExtendedWebElement(getDriver(), getDriver());
+        element.setElement(elements.get(0));
+        element.setName(name);
+        return element;
     }
 }

@@ -35,7 +35,6 @@ import com.itextpdf.text.RectangleReadOnly;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.factory.ICustomTypePageFactory;
-import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.utils.report.SessionContext;
 import com.zebrunner.carina.webdriver.Screenshot;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
@@ -53,7 +52,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
     private PageOpeningStrategy pageOpeningStrategy = PageOpeningStrategy
             .valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.PAGE_OPENING_STRATEGY));
 
-    protected AbstractPage(WebDriver driver) {
+    public AbstractPage(WebDriver driver) {
         super(driver);
         uiLoadedMarker = null;
     }
@@ -90,7 +89,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
             }
 
             if (!isOpened) {
-                LOGGER.warn("Loaded page url is as expected but page loading marker element is not visible: {}", uiLoadedMarker.getBy());
+                LOGGER.warn("Loaded page url is as expected but page loading marker element is not visible: {}", uiLoadedMarker.getLocator().orElse(null));
             }
             return isOpened;
         default:
@@ -122,7 +121,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
                 throw new RuntimeException("Please specify uiLoadedMarker for the page/screen to validate page opened state");
             }
             Assert.assertTrue(uiLoadedMarker.isElementPresent(timeout), String.format("%s not loaded: page loading marker element is not visible: %s",
-                    getPageClassName(), uiLoadedMarker.getBy().toString()));
+                    getPageClassName(), uiLoadedMarker.getLocator().orElse(null)));
             break;
         case BY_URL_AND_ELEMENT:
             if (!super.isPageOpened(this, timeout)) {
@@ -132,7 +131,7 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
             if (uiLoadedMarker != null) {
                 Assert.assertTrue(uiLoadedMarker.isElementPresent(timeout),
                         String.format("%s not loaded: url is correct but page loading marker element is not visible: %s", getPageClassName(),
-                                uiLoadedMarker.getBy().toString()));
+                                uiLoadedMarker.getLocator().orElse(null)));
             }
             break;
         default:
@@ -151,13 +150,13 @@ public abstract class AbstractPage extends AbstractUIObject implements ICustomTy
     public Path savePageAsPdf(boolean scaled, String fileName) {
         try {
             String pdfName = "";
-            String screenshot = Screenshot.capture(getDriver(), getDriver(), new ExplicitFullSizeScreenshotRule(), "")
+            Path path = Screenshot.capture(getDriver(), getDriver(), new ExplicitFullSizeScreenshotRule(), "")
                     .orElseThrow();
             String fileID = fileName.replaceAll("\\W+", "_") + "-" + System.currentTimeMillis();
             pdfName = fileID + ".pdf";
             Path pdfPath = SessionContext.getArtifactsFolder().resolve(pdfName);
 
-            Image image = Image.getInstance(Path.of(ReportContext.getTestDir().getAbsolutePath()).resolve(screenshot).toString());
+            Image image = Image.getInstance(path.toAbsolutePath().toString());
             Document document;
             if (scaled) {
                 document = new Document(PageSize.A4, 10, 10, 10, 10);

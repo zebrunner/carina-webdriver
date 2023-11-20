@@ -15,17 +15,11 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.screenshot;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
-import java.time.Instant;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.openqa.selenium.Beta;
 
 import com.zebrunner.carina.utils.config.Configuration;
-import com.zebrunner.carina.utils.report.ReportContext;
 import com.zebrunner.carina.webdriver.ScreenshotType;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 
@@ -36,48 +30,30 @@ public interface IScreenshotRule {
      * 
      * @return {@link ScreenshotType}
      */
-    public abstract ScreenshotType getScreenshotType();
+    ScreenshotType getScreenshotType();
 
     /**
      * Take a screenshot or not
      * 
      * @return true if allow capture screenshot, false otherwise
      */
-    public abstract boolean isTakeScreenshot();
+    boolean isTakeScreenshot();
 
     /**
      * Allow full-size screenshot or not
      * 
      * @return true if allow capture of full-size screenshot, false otherwise
      */
-    public abstract boolean isAllowFullSize();
+    boolean isAllowFullSize();
 
     /**
      * Get image resize dimensions
      * 
      * @return {@link ImmutablePair}, left - width, right - height
      */
-    public default ImmutablePair<Integer, Integer> getImageResizeDimensions() {
+    default ImmutablePair<Integer, Integer> getImageResizeDimensions() {
         return new ImmutablePair<>(Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_WIDTH, Integer.class).orElse(-1),
                 Configuration.get(WebDriverConfiguration.Parameter.BIG_SCREEN_HEIGHT, Integer.class).orElse(-1));
-    }
-
-    /**
-     * Get path where to save screenshot
-     * 
-     * @return {@link Path} to the folder
-     */
-    public default Path getSaveFolder() {
-        return Path.of(ReportContext.getTestDir().getAbsolutePath());
-    }
-
-    /**
-     * Get screenshot filename. The return name must be unique for the test run!
-     * 
-     * @return screenshot filename
-     */
-    public default String getFilename() {
-        return String.valueOf(System.currentTimeMillis());
     }
 
     /**
@@ -85,26 +61,8 @@ public interface IScreenshotRule {
      * 
      * @return {@link Duration} timeout
      */
-    public default Duration getTimeout() {
+    default Duration getTimeout() {
         int divider = isAllowFullSize() ? 2 : 3;
         return Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class) / divider);
     }
-
-    /**
-     * Is need to check rules when capture screenshot<br>
-     * Method that validate rules: com.qaprosoft.carina.core.foundation.webdriver.Screenshot#validateRule(IScreenshotRule)
-     *
-     * @return true if needed, false otherwise
-     */
-    @Beta
-    public default boolean isEnableValidation() {
-        return false;
-    }
-
-    @Beta
-    public default void after(Path pathToTheScreenshot) throws IOException {
-        // upload screenshot to the Zebrunner Reporting
-        com.zebrunner.agent.core.registrar.Screenshot.upload(Files.readAllBytes(pathToTheScreenshot), Instant.now().toEpochMilli());
-    }
-
 }
