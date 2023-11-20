@@ -6,7 +6,6 @@ import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.decorators.Decorated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +15,6 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Objects;
 
 public class ExtendedWebElementHandler implements InvocationHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -26,10 +24,8 @@ public class ExtendedWebElementHandler implements InvocationHandler {
 
     public ExtendedWebElementHandler(@Nullable By by, @Nullable WebElement element, SearchContext searchContext) {
         this.by = by;
-        this.element = element instanceof Decorated<?> ? (WebElement) ((Decorated<?>) element).getOriginal() : element;
-        this.searchContext = Objects.requireNonNull(searchContext) instanceof Decorated<?>
-                ? (SearchContext) ((Decorated<?>) searchContext).getOriginal()
-                : searchContext;
+        this.element = element;
+        this.searchContext = searchContext;
     }
 
     @Override
