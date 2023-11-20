@@ -43,7 +43,16 @@ public class ExtendedWebElementHandler implements InvocationHandler {
         try {
             if (element != null) {
                 element.isDisplayed();
-                return element;
+                if ("getWrappedElement".equals(method.getName())) {
+                    return element;
+                }
+
+                try {
+                    return method.invoke(element, objects);
+                } catch (InvocationTargetException e) {
+                    // Unwrap the underlying exception
+                    throw e.getCause();
+                }
             }
         } catch (StaleElementReferenceException e) {
             // do nothing
