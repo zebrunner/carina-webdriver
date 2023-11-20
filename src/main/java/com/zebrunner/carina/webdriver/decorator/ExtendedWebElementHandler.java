@@ -34,24 +34,16 @@ public class ExtendedWebElementHandler implements InvocationHandler {
             if (element == null) {
                 throw new IllegalStateException("By and WebElement both could not be null.");
             }
-            return element;
-        }
-        try {
-            if (element != null) {
-                element.isDisplayed();
-                if ("getWrappedElement".equals(method.getName())) {
-                    return element;
-                }
-
-                try {
-                    return method.invoke(element, objects);
-                } catch (InvocationTargetException e) {
-                    // Unwrap the underlying exception
-                    throw e.getCause();
-                }
+            if ("getWrappedElement".equals(method.getName())) {
+                return element;
             }
-        } catch (StaleElementReferenceException e) {
-            // do nothing
+
+            try {
+                return method.invoke(element, objects);
+            } catch (InvocationTargetException e) {
+                // Unwrap the underlying exception
+                throw e.getCause();
+            }
         }
 
         try {
