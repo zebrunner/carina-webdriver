@@ -15,6 +15,7 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.gui;
 
+import com.zebrunner.carina.webdriver.core.factory.ExtendedPageFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.WebDriver;
@@ -25,43 +26,19 @@ import org.testng.Assert;
 
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.messager.Messager;
-import com.zebrunner.carina.webdriver.DriverHelper;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
-import com.zebrunner.carina.webdriver.core.factory.ExtendedPageFactory;
-import com.zebrunner.carina.webdriver.decorator.ElementLoadingStrategy;
 import com.zebrunner.carina.webdriver.decorator.ExtendedFieldDecorator;
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocatorFactory;
 
-public abstract class AbstractUIObject extends DriverHelper {
-
-    protected String name;
-    /**
-     * @deprecated use {@link #getRootExtendedElement()} instead
-     */
-    @Deprecated(forRemoval = true, since = "1.0.0")
-    protected WebElement rootElement;
-    /**
-     * @deprecated use {@link #getRootExtendedElement()} instead
-     */
-    @Deprecated(forRemoval = true, since = "1.0.0")
-    protected By rootBy;
-
-    protected ExtendedWebElement uiLoadedMarker;
-    private ExtendedWebElement rootExtendedElement;
-
-    /**
-     * @deprecated useless variable
-     */
-    @Deprecated(forRemoval = true, since = "1.0.0")
-    private ElementLoadingStrategy loadingStrategy = ElementLoadingStrategy
-            .valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.ELEMENT_LOADING_STRATEGY));
+public abstract class AbstractUIObject extends ExtendedWebElement {
 
     /**
      * Initializes UI object using {@link PageFactory}. Whole browser window is used as search context
      *
      * @param driver WebDriver
      */
+    @SuppressWarnings("squid:S5993")
     public AbstractUIObject(WebDriver driver) {
         this(driver, driver);
     }
@@ -75,14 +52,15 @@ public abstract class AbstractUIObject extends DriverHelper {
      * Note: implement this constructor if you want your {@link AbstractUIObject} instances marked with {@link FindBy}
      * to be auto-initialized on {@link AbstractPage} inheritors
      *
-     * @param driver        WebDriver instance to initialize UI Object fields using PageFactory
+     * @param driver WebDriver instance to initialize UI Object fields using PageFactory
      * @param searchContext Window area that will be used for locating of internal elements
      */
+    @SuppressWarnings("squid:S5993")
     public AbstractUIObject(WebDriver driver, SearchContext searchContext) {
-        super(driver);
-        ExtendedElementLocatorFactory factory = new ExtendedElementLocatorFactory(driver, searchContext);
+        super(driver, searchContext);
+        ExtendedElementLocatorFactory factory = new ExtendedElementLocatorFactory(driver, this);
         PageFactory.initElements(new ExtendedFieldDecorator(factory, driver), this);
-        ExtendedPageFactory.initElementsContext(this);
+         ExtendedPageFactory.reinitElementsContext(this);
     }
 
     /**
@@ -95,45 +73,11 @@ public abstract class AbstractUIObject extends DriverHelper {
      * @return true if rootElement is enabled and visible on browser's screen, false - otherwise
      */
     public boolean isUIObjectPresent(long timeout) {
-        return this.rootExtendedElement.isPresent(timeout);
+        return isPresent(timeout);
     }
 
     public boolean isUIObjectPresent() {
         return isUIObjectPresent(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class));
-    }
-
-    public ExtendedWebElement getUiLoadedMarker() {
-        return uiLoadedMarker;
-    }
-
-    public void setUiLoadedMarker(ExtendedWebElement uiLoadedMarker) {
-        this.uiLoadedMarker = uiLoadedMarker;
-    }
-
-    /**
-     * @deprecated to interact with the current component
-     * (getting information about the current element) use {@link #rootExtendedElement}
-     */
-    @Deprecated(since = "8.0.4", forRemoval = true)
-    public ElementLoadingStrategy getLoadingStrategy() {
-        return loadingStrategy;
-    }
-
-    /**
-     * @deprecated to interact with the current component
-     * (getting information about the current element) use {@link #rootExtendedElement}
-     */
-    @Deprecated(since = "8.0.4", forRemoval = true)
-    public void setLoadingStrategy(ElementLoadingStrategy loadingStrategy) {
-        this.loadingStrategy = loadingStrategy;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     /**
@@ -142,54 +86,39 @@ public abstract class AbstractUIObject extends DriverHelper {
      * @return see {@link ExtendedWebElement}
      */
     public ExtendedWebElement getRootExtendedElement() {
-        return this.rootExtendedElement;
+        return this;
     }
 
+    @Deprecated(forRemoval = true, since = "1.2.7")
     public void setRootExtendedElement(ExtendedWebElement element) {
-        this.rootExtendedElement = element;
+        // do nothing
     }
 
-    /**
-     * @deprecated to interact with the current component
-     *             (getting information about the current element) use {@link #rootExtendedElement}
-     */
     @Deprecated(since = "8.0.4", forRemoval = true)
     public WebElement getRootElement() {
-        return rootElement;
+        return getElement();
     }
 
-    /**
-     * @deprecated to interact with the current component
-     *             (getting information about the current element) use {@link #rootExtendedElement}
-     */
     @Deprecated(since = "8.0.4", forRemoval = true)
     public void setRootElement(WebElement element) {
-        this.rootElement = element;
+        setElement(element);
     }
 
-    /**
-     * @deprecated to interact with the current component
-     *             (getting information about the current element) use {@link #rootExtendedElement}
-     */
     @Deprecated(since = "8.0.4", forRemoval = true)
     public By getRootBy() {
-        return rootBy;
+        return getBy();
     }
 
-    /**
-     * @deprecated to interact with the current component
-     *             (getting information about the current element) use {@link #rootExtendedElement}
-     */
     @Deprecated(since = "8.0.4", forRemoval = true)
     public void setRootBy(By rootBy) {
-        this.rootBy = rootBy;
+        setBy(rootBy);
     }
 
     /**
      * Checks presence of UIObject root element on the page and throws Assertion error in case if it's missing
      */
     public void assertUIObjectPresent() {
-        assertUIObjectPresent(EXPLICIT_TIMEOUT);
+        assertUIObjectPresent(getDefaultWaitTimeout().toSeconds());
     }
 
     /**
@@ -199,7 +128,7 @@ public abstract class AbstractUIObject extends DriverHelper {
      */
     public void assertUIObjectPresent(long timeout) {
         if (!isUIObjectPresent(timeout)) {
-            Assert.fail(Messager.UI_OBJECT_NOT_PRESENT.getMessage(this.rootExtendedElement.getNameWithLocator()));
+            Assert.fail(Messager.UI_OBJECT_NOT_PRESENT.getMessage(getNameWithLocator()));
         }
     }
 
@@ -207,7 +136,7 @@ public abstract class AbstractUIObject extends DriverHelper {
      * Checks missing of UIObject root element on the page and throws Assertion error in case if it presents
      */
     public void assertUIObjectNotPresent() {
-        assertUIObjectNotPresent(EXPLICIT_TIMEOUT);
+        assertUIObjectNotPresent(getDefaultWaitTimeout().toSeconds());
     }
 
     /**
@@ -217,7 +146,7 @@ public abstract class AbstractUIObject extends DriverHelper {
      */
     public void assertUIObjectNotPresent(long timeout) {
         if (isUIObjectPresent(timeout)) {
-            Assert.fail(Messager.UI_OBJECT_PRESENT.getMessage(this.rootExtendedElement.getNameWithLocator()));
+            Assert.fail(Messager.UI_OBJECT_PRESENT.getMessage(getNameWithLocator()));
         }
     }
 }

@@ -25,6 +25,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -102,7 +103,6 @@ public interface IMobileUtils extends IDriverPool {
     int DEFAULT_TOUCH_ACTION_DURATION = 1000;
     int DEFAULT_MAX_SWIPE_COUNT = 50;
     int DEFAULT_MIN_SWIPE_COUNT = 1;
-    DriverHelper helper = new DriverHelper();
 
     enum Direction {
         LEFT,
@@ -1008,7 +1008,7 @@ public interface IMobileUtils extends IDriverPool {
      */
     default void pressBottomRightKey() {
         WebDriver driver = getDriver();
-        Dimension size = helper.performIgnoreException(() -> driver.manage().window().getSize());
+        Dimension size = mobilePerformIgnoreException(() -> driver.manage().window().getSize());
         int height = size.getHeight();
         int width = size.getWidth();
 
@@ -1029,6 +1029,17 @@ public interface IMobileUtils extends IDriverPool {
             throw new UnsupportedOperationException("Driver is not support pressBottomRightKey method", e);
         } catch (WebDriverException e) {
             UTILS_LOGGER.error("Error when try to press bottom right key", e);
+        }
+    }
+
+    private <T> T mobilePerformIgnoreException(Supplier<T> supplier) {
+        try {
+            UTILS_LOGGER.debug("Command will be performed with the exception ignoring");
+            return supplier.get();
+        } catch (WebDriverException e) {
+            UTILS_LOGGER.info("Webdriver exception has been fired. One more attempt to execute action.", e);
+            UTILS_LOGGER.info(supplier.toString());
+            return supplier.get();
         }
     }
 

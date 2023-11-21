@@ -23,11 +23,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
+import com.zebrunner.carina.utils.factory.ICustomTypePageFactory;
 import com.zebrunner.carina.webdriver.helper.ICommonsHelper;
 import com.zebrunner.carina.webdriver.helper.IExtendedWebElementHelper;
+import com.zebrunner.carina.webdriver.helper.IWaitHelper;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -79,16 +80,19 @@ import javax.annotation.Nullable;
 /**
  * Base Extended WebElement
  */
-public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWebElementHelper, ICommonsHelper, Cloneable {
+public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWebElementHelper, ICommonsHelper, IWaitHelper, ICustomTypePageFactory,
+        Cloneable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final String udid;
-    private WebDriver driver;
+    protected WebDriver driver;
     private SearchContext searchContext;
     private By by = null;
-    private WebElement element = null;
+    /**
+     * @deprecated will be hided in the next release. Use {@link #getElement()} instead
+     */
+    @Deprecated
+    protected WebElement element = null;
     private String name = "n/a";
-    private Duration retryTime;
-    private Duration explicitTimeout;
     private ElementLoadingStrategy loadingStrategy;
     private boolean isLocalized = false;
 
@@ -101,9 +105,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     public ExtendedWebElement(WebDriver driver, SearchContext searchContext) {
         this.driver = driver;
         this.searchContext = searchContext;
-        this.udid = UUID.randomUUID().toString();
-        this.explicitTimeout = Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class));
-        this.retryTime = Duration.ofMillis(Configuration.getRequired(WebDriverConfiguration.Parameter.RETRY_INTERVAL, Long.class));
+        this.udid = UUID.randomUUID().toString() + System.currentTimeMillis();
         this.loadingStrategy = ElementLoadingStrategy.valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.ELEMENT_LOADING_STRATEGY));
     }
 
@@ -146,25 +148,6 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         this.name = name;
     }
 
-    ///////////// GETTERS/SETTERS /////////////
-
-    @Override
-    public Duration getWaitTimeout() {
-        return explicitTimeout;
-    }
-
-    @Override
-    public Duration getWaitInterval(Duration timeout) {
-        Duration retryInterval = retryTime;
-        if (timeout.toSeconds() >= 3 && timeout.toSeconds() <= 10) {
-            retryInterval = Duration.ofMillis(500);
-        }
-        if (timeout.toSeconds() > 10) {
-            retryInterval = Duration.ofMillis(1000);
-        }
-        return retryInterval;
-    }
-
     ///////////// GETTERS/SETTERS (FINAL) /////////////
 
     @Override
@@ -188,28 +171,21 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         return udid;
     }
 
-    public final Optional<By> getLocator() {
-        return Optional.ofNullable(by);
-    }
-
-    public final void setLocator(@Nullable By by) {
-        this.by = by;
-    }
-
     /**
-     * @deprecated use {@link #getLocator()} instead
+     * Get locator
+     * 
      * @return {@link By} if available, null otherwise
      */
-    @Deprecated(forRemoval = true)
     public final By getBy() {
         return this.by;
     }
 
     /**
-     * @deprecated use {@link #setLocator(By)} instead
+     * Set locator
+     * 
+     * @param by {@link By}
      */
-    @Deprecated(forRemoval = true)
-    public final void setBy(By by) {
+    public final void setBy(@Nullable By by) {
         this.by = by;
     }
 
@@ -219,22 +195,6 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     public final void setSearchContext(SearchContext searchContext) {
         this.searchContext = Objects.requireNonNull(searchContext);
-    }
-
-    public final Duration getRetryTime() {
-        return retryTime;
-    }
-
-    public final void setRetryTime(Duration retryTime) {
-        this.retryTime = Objects.requireNonNull(retryTime);
-    }
-
-    public final Duration getExplicitTimeout() {
-        return explicitTimeout;
-    }
-
-    public final void setExplicitTimeout(Duration explicitTimeout) {
-        this.explicitTimeout = Objects.requireNonNull(explicitTimeout);
     }
 
     public final ElementLoadingStrategy getLoadingStrategy() {
@@ -277,7 +237,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if element present or visible, false otherwise
      */
     public boolean isPresent() {
-        return isPresent(explicitTimeout);
+        return isPresent(getDefaultWaitTimeout());
     }
 
     /**
@@ -299,7 +259,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     public boolean isPresent(Duration timeout) {
         boolean res = false;
         try {
-            res = waitUntil(getDefaultWaitCondition(), timeout);
+            res = waitUntil(getDefaultElementWaitCondition(), timeout);
         } catch (StaleElementReferenceException e) {
             // there is no sense to continue as StaleElementReferenceException captured
         }
@@ -320,7 +280,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if present and visible, false otherwise
      */
     public boolean isElementPresent() {
-        return isElementPresent(explicitTimeout);
+        return isElementPresent(getDefaultWaitTimeout());
     }
 
     /**
@@ -400,7 +360,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if element is clickable, false otherwise
      */
     public boolean isClickable() {
-        return isClickable(explicitTimeout);
+        return isClickable(getDefaultWaitTimeout());
     }
 
     /**
@@ -463,7 +423,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if element is visible, false otherwise
      */
     public boolean isVisible() {
-        return isVisible(explicitTimeout);
+        return isVisible(getDefaultWaitTimeout());
     }
 
     /**
@@ -515,7 +475,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if element with such test present, false otherwise
      */
     public boolean isElementWithTextPresent(final String text) {
-        return isElementWithTextPresent(text, explicitTimeout);
+        return isElementWithTextPresent(text, getDefaultWaitTimeout());
     }
 
     /**
@@ -582,7 +542,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if element is checked, false otherwise
      */
     public boolean isChecked() {
-        return (boolean) doAction(ACTION_NAME.IS_CHECKED, explicitTimeout, getDefaultWaitCondition());
+        return (boolean) doAction(ACTION_NAME.IS_CHECKED, getDefaultWaitTimeout(), getDefaultElementWaitCondition());
     }
 
     /**
@@ -591,7 +551,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return selected value
      */
     public String getSelectedValue() {
-        return (String) doAction(ACTION_NAME.GET_SELECTED_VALUE, explicitTimeout, getDefaultWaitCondition());
+        return (String) doAction(ACTION_NAME.GET_SELECTED_VALUE, getDefaultWaitTimeout(), getDefaultElementWaitCondition());
     }
 
     /**
@@ -601,7 +561,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      */
     @SuppressWarnings("unchecked")
     public List<String> getSelectedValues() {
-        return (List<String>) doAction(ACTION_NAME.GET_SELECTED_VALUES, explicitTimeout, getDefaultWaitCondition());
+        return (List<String>) doAction(ACTION_NAME.GET_SELECTED_VALUES, getDefaultWaitTimeout(), getDefaultElementWaitCondition());
     }
 
     /**
@@ -610,7 +570,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return text
      */
     public String getText() {
-        return (String) doAction(ACTION_NAME.GET_TEXT, explicitTimeout, getDefaultWaitCondition());
+        return (String) doAction(ACTION_NAME.GET_TEXT, getDefaultWaitTimeout(), getDefaultElementWaitCondition());
     }
 
     /**
@@ -619,7 +579,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return {@link Point}
      */
     public Point getLocation() {
-        return (Point) doAction(ACTION_NAME.GET_LOCATION, explicitTimeout, getDefaultWaitCondition());
+        return (Point) doAction(ACTION_NAME.GET_LOCATION, getDefaultWaitTimeout(), getDefaultElementWaitCondition());
     }
 
     /**
@@ -628,7 +588,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return {@link Dimension}
      */
     public Dimension getSize() {
-        return (Dimension) doAction(ACTION_NAME.GET_SIZE, explicitTimeout, getDefaultWaitCondition());
+        return (Dimension) doAction(ACTION_NAME.GET_SIZE, getDefaultWaitTimeout(), getDefaultElementWaitCondition());
     }
 
     @Override
@@ -648,7 +608,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return attribute value
      */
     public String getAttribute(String name) {
-        return (String) doAction(ACTION_NAME.GET_ATTRIBUTE, explicitTimeout, getDefaultWaitCondition(), name);
+        return (String) doAction(ACTION_NAME.GET_ATTRIBUTE, getDefaultWaitTimeout(), getDefaultElementWaitCondition(), name);
     }
 
     @Override
@@ -702,7 +662,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * Click on element
      */
     public void click() {
-        click(explicitTimeout);
+        click(getDefaultWaitTimeout());
     }
 
     /**
@@ -720,7 +680,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param timeout {@link Duration}
      */
     public void click(Duration timeout) {
-        click(timeout, getDefaultWaitCondition());
+        click(timeout, getDefaultElementWaitCondition());
     }
 
     /**
@@ -747,7 +707,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * Click on element by javascript
      */
     public void clickByJs() {
-        clickByJs(explicitTimeout);
+        clickByJs(getDefaultWaitTimeout());
     }
 
     /**
@@ -765,7 +725,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param timeout {@link Duration}
      */
     public void clickByJs(Duration timeout) {
-        clickByJs(timeout, getDefaultWaitCondition());
+        clickByJs(timeout, getDefaultElementWaitCondition());
     }
 
     /**
@@ -792,7 +752,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * Click on element by {@link Actions}
      */
     public void clickByActions() {
-        clickByActions(explicitTimeout);
+        clickByActions(getDefaultWaitTimeout());
     }
 
     /**
@@ -810,7 +770,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param timeout {@link Duration}
      */
     public void clickByActions(Duration timeout) {
-        clickByActions(timeout, getDefaultWaitCondition());
+        clickByActions(timeout, getDefaultElementWaitCondition());
     }
 
     /**
@@ -837,7 +797,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * Double Click on element.
      */
     public void doubleClick() {
-        doubleClick(explicitTimeout);
+        doubleClick(getDefaultWaitTimeout());
     }
 
     public void doubleClick(long timeout) {
@@ -850,7 +810,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param timeout to wait
      */
     public void doubleClick(Duration timeout) {
-        doubleClick(timeout, getDefaultWaitCondition());
+        doubleClick(timeout, getDefaultElementWaitCondition());
     }
 
     public void doubleClick(long timeout, ExpectedCondition<?> waitCondition) {
@@ -872,7 +832,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * Mouse RightClick on element.
      */
     public void rightClick() {
-        rightClick(explicitTimeout);
+        rightClick(getDefaultWaitTimeout());
     }
 
     public void rightClick(long timeout) {
@@ -885,7 +845,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param timeout to wait
      */
     public void rightClick(Duration timeout) {
-        rightClick(timeout, getDefaultWaitCondition());
+        rightClick(timeout, getDefaultElementWaitCondition());
     }
 
     public void rightClick(long timeout, ExpectedCondition<?> waitCondition) {
@@ -916,7 +876,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param yOffset y offset for moving
      */
     public void hover(Integer xOffset, Integer yOffset) {
-        doAction(ACTION_NAME.HOVER, explicitTimeout, getDefaultWaitCondition(), xOffset, yOffset);
+        doAction(ACTION_NAME.HOVER, getDefaultWaitTimeout(), getDefaultElementWaitCondition(), xOffset, yOffset);
     }
 
     /**
@@ -925,7 +885,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return boolean return true if clicked
      */
     public boolean clickIfPresent() {
-        return clickIfPresent(explicitTimeout);
+        return clickIfPresent(getDefaultWaitTimeout());
     }
 
     public boolean clickIfPresent(long timeout) {
@@ -952,7 +912,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param keys Keys
      */
     public void sendKeys(Keys keys) {
-        sendKeys(keys, explicitTimeout);
+        sendKeys(keys, getDefaultWaitTimeout());
     }
 
     public void sendKeys(Keys keys, long timeout) {
@@ -966,7 +926,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param timeout to wait
      */
     public void sendKeys(Keys keys, Duration timeout) {
-        sendKeys(keys, timeout, getDefaultWaitCondition());
+        sendKeys(keys, timeout, getDefaultElementWaitCondition());
     }
 
     public void sendKeys(Keys keys, long timeout, ExpectedCondition<?> waitCondition) {
@@ -990,7 +950,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param text String
      */
     public void type(String text) {
-        type(text, explicitTimeout);
+        type(text, getDefaultWaitTimeout());
     }
 
     public void type(String text, long timeout) {
@@ -1004,7 +964,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param timeout to wait
      */
     public void type(String text, Duration timeout) {
-        type(text, timeout, getDefaultWaitCondition());
+        type(text, timeout, getDefaultElementWaitCondition());
     }
 
     public void type(String text, long timeout, ExpectedCondition<?> waitCondition) {
@@ -1054,7 +1014,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @param filePath path
      */
     public void attachFile(String filePath) {
-        doAction(ACTION_NAME.ATTACH_FILE, explicitTimeout, getDefaultWaitCondition(), filePath);
+        doAction(ACTION_NAME.ATTACH_FILE, getDefaultWaitTimeout(), getDefaultElementWaitCondition(), filePath);
     }
 
     /**
@@ -1063,7 +1023,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * for checkbox Element
      */
     public void check() {
-        doAction(ACTION_NAME.CHECK, explicitTimeout, getDefaultWaitCondition());
+        doAction(ACTION_NAME.CHECK, getDefaultWaitTimeout(), getDefaultElementWaitCondition());
     }
 
     /**
@@ -1072,7 +1032,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * for checkbox Element
      */
     public void uncheck() {
-        doAction(ACTION_NAME.UNCHECK, explicitTimeout, getDefaultWaitCondition());
+        doAction(ACTION_NAME.UNCHECK, getDefaultWaitTimeout(), getDefaultElementWaitCondition());
     }
 
     /**
@@ -1082,7 +1042,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if item selected, otherwise false.
      */
     public boolean select(final String selectText) {
-        return (boolean) doAction(ACTION_NAME.SELECT, explicitTimeout, getDefaultWaitCondition(), selectText);
+        return (boolean) doAction(ACTION_NAME.SELECT, getDefaultWaitTimeout(), getDefaultElementWaitCondition(), selectText);
     }
 
     /**
@@ -1092,7 +1052,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return boolean.
      */
     public boolean select(final String[] values) {
-        return (boolean) doAction(ACTION_NAME.SELECT_VALUES, explicitTimeout, getDefaultWaitCondition(), values);
+        return (boolean) doAction(ACTION_NAME.SELECT_VALUES, getDefaultWaitTimeout(), getDefaultElementWaitCondition(), values);
     }
 
     /**
@@ -1108,7 +1068,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      *         } };
      */
     public boolean selectByMatcher(final BaseMatcher<String> matcher) {
-        return (boolean) doAction(ACTION_NAME.SELECT_BY_MATCHER, explicitTimeout, getDefaultWaitCondition(), matcher);
+        return (boolean) doAction(ACTION_NAME.SELECT_BY_MATCHER, getDefaultWaitTimeout(), getDefaultElementWaitCondition(), matcher);
     }
 
     /**
@@ -1118,7 +1078,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if item selected, otherwise false.
      */
     public boolean selectByPartialText(final String partialSelectText) {
-        return (boolean) doAction(ACTION_NAME.SELECT_BY_PARTIAL_TEXT, explicitTimeout, getDefaultWaitCondition(),
+        return (boolean) doAction(ACTION_NAME.SELECT_BY_PARTIAL_TEXT, getDefaultWaitTimeout(), getDefaultElementWaitCondition(),
                 partialSelectText);
     }
 
@@ -1129,13 +1089,13 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if item selected, otherwise false.
      */
     public boolean select(final int index) {
-        return (boolean) doAction(ACTION_NAME.SELECT_BY_INDEX, explicitTimeout, getDefaultWaitCondition(), index);
+        return (boolean) doAction(ACTION_NAME.SELECT_BY_INDEX, getDefaultWaitTimeout(), getDefaultElementWaitCondition(), index);
     }
 
     ///////////// ASSERTS /////////////
 
     public void assertElementWithTextPresent(final String text) {
-        assertElementWithTextPresent(text, explicitTimeout);
+        assertElementWithTextPresent(text, getDefaultWaitTimeout());
     }
 
     public void assertElementWithTextPresent(final String text, long timeout) {
@@ -1149,7 +1109,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     }
 
     public void assertElementPresent() {
-        assertElementPresent(explicitTimeout);
+        assertElementPresent(getDefaultWaitTimeout());
     }
 
     public void assertElementPresent(long timeout) {
@@ -1213,7 +1173,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     }
 
     public List<ExtendedWebElement> findExtendedWebElements(By by) {
-        return findExtendedWebElements(this, by, explicitTimeout);
+        return findExtendedWebElements(this, by, getDefaultWaitTimeout());
     }
 
     /**
@@ -1747,7 +1707,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return {@link ExpectedCondition}
      */
     @SuppressWarnings("squid:S1452")
-    protected ExpectedCondition<?> getDefaultWaitCondition() {
+    protected ExpectedCondition<?> getDefaultElementWaitCondition() {
         if (element == null && by == null) {
             throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
         }
@@ -1790,7 +1750,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
             throw new NoSuchElementException(SpecialKeywords.NO_SUCH_ELEMENT_ERROR + this.by.toString());
         }
         if (elements.size() > 1) {
-            LOGGER.info("returned first but found {} elements by locator: {}", elements.size(), getLocator().orElseThrow());
+            LOGGER.info("returned first but found {} elements by locator: {}", elements.size(), getBy());
         }
         element = elements.get(0);
         return element;
@@ -1804,8 +1764,6 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                 ", by=" + by +
                 ", element=" + element +
                 ", name='" + name + '\'' +
-                ", retryTime=" + retryTime +
-                ", explicitTimeout=" + explicitTimeout +
                 ", loadingStrategy=" + loadingStrategy +
                 ", isLocalized=" + isLocalized +
                 '}';
@@ -1829,7 +1787,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     public Object clone() throws CloneNotSupportedException {
         try {
             ExtendedWebElement clone = ConstructorUtils.invokeConstructor(this.getClass(), getDriver(), getSearchContext());
-            clone.setLocator(by);
+            clone.setBy(by);
             clone.setElement(element);
             clone.setName(name);
             return clone;

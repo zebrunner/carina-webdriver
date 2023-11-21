@@ -19,10 +19,10 @@ import static io.appium.java_client.pagefactory.utils.WebDriverUnpackUtility.get
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import io.appium.java_client.pagefactory.bys.ContentType;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.SearchContext;
@@ -35,13 +35,9 @@ import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
 import com.zebrunner.carina.webdriver.decorator.annotations.CaseInsensitiveXPath;
-import com.zebrunner.carina.webdriver.decorator.annotations.Localized;
 import com.zebrunner.carina.webdriver.locator.converter.LocalizeLocatorConverter;
 import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
 import com.zebrunner.carina.webdriver.locator.converter.caseinsensitive.CaseInsensitiveConverter;
-
-import io.appium.java_client.pagefactory.bys.ContentMappedBy;
-import io.appium.java_client.pagefactory.bys.ContentType;
 
 /**
  * The default element locator, which will lazily locate an element or an
@@ -50,16 +46,11 @@ import io.appium.java_client.pagefactory.bys.ContentType;
  * annotations {@link org.openqa.selenium.support.FindBy} and
  * {@link org.openqa.selenium.support.CacheLookup}.
  */
-public class ExtendedElementLocator implements ElementLocator {
+public final class ExtendedElementLocator implements ElementLocator {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
     private final WebDriver driver;
-    private SearchContext searchContext;
-    private final String className;
-    private final By originalBy;
-    private By by;
-    private boolean caseInsensitive = false;
-    private boolean localized = false;
+    private final SearchContext searchContext;
+    private final By by;
     private final LinkedList<LocatorConverter> locatorConverters = new LinkedList<>();
 
     /**
@@ -72,12 +63,10 @@ public class ExtendedElementLocator implements ElementLocator {
     public ExtendedElementLocator(WebDriver driver, SearchContext searchContext, Field field, AbstractAnnotations annotations) {
         this.driver = driver;
         this.searchContext = searchContext;
-        String[] classPath = field.getDeclaringClass().toString().split("\\.");
-        this.className = classPath[classPath.length - 1];
         this.by = annotations.buildBy();
-        this.originalBy = this.by;
-        if (LocalizeLocatorConverter.getL10nPattern().matcher(this.by.toString()).find()) {
-            this.locatorConverters.add(new LocalizeLocatorConverter());
+
+        if (LocalizeLocatorConverter.getL10nPattern().matcher(by.toString()).find()) {
+            locatorConverters.add(new LocalizeLocatorConverter());
         }
         if (field.isAnnotationPresent(CaseInsensitiveXPath.class)) {
             CaseInsensitiveXPath csx = field.getAnnotation(CaseInsensitiveXPath.class);
@@ -85,81 +74,23 @@ public class ExtendedElementLocator implements ElementLocator {
             // get driver from it, there will be 'org.openqa.selenium.NoSuchElementException' because on this moment page is not opened,
             // so we just use driver instead
             locatorConverters.add(new CaseInsensitiveConverter(csx, ContentType.NATIVE_MOBILE_SPECIFIC.equals(getCurrentContentType(driver))));
-            caseInsensitive = true;
         }
-        if (field.isAnnotationPresent(Localized.class)) {
-            this.localized = true;
-        }
-        buildConvertedBy();
     }
 
-    public By getOriginalBy() {
-        return originalBy;
-    }
-
-    public void buildConvertedBy() {
-        // do not do converting if there are no locator converters at all
-        if (locatorConverters.isEmpty()) {
-            return;
-        }
-        String byAsString = this.originalBy.toString();
-        for (LocatorConverter converter : locatorConverters) {
-            byAsString = converter.convert(byAsString);
-        }
-
-        String finalByAsString = byAsString;
-        this.by = Arrays.stream(LocatorType.values())
-                .filter(locatorType -> locatorType.is(finalByAsString))
-                .findFirst()
-                .orElseThrow()
-                .buildLocatorFromString(byAsString);
-    }
-
-    /**
-     * From io.appium.java_client.pagefactory.AppiumElementLocator
-     * This methods makes sets some settings of the {@link By} according to
-     * the given instance of {@link SearchContext}. If there is some {@link ContentMappedBy}
-     * then it is switched to the searching for some html or native mobile element.
-     * Otherwise nothing happens there.
-     *
-     * @deprecated this method takes too much time for the simple actions
-     * @param currentBy is some locator strategy
-     * @param currentContent is an instance of some subclass of the {@link SearchContext}.
-     * @return the corrected {@link By} for the further searching
-     *
-     */
-    @Deprecated(forRemoval = true, since = "1.1.7")
-    private By getBy(By currentBy, SearchContext currentContent) {
-        if (!ContentMappedBy.class.isAssignableFrom(currentBy.getClass())) {
-            return currentBy;
-        }
-
-        return ContentMappedBy.class.cast(currentBy)
-                .useContent(getCurrentContentType(currentContent));
-    }
-
-    /**
-     * Find the element.
-     */
     public WebElement findElement() {
 
         if (by == null) {
             throw new NullPointerException("By cannot be null");
         }
 
-        //TODO: test how findElements work for web and android
-        // maybe migrate to the latest appium java driver and reuse original findElement!
-        // do not use getBy method  - getText method, for example, takes 3s instead of 1s or even ~600ms!
-        //List<WebElement> elements = searchContext.findElements(getBy(by, searchContext));
         List<WebElement> elements = searchContext.findElements(by);
-
 
         WebElement element = null;
         if (elements.size() == 1) {
             element = elements.get(0);
         } else if (elements.size() > 1) {
             element = elements.get(0);
-            LOGGER.debug("{} elements detected by: {}", elements.size(), by.toString());
+            LOGGER.debug("{} elements detected by: {}", elements.size(), by);
         }
 
         if (element == null) {
@@ -168,19 +99,14 @@ public class ExtendedElementLocator implements ElementLocator {
         return element;
     }
 
-    /**
-     * Find the element list.
-     */
     public List<WebElement> findElements() {
         List<WebElement> elements = null;
 
         try {
-            // do not use getBy method  - getText method, for example, takes 3s instead of 1s or even ~600ms!
-            //elements = searchContext.findElements(getBy(by, searchContext));
             elements = searchContext.findElements(by);
 
         } catch (NoSuchElementException e) {
-            LOGGER.debug("Unable to find elements: " + e.getMessage());
+            LOGGER.debug("Unable to find elements: {}", e.getMessage());
         }
 
         if (elements == null) {
@@ -190,32 +116,16 @@ public class ExtendedElementLocator implements ElementLocator {
         return elements;
     }
 
-    public SearchContext getSearchContext() {
-        return this.searchContext;
-    }
-
-    public void setSearchContext(SearchContext searchContext) {
-        this.searchContext = searchContext;
-    }
-
-    public boolean isLocalized() {
-        return this.localized;
-    }
-
-    public boolean isCaseInsensitive() {
-        return this.caseInsensitive;
-    }
-
-    public By getBy() {
-        return this.by;
-    }
-
     public WebDriver getDriver() {
         return this.driver;
     }
 
-    public String getClassName() {
-        return className;
+    public By getBy() {
+        return by;
+    }
+
+    public SearchContext getSearchContext() {
+        return this.searchContext;
     }
 
     public LinkedList<LocatorConverter> getLocatorConverters() {
