@@ -35,8 +35,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.appium.java_client.pagefactory.utils.WebDriverUnpackUtility.getCurrentContentType;
-
 public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
     Logger I_PAGE_ACTIONS_HELPER_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -52,7 +50,14 @@ public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
      * Refresh browser.
      */
     default void refresh() {
-        refresh(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class));
+        refresh(getDefaultWaitTimeout());
+    }
+
+    /**
+     * Refresh browser.
+     */
+    default void refresh(long timeout) {
+        refresh(Duration.ofSeconds(timeout));
     }
 
     /**
@@ -60,10 +65,10 @@ public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
      *
      * @param timeout long
      */
-    default void refresh(long timeout) {
+    default void refresh(Duration timeout) {
         Wait<WebDriver> wait = new FluentWait<>(getDriver())
                 .pollingEvery(Duration.ofMillis(5000)) // there is no sense to refresh url address too often
-                .withTimeout(Duration.ofSeconds(timeout))
+                .withTimeout(timeout)
                 .ignoring(WebDriverException.class)
                 .ignoring(JsonException.class); // org.openqa.selenium.json.JsonException: Expected to read a START_MAP but instead have: END. Last 0
         // characters read
@@ -179,15 +184,10 @@ public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
      * Accepts alert modal.
      */
     default void acceptAlert() {
-        WebDriver drv = getDriver();
-
-        long retryInterval = getRetryInterval(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class));
-        Wait<WebDriver> wait = new WebDriverWait(drv,
-                Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class)),
-                Duration.ofMillis(retryInterval));
+        Wait<WebDriver> wait = new WebDriverWait(getDriver(), getDefaultWaitTimeout(), getDefaultWaitInterval(getDefaultWaitTimeout()));
         try {
             wait.until((Function<WebDriver, Object>) dr -> isAlertPresent());
-            drv.switchTo().alert().accept();
+            getDriver().switchTo().alert().accept();
             Messager.ALERT_ACCEPTED.info("");
         } catch (Exception e) {
             Messager.ALERT_NOT_ACCEPTED.error("");
@@ -198,14 +198,10 @@ public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
      * Cancels alert modal.
      */
     default void cancelAlert() {
-        WebDriver drv = getDriver();
-        long retryInterval = getRetryInterval(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class));
-        Wait<WebDriver> wait = new WebDriverWait(drv,
-                Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class)),
-                Duration.ofMillis(retryInterval));
+        Wait<WebDriver> wait = new WebDriverWait(getDriver(), getDefaultWaitTimeout(), getDefaultWaitInterval(getDefaultWaitTimeout()));
         try {
             wait.until((Function<WebDriver, Object>) dr -> isAlertPresent());
-            drv.switchTo().alert().dismiss();
+            getDriver().switchTo().alert().dismiss();
             Messager.ALERT_CANCELED.info("");
         } catch (Exception e) {
             Messager.ALERT_NOT_CANCELED.error("");
@@ -326,9 +322,6 @@ public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
 
     /**
      * For internal usage only
-     * 
-     * @param drv
-     * @param timeout
      */
     default void setPageLoadTimeout(WebDriver drv, Duration timeout) {
         try {
@@ -364,11 +357,8 @@ public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
 
     /**
      * For internal usage only
-     * 
-     * @return
      */
-    default long getPageLoadTimeout() {
-        long timeout = 300;
+    default Duration getPageLoadTimeout() {
         // #1705: limit pageLoadTimeout driver timeout by idleTimeout
         // if (!R.CONFIG.get("capabilities.idleTimeout").isEmpty()) {
         // long idleTimeout = R.CONFIG.getLong("capabilities.idleTimeout");
@@ -376,17 +366,6 @@ public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
         // timeout = idleTimeout;
         // }
         // }
-        return timeout;
-    }
-
-    private long getRetryInterval(long timeout) {
-        long retryInterval = Configuration.getRequired(WebDriverConfiguration.Parameter.RETRY_INTERVAL, Long.class);
-        if (timeout >= 3 && timeout <= 10) {
-            retryInterval = 500;
-        }
-        if (timeout > 10) {
-            retryInterval = 1000;
-        }
-        return retryInterval;
+        return Duration.ofSeconds(300);
     }
 }
