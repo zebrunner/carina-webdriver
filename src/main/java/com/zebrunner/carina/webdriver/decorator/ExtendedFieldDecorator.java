@@ -59,7 +59,8 @@ public class ExtendedFieldDecorator implements FieldDecorator, IExtendedWebEleme
         }
         if (AbstractPage.class.isAssignableFrom(fieldType)) {
             try {
-                return ConstructorUtils.invokeConstructor(fieldType, driver, driver, WebDriver.class, SearchContext.class);
+                return ConstructorUtils.invokeConstructor(fieldType, new Object[] { driver, driver },
+                        new Class<?>[] { WebDriver.class, SearchContext.class });
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                 ExceptionUtils.rethrow(e);
             } catch (NoSuchMethodException e) {
