@@ -17,12 +17,10 @@ package com.zebrunner.carina.webdriver.decorator;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.util.LinkedList;
 import java.util.List;
 
 import com.zebrunner.carina.webdriver.gui.AbstractPage;
@@ -31,49 +29,37 @@ import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
-import org.openqa.selenium.By;
 import org.openqa.selenium.SearchContext;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.WrapsDriver;
-import org.openqa.selenium.WrapsElement;
-import org.openqa.selenium.interactions.Locatable;
-import org.openqa.selenium.support.pagefactory.ElementLocator;
 import org.openqa.selenium.support.pagefactory.ElementLocatorFactory;
 import org.openqa.selenium.support.pagefactory.FieldDecorator;
-import org.openqa.selenium.support.pagefactory.internal.LocatingElementHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.carina.webdriver.gui.AbstractUIObject;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
-import com.zebrunner.carina.webdriver.locator.internal.AbstractUIObjectListHandler;
 import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
 
 public class ExtendedFieldDecorator implements FieldDecorator, IExtendedWebElementHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private final ElementLocatorFactory factory;
-    private final WebDriver webDriver;
+    private final ElementLocatorFactory locatorFactory;
+    private final WebDriver driver;
 
-    public ExtendedFieldDecorator(ElementLocatorFactory factory, WebDriver webDriver) {
-        this.factory = factory;
-        this.webDriver = webDriver;
+    public ExtendedFieldDecorator(ElementLocatorFactory locatorFactory, WebDriver driver) {
+        this.locatorFactory = locatorFactory;
+        this.driver = driver;
     }
 
-    /**
-     * @param field page element to be decorated
-     */
+    @Override
+    @SuppressWarnings("unchecked")
     public Object decorate(ClassLoader loader, Field field) {
-        if (!(ExtendedWebElement.class.isAssignableFrom(field.getType()) ||
-                AbstractUIObject.class.isAssignableFrom(field.getType()) ||
-                isDecoratableList(field))) {
+        Class<?> fieldType = field.getType();
+        if (!(ExtendedWebElement.class.isAssignableFrom(fieldType) || AbstractPage.class.isAssignableFrom(fieldType)
+                || isDecoratableList(field))) {
             return null;
         }
-        if (AbstractPage.class.isAssignableFrom(field.getType())) {
+        if (AbstractPage.class.isAssignableFrom(fieldType)) {
             try {
-                return ((Class<? extends AbstractPage>) field.getType()).getConstructor(WebDriver.class, SearchContext.class)
-                        .newInstance(webDriver, webDriver);
+                return ConstructorUtils.invokeConstructor(fieldType, driver, driver, WebDriver.class, SearchContext.class);
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                 ExceptionUtils.rethrow(e);
             } catch (NoSuchMethodException e) {
@@ -84,30 +70,50 @@ public class ExtendedFieldDecorator implements FieldDecorator, IExtendedWebEleme
 
         ExtendedElementLocator locator;
         try {
-            locator = (ExtendedElementLocator) factory.createLocator(field);
+            locator = (ExtendedElementLocator) locatorFactory.createLocator(field);
         } catch (Exception e) {
-            LOGGER.error("Error while creating locator!", e);
+            LOGGER.error("Exception while creating locator. Message: {}", e.getMessage(), e);
             return null;
         }
         if (locator == null) {
             return null;
         }
 
-        if (ExtendedWebElement.class.isAssignableFrom(field.getType())) {
-            return generateExtendedWebElement(field, locator);
-        }
-        if (AbstractUIObject.class.isAssignableFrom(field.getType())) {
-            return proxyForAbstractUIObject(loader, field, locator);
+        if (ClassUtils.isAssignable(fieldType, ExtendedWebElement.class)) {
+            try {
+                ExtendedWebElement element;
+                if (ConstructorUtils.getAccessibleConstructor(fieldType, WebDriver.class) != null) {
+                    element = (ExtendedWebElement) ConstructorUtils.invokeConstructor(fieldType, new Object[] { locator.getDriver() },
+                            new Class<?>[] { WebDriver.class });
+                } else if (ConstructorUtils.getAccessibleConstructor(fieldType, WebDriver.class, SearchContext.class) != null) {
+                    element = (ExtendedWebElement) ConstructorUtils.invokeConstructor(fieldType,
+                            new Object[] { locator.getDriver(), locator.getSearchContext() },
+                            new Class<?>[] { WebDriver.class, SearchContext.class });
+                } else {
+                    throw new NoSuchMethodException(
+                            String.format("Could not find suitable constructor (WebDriver) or (WebDriver, SearchContext) in '%s' class.", fieldType));
+                }
+
+                element.setBy(buildConvertedBy(locator.getBy(), locator.getLocatorConverters()));
+                element.setName(field.getName());
+
+                String uuid = element.getUuid();
+                List<LocatorConverter> converters = locator.getLocatorConverters();
+                if (!converters.isEmpty()) {
+                    LOCATOR_CONVERTERS.put(uuid, locator.getLocatorConverters());
+                }
+                ORIGINAL_LOCATORS.put(uuid, locator.getBy());
+                return element;
+            } catch (Exception e) {
+                return ExceptionUtils.rethrow(e);
+            }
         }
 
         if (List.class.isAssignableFrom(field.getType())) {
             Type listType = getListType(field);
             if (ExtendedWebElement.class.isAssignableFrom((Class<?>) listType)) {
-                return proxyForListLocator(loader, field, locator, (Class<?>) listType);
-            }
-
-            if (AbstractUIObject.class.isAssignableFrom((Class<?>) listType)) {
-                return proxyForListUIObjects(loader, field, locator);
+                return Proxy.newProxyInstance(loader, new Class[] { List.class },
+                        new LocatingListHandler(locator, field, (Class<?>) listType));
             }
         }
         return null;
@@ -117,79 +123,18 @@ public class ExtendedFieldDecorator implements FieldDecorator, IExtendedWebEleme
         if (!List.class.isAssignableFrom(field.getType())) {
             return false;
         }
-
         Type listType = getListType(field);
         if (listType == null) {
             return false;
         }
-
         try {
-            if (!(ExtendedWebElement.class.isAssignableFrom((Class<?>) listType) || AbstractUIObject.class.isAssignableFrom((Class<?>) listType))) {
+            if (!(ExtendedWebElement.class.isAssignableFrom((Class<?>) listType))) {
                 return false;
             }
         } catch (ClassCastException e) {
             return false;
         }
-
         return true;
-    }
-
-    @SuppressWarnings("unchecked")
-    protected <T extends ExtendedWebElement> T generateExtendedWebElement(Field field, ExtendedElementLocator locator) {
-        try {
-            Class<?> type = field.getType();
-            if (ClassUtils.isAssignable(type, AbstractUIObject.class)) {
-                type = ExtendedWebElement.class;
-            }
-            T extendedWebElement = (T) ConstructorUtils.invokeConstructor(type, locator.getDriver(), locator.getSearchContext());
-            By originalBy = locator.getOriginalBy();
-            String uuid = extendedWebElement.getUuid();
-            LinkedList<LocatorConverter> converters = locator.getLocatorConverters();
-            extendedWebElement.setLocator(buildConvertedBy(originalBy, converters));
-            extendedWebElement.setName(field.getName());
-            LOCATOR_CONVERTERS.putIfAbsent(uuid, converters);
-            ORIGINAL_LOCATORS.putIfAbsent(uuid, originalBy);
-            return extendedWebElement;
-        } catch (Exception e) {
-            return ExceptionUtils.rethrow(e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    protected <T extends AbstractUIObject> T proxyForAbstractUIObject(ClassLoader loader, Field field, ExtendedElementLocator locator) {
-        InvocationHandler handler = new LocatingElementHandler(locator);
-        WebElement proxy = (WebElement) Proxy.newProxyInstance(loader,
-                new Class[] { WebElement.class, WrapsElement.class, WrapsDriver.class, Locatable.class, TakesScreenshot.class },
-                handler);
-        Class<? extends AbstractUIObject> clazz = (Class<? extends AbstractUIObject>) field.getType();
-        T uiObject;
-        try {
-            uiObject = (T) clazz.getConstructor(WebDriver.class, SearchContext.class).newInstance(
-                    webDriver, proxy);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Implement appropriate AbstractUIObject constructor for auto-initialization!", e);
-        } catch (Exception e) {
-            throw new RuntimeException("Error creating UIObject!", e);
-        }
-
-        uiObject.setRootExtendedElement(generateExtendedWebElement(field, locator));
-        uiObject.setName(field.getName());
-        uiObject.setRootElement(proxy);
-        uiObject.setRootBy(getLocatorBy(locator));
-        return uiObject;
-    }
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    protected <T extends ExtendedWebElement> List<T> proxyForListLocator(ClassLoader loader, Field field, ExtendedElementLocator locator, Class<?> clazz) {
-        InvocationHandler handler = new LocatingListHandler(loader, locator, field, clazz);
-        return (List<T>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
-    }
-
-    @SuppressWarnings("unchecked")
-    protected <T extends AbstractUIObject> List<T> proxyForListUIObjects(ClassLoader loader, Field field, ExtendedElementLocator locator) {
-        InvocationHandler handler = new AbstractUIObjectListHandler<T>(loader, (Class<?>) getListType(field), webDriver,
-                locator, field.getName(), field);
-        return (List<T>) Proxy.newProxyInstance(loader, new Class[] { List.class }, handler);
     }
 
     private Type getListType(Field field) {
@@ -199,29 +144,6 @@ public class ExtendedFieldDecorator implements FieldDecorator, IExtendedWebEleme
         if (!(genericType instanceof ParameterizedType)) {
             return null;
         }
-
         return ((ParameterizedType) genericType).getActualTypeArguments()[0];
-    }
-
-    private By getLocatorBy(ElementLocator locator) {
-        By rootBy = null;
-        // TODO: get root by annotation from ElementLocator to be able to append by for those elements and reuse fluent waits
-        try {
-            Field byContextField = null;
-
-            byContextField = locator.getClass().getDeclaredField("by");
-            byContextField.setAccessible(true);
-            rootBy = (By) byContextField.get(locator);
-
-        } catch (NoSuchFieldException e) {
-            LOGGER.error("getLocatorBy->NoSuchFieldException failure", e);
-        } catch (IllegalAccessException e) {
-            LOGGER.error("getLocatorBy->IllegalAccessException failure", e);
-        } catch (ClassCastException e) {
-            LOGGER.error("getLocatorBy->ClassCastException failure", e);
-        } catch (Exception e) {
-            LOGGER.error("Unable to get rootBy via reflection!", e);
-        }
-        return rootBy;
     }
 }

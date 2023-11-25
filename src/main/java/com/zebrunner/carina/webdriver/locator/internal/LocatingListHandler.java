@@ -15,98 +15,99 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver.locator.internal;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.zebrunner.carina.webdriver.locator.ImmutableUIList;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
-import org.openqa.selenium.By;
-import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.SearchContext;
+import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.WrapsDriver;
-import org.openqa.selenium.WrapsElement;
-import org.openqa.selenium.interactions.Locatable;
-import org.openqa.selenium.support.pagefactory.ElementLocator;
 
 import com.zebrunner.carina.webdriver.decorator.ExtendedWebElement;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
 import com.zebrunner.carina.webdriver.locator.LocatorType;
 import com.zebrunner.carina.webdriver.locator.LocatorUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class LocatingListHandler<T extends ExtendedWebElement> implements InvocationHandler {
+public class LocatingListHandler implements InvocationHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final ExtendedElementLocator locator;
-    private final String name;
-    private final ClassLoader loader;
     private final Class<?> clazz;
+    private final Field field;
 
-    public LocatingListHandler(ClassLoader loader, ExtendedElementLocator locator, Field field, Class<?> clazz) {
-        this.loader = loader;
+    public LocatingListHandler(ExtendedElementLocator locator, Field field, Class<?> clazz) {
         this.locator = locator;
-        this.name = field.getName();
+        this.field = field;
         this.clazz = clazz;
     }
 
     @SuppressWarnings("unchecked")
     public Object invoke(Object object, Method method, Object[] objects) throws Throwable {
-		// Hotfix for huge and expected regression in carina: we lost managed
-		// time delays with lists manipulations
-		// Temporary we are going to restore explicit waiter here with hardcoded
-		// timeout before we find better solution
-		// Pros: super fast regression issue which block UI execution
-		// Cons: there is no way to manage timeouts in this places
-//    	if (!waitUntil(ExpectedConditions.or(ExpectedConditions.presenceOfElementLocated(by),
-//    			ExpectedConditions.visibilityOfElementLocated(by)))) {
-//    		LOGGER.error("List is not present: " + by);
-//    	}
+        // Hotfix for huge and expected regression in carina: we lost managed
+        // time delays with lists manipulations
+        // Temporary we are going to restore explicit waiter here with hardcoded
+        // timeout before we find better solution
+        // Pros: super fast regression issue which block UI execution
+        // Cons: there is no way to manage timeouts in this places
+        // if (!waitUntil(ExpectedConditions.or(ExpectedConditions.presenceOfElementLocated(by),
+        // ExpectedConditions.visibilityOfElementLocated(by)))) {
+        // LOGGER.error("List is not present: " + by);
+        // }
 
-        List<WebElement> elements = locator.findElements();
-        By by = getLocatorBy(locator);
-        Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(by);
-        boolean isByForListSupported = locatorType.isPresent() && locatorType.get().isIndexSupport();
-        String locatorAsString = by.toString();
-        List<T> extendedWebElements = null;
+        List<ExtendedWebElement> extendedElements = new ArrayList<>();
         int i = 0;
-        if (elements != null) {
-            extendedWebElements = new ArrayList<>();
-            for (WebElement element : elements) {
-                T extendedElement;
-                try {
-                    extendedElement = (T) ConstructorUtils.invokeConstructor(clazz, locator.getDriver(),
-                            locator.getSearchContext());
-                } catch (NoSuchMethodException e) {
-                    throw new RuntimeException(
-                            "Implement appropriate AbstractUIObject constructor for auto-initialization!", e);
-                } catch (Exception e) {
-                    throw new RuntimeException("Error creating ExtendedWebElement!", e);
+        for (WebElement element : locator.findElements()) {
+            ExtendedWebElement extendedElement;
+            try {
+                if (ConstructorUtils.getAccessibleConstructor(clazz, WebDriver.class, SearchContext.class) != null) {
+                    extendedElement = (ExtendedWebElement) ConstructorUtils.invokeConstructor(clazz,
+                            new Object[] { locator.getDriver(), locator.getSearchContext() },
+                            new Class<?>[] { WebDriver.class, SearchContext.class });
+                } else if (ConstructorUtils.getAccessibleConstructor(clazz, WebDriver.class) != null) {
+                    // If class inherit AbstractUIObject and contains only 'WebDriver' parameter
+                    extendedElement = (ExtendedWebElement) ConstructorUtils.invokeConstructor(clazz, new Object[] { locator.getDriver() },
+                            new Class<?>[] { WebDriver.class });
+                } else {
+                    throw new NoSuchMethodException(
+                            String.format("Could not find suitable constructor (WebDriver) or (WebDriver, SearchContext) in '%s' class.", clazz));
                 }
-                if (isByForListSupported) {
-                    extendedElement.setLocator(locatorType.get().buildLocatorWithIndex(locatorAsString, i));
-                }
-                extendedElement.setName(name + i);
-                extendedElement.setElement(element);
-                extendedWebElements.add(extendedElement);
-                i++;
+            } catch (NoSuchMethodException e) {
+                LOGGER.error(
+                        "Implement appropriate AbstractUIObject constructor in '{}' class for auto-initialization (WebDriver,SearchContext). Message: {}",
+                        clazz.getName(),
+                        e.getMessage(), e);
+                return ExceptionUtils.rethrow(e);
+            } catch (Exception e) {
+                LOGGER.error("Exception when  creating list of '{}' elements. Message: {}", field.getName(), e.getMessage(), e);
+                return ExceptionUtils.rethrow(e);
             }
+            if (field.isAnnotationPresent(ImmutableUIList.class)) {
+                Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(locator.getBy());
+                if (locatorType.isPresent() && locatorType.get().isIndexSupport()) {
+                    extendedElement.setBy(locatorType.get().buildLocatorWithIndex(locator.getBy().toString(), i));
+                } else {
+                    throw new IllegalStateException(String.format("'%s' locator does not supported by '%s' annotation.", locator.getBy(),
+                            ImmutableUIList.class.getSimpleName()));
+                }
+            }
+            extendedElement.setName(field.getName() + i);
+            extendedElement.setElement(element);
+            extendedElements.add(extendedElement);
+            i++;
         }
         try {
-            return method.invoke(extendedWebElements, objects);
+            return method.invoke(extendedElements, objects);
         } catch (InvocationTargetException e) {
             throw e.getCause();
         }
     }
-
-    private By getLocatorBy(ElementLocator locator) {
-        try {
-            ExtendedElementLocator extendedElementLocator = (ExtendedElementLocator) locator;
-            return extendedElementLocator.getBy();
-        } catch (ClassCastException e) {
-            throw new RuntimeException("Cannot get by from locator", e);
-        }
-    }
-
 }

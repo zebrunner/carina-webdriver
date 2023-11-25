@@ -119,7 +119,7 @@ public class AbstractUIObjectListHandler<T extends AbstractUIObject> implements 
                 ExtendedWebElement foundElement = new ExtendedWebElement(webDriver, locator.getSearchContext());
                 foundElement.setElement(element);
                 if (isByForListSupported) {
-                    foundElement.setLocator(locatorType.get().buildLocatorWithIndex(locatorAsString, index));
+                    foundElement.setBy(locatorType.get().buildLocatorWithIndex(locatorAsString, index));
                 }
                 foundElement.setName(String.format("%s - %d", name, index));
 
