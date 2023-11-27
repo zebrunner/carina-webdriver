@@ -26,8 +26,12 @@ import java.util.Objects;
 import java.util.UUID;
 
 import com.zebrunner.carina.utils.factory.ICustomTypePageFactory;
+import com.zebrunner.carina.webdriver.helper.IClipboardHelper;
 import com.zebrunner.carina.webdriver.helper.ICommonsHelper;
 import com.zebrunner.carina.webdriver.helper.IExtendedWebElementHelper;
+import com.zebrunner.carina.webdriver.helper.IPageActionsHelper;
+import com.zebrunner.carina.webdriver.helper.IPageDataHelper;
+import com.zebrunner.carina.webdriver.helper.IPageStorageHelper;
 import com.zebrunner.carina.webdriver.helper.IWaitHelper;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.NotImplementedException;
@@ -81,7 +85,7 @@ import javax.annotation.Nullable;
  * Base Extended WebElement
  */
 public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWebElementHelper, ICommonsHelper, IWaitHelper, ICustomTypePageFactory,
-        Cloneable {
+        IClipboardHelper, IPageStorageHelper, IPageDataHelper, IPageActionsHelper, Cloneable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final String udid;
     protected WebDriver driver;

@@ -69,6 +69,11 @@ public abstract class AbstractPage implements IChromeDevToolsHelper, IExtendedWe
         IPageDataHelper, IPageActionsHelper, IWaitHelper, ICustomTypePageFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     /**
+     * @deprecated use {@link #getDefaultWaitTimeout()} instead
+     */
+    @Deprecated(forRemoval = true, since = "1.2.7")
+    public static final long EXPLICIT_TIMEOUT = Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class);
+    /**
      * @deprecated will be hided in the next release. Use {@link #getDriver()} instead
      */
     @Deprecated
