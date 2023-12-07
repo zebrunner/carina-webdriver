@@ -45,6 +45,7 @@ public class ChromeCapabilities extends AbstractCapabilities<ChromeOptions> {
         addChromeOptions(options);
         options.addArguments("--start-maximized", "--ignore-ssl-errors");
         options.setAcceptInsecureCerts(true);
+        fixLegacyZebrunnerCapabilities(options);
         return options;
     }
 

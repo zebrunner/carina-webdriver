@@ -27,10 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.MutableCapabilities;
@@ -58,6 +60,21 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
 
     private static final String ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY = "zebrunner:Mitm";
     private static final String ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY = "zebrunner:MitmArgs";
+
+    protected void fixLegacyZebrunnerCapabilities(T options) {
+        List<String> keys = options.asMap()
+                .keySet()
+                .stream()
+                .filter(
+                        key -> StringUtils.equalsAnyIgnoreCase(key, "provider", "idleTimeout", "enableVNC", "enableLog", "enableVideo", "cpu",
+                                "memory"))
+                .collect(Collectors.toList());
+        for (String key : keys) {
+            Object value = options.getCapability(key);
+            options.setCapability(key, (Object) null);
+            options.setCapability("zebrunner:" + key, value);
+        }
+    }
 
     /**
      * Get capabilities from the configuration ({@link R#CONFIG}).

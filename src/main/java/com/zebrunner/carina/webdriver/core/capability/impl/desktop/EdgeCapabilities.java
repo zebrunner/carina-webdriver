@@ -41,6 +41,7 @@ public class EdgeCapabilities extends AbstractCapabilities<EdgeOptions> {
         addEdgeOptions(options);
         options.addArguments("--start-maximized", "--ignore-ssl-errors");
         options.setAcceptInsecureCerts(true);
+        fixLegacyZebrunnerCapabilities(options);
         return options;
     }
 

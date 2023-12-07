@@ -25,6 +25,7 @@ public class SafariCapabilities extends AbstractCapabilities<SafariOptions> {
     public SafariOptions getCapability(String testName) {
         SafariOptions options = new SafariOptions();
         addConfigurationCapabilities(options);
+        fixLegacyZebrunnerCapabilities(options);
         return options;
     }
 }

@@ -51,6 +51,7 @@ public class FirefoxCapabilities extends AbstractCapabilities<FirefoxOptions> {
         profile.setPreference("media.eme.enabled", true);
         profile.setPreference("media.gmp-manager.updateEnabled", true);
         options.setProfile(profile);
+        fixLegacyZebrunnerCapabilities(options);
         return options;
     }
 
