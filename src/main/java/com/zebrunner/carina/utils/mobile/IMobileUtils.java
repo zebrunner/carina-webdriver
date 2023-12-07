@@ -1314,7 +1314,7 @@ public interface IMobileUtils extends IDriverPool {
      * not available
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default Location getLocation() {
+    default Location getDeviceLocation() {
         SupportsLocation driver = null;
         try {
             driver = (SupportsLocation) getDriver();
@@ -1330,7 +1330,7 @@ public interface IMobileUtils extends IDriverPool {
      * @param location a {@link Location} containing the location information
      * @throws UnsupportedOperationException if driver does not support this feature
      */
-    default void setLocation(Location location) {
+    default void setDeviceLocation(Location location) {
         SupportsLocation driver = null;
         try {
             driver = (SupportsLocation) getDriver();
