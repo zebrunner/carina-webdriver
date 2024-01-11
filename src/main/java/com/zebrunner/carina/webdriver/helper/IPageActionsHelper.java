@@ -288,7 +288,7 @@ public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
         if (StringUtils.isBlank(url)) {
             throw new InvalidParameterException("Parameter 'url' could not be null or empty.");
         }
-        String decryptedURL = EncryptorUtils.decrypt(url);
+        String decryptedURL = EncryptorUtils.decrypt(StringUtils.trim(url));
         if (!(StringUtils.startsWithAny(decryptedURL, "http:", "https:"))) {
             decryptedURL = Configuration.getRequired(WebDriverConfiguration.Parameter.URL, StandardConfigurationOption.DECRYPT) + decryptedURL;
         }
