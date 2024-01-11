@@ -1718,11 +1718,28 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
         if (loadingStrategy == ElementLoadingStrategy.BY_PRESENCE || loadingStrategy == ElementLoadingStrategy.BY_PRESENCE_OR_VISIBILITY) {
             if (element != null) {
-                conditions.add(ExpectedConditions.not(ExpectedConditions.stalenessOf(element)));
+                conditions.add(
+                        new ExpectedCondition<Boolean>() {
+                            @Override
+                            public Boolean apply(WebDriver ignored) {
+                                try {
+                                    // Calling any method forces a staleness check
+                                    return element.isDisplayed();
+                                } catch (StaleElementReferenceException expected) {
+                                    return false;
+                                }
+                            }
+
+                            @Override
+                            public String toString() {
+                                return String.format("element (%s) to become stale", element);
+                            }
+                        });
             }
             if (by != null) {
                 conditions.add(getSearchContext() instanceof WebElement
-                        ? ExpectedConditions.presenceOfNestedElementLocatedBy((WebElement) searchContext, by)
+                        ? ExpectedConditions.and(ExpectedConditions.not(ExpectedConditions.stalenessOf((WebElement) searchContext)),
+                                ExpectedConditions.presenceOfNestedElementLocatedBy((WebElement) searchContext, by))
                         : ExpectedConditions.presenceOfElementLocated(by));
             }
         }
@@ -1732,7 +1749,8 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
             }
             if (by != null) {
                 conditions.add(getSearchContext() instanceof WebElement
-                        ? ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) getSearchContext(), by)
+                        ? ExpectedConditions.and(ExpectedConditions.not(ExpectedConditions.stalenessOf((WebElement) searchContext)),
+                                ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) getSearchContext(), by))
                         : ExpectedConditions.visibilityOfElementLocated(by));
             }
         }
