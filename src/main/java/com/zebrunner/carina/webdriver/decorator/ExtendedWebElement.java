@@ -261,10 +261,11 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if element present or visible, false otherwise
      */
     public boolean isPresent(Duration timeout) {
+        clearElementState();
         boolean res = false;
         try {
             res = waitUntil(getDefaultElementWaitCondition(), timeout);
-        } catch (StaleElementReferenceException e) {
+        } catch (StaleElementReferenceException | NoSuchElementException e) {
             // there is no sense to continue as StaleElementReferenceException captured
         }
         return res;
@@ -304,13 +305,14 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if present and visible, false otherwise
      */
     public boolean isElementPresent(Duration timeout) {
+        clearElementState();
         // perform at once super-fast single selenium call and only if nothing found move to waitAction
         if (element != null) {
             try {
                 if (element.isDisplayed()) {
                     return true;
                 }
-            } catch (Exception e) {
+            } catch (StaleElementReferenceException e) {
                 // do nothing as element is not found as expected here
             }
         }
@@ -320,14 +322,9 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         // visibilityOfElementLocated: Checks to see if the element is present and also visible. To check visibility, it makes sure that the element
         // has a height and width greater than 0.
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
-        if (element == null && by == null) {
-            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
-        }
-
         if (element != null) {
             conditions.add(ExpectedConditions.visibilityOf(element));
         }
-
         if (by != null) {
             if (searchContext instanceof WebElement) {
                 conditions.add(ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) searchContext, by));
@@ -369,7 +366,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Checks that element clickable
-     * 
+     *
      * @param timeout timeout, in seconds
      * @return true if element is clickable, false otherwise
      */
@@ -384,10 +381,8 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if clickable, false otherwise
      */
     public boolean isClickable(Duration timeout) {
+        clearElementState();
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
-        if (element == null && by == null) {
-            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
-        }
         if (element != null) {
             conditions.add(ExpectedConditions.elementToBeClickable(element));
         }
@@ -418,7 +413,11 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                 conditions.add(ExpectedConditions.elementToBeClickable(by));
             }
         }
-        return waitUntil(ExpectedConditions.or(conditions.toArray(new ExpectedCondition[0])), timeout);
+        try {
+            return waitUntil(ExpectedConditions.or(conditions.toArray(new ExpectedCondition[0])), timeout);
+        } catch (StaleElementReferenceException e) {
+            return false;
+        }
     }
 
     /**
@@ -432,7 +431,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Checks that element visible
-     * 
+     *
      * @param timeout timeout, in seconds
      * @return true if element is visible, false otherwise
      */
@@ -447,10 +446,8 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if element is visible, false otherwise
      */
     public boolean isVisible(Duration timeout) {
+        clearElementState();
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
-        if (element == null && by == null) {
-            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
-        }
         if (element != null) {
             conditions.add(ExpectedConditions.visibilityOf(element));
         }
@@ -461,13 +458,11 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                 conditions.add(ExpectedConditions.visibilityOfElementLocated(by));
             }
         }
-
         boolean res = false;
         try {
             res = waitUntil(ExpectedConditions.or(conditions.toArray(new ExpectedCondition[0])), timeout);
         } catch (StaleElementReferenceException e) {
             // there is no sense to continue as StaleElementReferenceException captured
-            LOGGER.debug("waitUntil: StaleElementReferenceException", e);
         }
         return res;
     }
@@ -484,7 +479,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Check that element with text present
-     * 
+     *
      * @param text of element to check.
      * @param timeout timeout, in seconds
      * @return true if element with such test present, false otherwise
@@ -501,11 +496,9 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return true if element with such test present, false otherwise
      */
     public boolean isElementWithTextPresent(final String text, Duration timeout) {
+        clearElementState();
         final String decryptedText = EncryptorUtils.decrypt(text);
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
-        if (element == null && by == null) {
-            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
-        }
         if (element != null) {
             conditions.add(ExpectedConditions.textToBePresentInElement(element, decryptedText));
         }
@@ -514,10 +507,11 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
                 ExpectedCondition<?> condition = new ExpectedCondition<Boolean>() {
                     @Override
                     public Boolean apply(WebDriver driver) {
+                        WebElement e = searchContext.findElement(by);
                         try {
-                            String elementText = searchContext.findElement(by).getText();
+                            String elementText = e.getText();
                             return elementText.contains(text);
-                        } catch (StaleElementReferenceException e) {
+                        } catch (StaleElementReferenceException ex) {
                             return false;
                         }
                     }
@@ -535,7 +529,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
             }
         }
 
-        return waitUntil(ExpectedConditions.or(conditions.toArray(new ExpectedCondition[0])), timeout);
+            return waitUntil(ExpectedConditions.or(conditions.toArray(new ExpectedCondition[0])), timeout);
     }
 
     ///////////// ELEMENT INFORMATION /////////////
@@ -597,12 +591,12 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     @Override
     public Rectangle getRect() {
-        throw new NotImplementedException();
+       return findElement().getRect();
     }
 
     @Override
     public String getCssValue(String propertyName) {
-        throw new NotImplementedException();
+        return findElement().getCssValue(propertyName);
     }
 
     /**
@@ -617,27 +611,34 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     @Override
     public boolean isSelected() {
-        throw new NotImplementedException();
+        try {
+            return findElement().isSelected();
+        }catch (NoSuchElementException e) {
+            throw new StaleElementReferenceException("stale element reference");
+        }
     }
 
     @Override
     public boolean isEnabled() {
-        throw new NotImplementedException();
+        try {
+            return findElement().isEnabled();
+        }catch (NoSuchElementException e) {
+            throw new StaleElementReferenceException("stale element reference");
+        }
     }
 
     @Override
     public String getTagName() {
-        throw new NotImplementedException();
+        return findElement().getTagName();
     }
 
     @Override
     public boolean isDisplayed() {
         try {
             return findElement().isDisplayed();
-        } catch (Exception e) {
-            // do nothing
+        } catch (NoSuchElementException e) {
+            throw new StaleElementReferenceException("stale element reference");
         }
-        return false;
     }
 
     @Override
@@ -671,7 +672,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Click on element
-     * 
+     *
      * @param timeout timeout, in seconds
      */
     public void click(long timeout) {
@@ -689,7 +690,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Click on element
-     * 
+     *
      * @param timeout timeout, in seconds
      * @param waitCondition {@link ExpectedCondition}
      */
@@ -716,7 +717,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Click on element by javascript
-     * 
+     *
      * @param timeout timeout, in seconds
      */
     public void clickByJs(long timeout) {
@@ -734,7 +735,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Click on element by javascript
-     * 
+     *
      * @param timeout timeout, in seconds
      * @param waitCondition {@link ExpectedCondition}
      */
@@ -761,7 +762,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Click on element by {@link Actions}
-     * 
+     *
      * @param timeout timeout, in seconds
      */
     public void clickByActions(long timeout) {
@@ -779,7 +780,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Click on element by {@link Actions}
-     * 
+     *
      * @param timeout timeout, in seconds
      * @param waitCondition {@link ExpectedCondition}
      */
@@ -875,7 +876,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * MouseOver (Hover) an element.
-     * 
+     *
      * @param xOffset x offset for moving
      * @param yOffset y offset for moving
      */
@@ -912,7 +913,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Send Keys to element.
-     * 
+     *
      * @param keys Keys
      */
     public void sendKeys(Keys keys) {
@@ -1198,6 +1199,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      * @return boolean true if element disappeared and false if still visible
      */
     public boolean waitUntilElementDisappear(final long timeout) {
+        clearElementState();
         boolean res = false;
         try {
             if (this.element == null) {
@@ -1407,6 +1409,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     private Object doAction(ACTION_NAME actionName, Duration timeout, ExpectedCondition<?> waitCondition,
             Object... inputArgs) {
+        clearElementState();
 
         if (waitCondition != null) {
             // do verification only if waitCondition is not null
@@ -1707,14 +1710,12 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     /**
      * Get default waiting condition depends on {@link ElementLoadingStrategy}
-     * 
+     *
      * @return {@link ExpectedCondition}
      */
     @SuppressWarnings("squid:S1452")
     protected ExpectedCondition<?> getDefaultElementWaitCondition() {
-        if (element == null && by == null) {
-            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
-        }
+        clearElementState();
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
         if (loadingStrategy == ElementLoadingStrategy.BY_PRESENCE || loadingStrategy == ElementLoadingStrategy.BY_PRESENCE_OR_VISIBILITY) {
             if (element != null) {
@@ -1738,8 +1739,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
             }
             if (by != null) {
                 conditions.add(getSearchContext() instanceof WebElement
-                        ? ExpectedConditions.and(ExpectedConditions.not(ExpectedConditions.stalenessOf((WebElement) searchContext)),
-                                ExpectedConditions.presenceOfNestedElementLocatedBy((WebElement) searchContext, by))
+                        ? ExpectedConditions.presenceOfNestedElementLocatedBy((WebElement) searchContext, by)
                         : ExpectedConditions.presenceOfElementLocated(by));
             }
         }
@@ -1749,8 +1749,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
             }
             if (by != null) {
                 conditions.add(getSearchContext() instanceof WebElement
-                        ? ExpectedConditions.and(ExpectedConditions.not(ExpectedConditions.stalenessOf((WebElement) searchContext)),
-                                ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) getSearchContext(), by))
+                        ?  ExpectedConditions.visibilityOfNestedElementsLocatedBy((WebElement) searchContext, by)
                         : ExpectedConditions.visibilityOfElementLocated(by));
             }
         }
@@ -1776,6 +1775,18 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         }
         element = elements.get(0);
         return element;
+    }
+
+    /**
+     * todo add description
+     */
+    protected void clearElementState() {
+        if (element == null && by == null) {
+            throw new IllegalStateException(String.format("By and WebElement both could not be null. Element: %s", getDetailedInfo()));
+        }
+        if(by != null) {
+            element = null;
+        }
     }
 
     private String getDetailedInfo() {
