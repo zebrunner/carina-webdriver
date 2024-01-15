@@ -84,6 +84,23 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
      */
     public abstract T getCapability(String testName);
 
+    protected void addAppiumProxy(T capabilities) {
+        Optional<String> proxyType = Configuration.get(WebDriverConfiguration.Parameter.PROXY_TYPE);
+
+        if (proxyType.isEmpty()) {
+            return;
+        }
+
+        if (proxyType.get().equalsIgnoreCase("Zebrunner")) {
+            capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, true);
+            Configuration.get(WebDriverConfiguration.Parameter.PROXY_ZEBRUNNER_ARGS)
+                    .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args));
+            return;
+        }
+        throw new InvalidConfigurationException(String.format("Invalid proxy type: %s", proxyType.get()));
+
+    }
+
     /**
      * Add proxy capability. Should only be used for Selenium session only.
      *
