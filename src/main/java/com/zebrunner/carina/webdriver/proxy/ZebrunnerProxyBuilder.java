@@ -24,6 +24,8 @@ import com.zebrunner.carina.webdriver.proxy.mode.Mode;
  */
 public final class ZebrunnerProxyBuilder {
     public static final String PROXY_ARGUMENTS_PARAMETER = "proxy_zebrunner_args";
+    public static final String PROXY_TYPE_PARAMETER = "proxy_zebrunner_type";
+
     //// Supported commands ////
     private static final String MODE_ARG = "--mode";
     private static final String NO_ANTICACHE_ARG = "--no-anticache";
@@ -97,6 +99,8 @@ public final class ZebrunnerProxyBuilder {
     private final List<Modification> bodyModifications = new ArrayList<>();
     private FilterCondition intercept = null;
     private FilterCondition viewFilter = null;
+
+    private String proxyType= null;
 
     static final class Modification {
         private static final List<String> DELIMITERS = List.of("/", ":", "|", "%", ";", "$");
@@ -618,6 +622,16 @@ public final class ZebrunnerProxyBuilder {
         return this;
     }
 
+    public ZebrunnerProxyBuilder enableSimpleProxy() {
+        this.proxyType = "simple";
+        return this;
+    }
+
+    public ZebrunnerProxyBuilder enableFullProxy() {
+        this.proxyType = "full";
+        return this;
+    }
+
     /**
      * Build command and put in into the {@code proxy_zebrunner_args} parameter.
      * 
@@ -792,6 +806,10 @@ public final class ZebrunnerProxyBuilder {
         String command = sb.toString();
         if (!command.isBlank()) {
             R.CONFIG.put(PROXY_ARGUMENTS_PARAMETER, command, currentTestOnly);
+        }
+
+        if(!StringUtils.isBlank(proxyType)) {
+            R.CONFIG.put(PROXY_TYPE_PARAMETER, proxyType, currentTestOnly);
         }
     }
 

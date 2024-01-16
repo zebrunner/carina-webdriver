@@ -32,6 +32,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.zebrunner.carina.webdriver.proxy.ZebrunnerProxyBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.openqa.selenium.InvalidArgumentException;
@@ -60,6 +61,7 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
 
     private static final String ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY = "zebrunner:Mitm";
     private static final String ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY = "zebrunner:MitmArgs";
+    private static final String ZEBRUNNER_MITMPROXY_TYPE_CAPABILITY = "zebrunner:MitmType";
 
     protected void fixLegacyZebrunnerCapabilities(T options) {
         List<String> keys = options.asMap()
@@ -95,6 +97,8 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
             capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, true);
             Configuration.get(WebDriverConfiguration.Parameter.PROXY_ZEBRUNNER_ARGS)
                     .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args));
+            Configuration.get(ZebrunnerProxyBuilder.PROXY_TYPE_PARAMETER)
+                    .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_TYPE_CAPABILITY, args));
             return;
         }
         throw new InvalidConfigurationException(String.format("Invalid proxy type: %s", proxyType.get()));
@@ -117,6 +121,8 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
             capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, true);
             Configuration.get(WebDriverConfiguration.Parameter.PROXY_ZEBRUNNER_ARGS)
                     .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args));
+            Configuration.get(ZebrunnerProxyBuilder.PROXY_TYPE_PARAMETER)
+                    .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_TYPE_CAPABILITY, args));
             return;
         }
 
