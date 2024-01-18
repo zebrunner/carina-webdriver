@@ -5,9 +5,6 @@ import com.zebrunner.carina.utils.report.SessionContext;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.listener.DriverListener;
-import de.sstoehr.harreader.HarReader;
-import de.sstoehr.harreader.HarReaderException;
-import de.sstoehr.harreader.model.Har;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -50,20 +47,6 @@ public interface IProxyHelper extends IDriverPool {
         } catch (IOException e) {
             I_PROXY_HELPER_LOGGER.debug("Exception when try to download har artifact: {}", e.getMessage(), e);
             return Optional.empty();
-        }
-    }
-
-    /**
-     * Read har file
-     * 
-     * @param path {@link Path}
-     * @return {@link Har}
-     */
-    default Har readHar(Path path) {
-        try {
-            return new HarReader().readFromFile(path.toFile());
-        } catch (HarReaderException e) {
-            return ExceptionUtils.rethrow(e);
         }
     }
 }

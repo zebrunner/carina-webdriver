@@ -58,7 +58,6 @@
         <selenium.version>4.13.0</selenium.version>
         <appium.version>8.6.0</appium.version>
         <cdt-java-client.version>4.0.0</cdt-java-client.version>
-        <har-reader.version>2.3.0</har-reader.version>
         <ashot.version>1.5.4</ashot.version>
         <itext.version>5.5.13.3</itext.version>
         <reflections.version>0.10.2</reflections.version>
@@ -188,12 +187,6 @@
             <groupId>com.github.kklisura.cdt</groupId>
             <artifactId>cdt-java-client</artifactId>
             <version>${cdt-java-client.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>de.sstoehr</groupId>
-            <artifactId>har-reader</artifactId>
-            <version>${har-reader.version}</version>
         </dependency>
 
         <!-- todo remove -->
