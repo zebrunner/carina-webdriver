@@ -622,12 +622,12 @@ public final class ZebrunnerProxyBuilder {
         return this;
     }
 
-    public ZebrunnerProxyBuilder enableSimpleProxy() {
+    public ZebrunnerProxyBuilder useBaseProxy() {
         this.proxyType = "simple";
         return this;
     }
 
-    public ZebrunnerProxyBuilder enableFullProxy() {
+    public ZebrunnerProxyBuilder useExtendedProxy() {
         this.proxyType = "full";
         return this;
     }
