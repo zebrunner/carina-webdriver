@@ -306,7 +306,7 @@ public interface IPageActionsHelper extends IDriverPool, IWaitHelper {
             drv.switchTo().alert().accept();
         } catch (TimeoutException e) {
             trigger("window.stop();"); // try to cancel page loading
-            Assert.fail("Unable to open url during " + timeout + "sec!");
+            Assert.fail("Unable to open url during " + timeout.toSeconds() + "sec!");
         } catch (Exception e) {
             Assert.fail("Undefined error on open url detected: " + e.getMessage(), e);
         } finally {
