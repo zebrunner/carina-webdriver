@@ -1,17 +1,19 @@
 package com.zebrunner.carina.webdriver.config;
 
+import java.security.InvalidParameterException;
+import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DurationUtils;
 import org.openqa.selenium.remote.CapabilityType;
 
 import com.zebrunner.carina.utils.R;
@@ -26,7 +28,7 @@ import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.remote.MobileCapabilityType;
 
 public final class WebDriverConfiguration extends Configuration {
-    private static final Set<String> RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES = Collections.synchronizedSet(new HashSet<>());
+    private static final Map<String, Duration> RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES = new ConcurrentHashMap<>();
 
     private static final String CAPABILITIES_PREFIX = "capabilities.";
 
@@ -464,11 +466,29 @@ public final class WebDriverConfiguration extends Configuration {
      * So when we try to create session, and we got such exception,
      * we will retry new session command.
      *
-     * @param messages root exception message(s)
+     * @param messages root exception message(s) with timeouts
+     */
+    @SuppressWarnings("unused")
+    public static void addIgnoredNewSessionErrorMessages(Map<String, Duration> messages) {
+        messages.forEach((key, value) -> {
+            if (value != null && value.isNegative()) {
+                throw new InvalidParameterException(
+                        String.format("Invalid duration for new session error: '%s'. Duration could not be negative.", key));
+            }
+            RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES.put(key, DurationUtils.zeroIfNull(value));
+        });
+    }
+
+    /**
+     * Add root exception messages that should be ignored during session startup.
+     * So when we try to create session, and we got such exception,
+     * we will retry new session command.
+     *
+     * @param messages root exception message(s). Be careful, all messages added using this method will be retried infinitely
      */
     @SuppressWarnings("unused")
     public static void addIgnoredNewSessionErrorMessages(String... messages) {
-        RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES.addAll(Arrays.asList(messages));
+        Arrays.asList(messages).forEach(key -> RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES.put(key, Duration.ZERO));
     }
 
     /**
@@ -476,7 +496,7 @@ public final class WebDriverConfiguration extends Configuration {
      *
      * @return {@link Set}
      */
-    public static Set<String> getIgnoredNewSessionErrorMessages() {
+    public static Map<String, Duration> getIgnoredNewSessionErrorMessages() {
         return RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES;
     }
 
