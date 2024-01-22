@@ -97,6 +97,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
                             }
 
                             if (CURRENT_SESSIONS_AMOUNT.get() > 0) {
+                                LOGGER.warn("Clear timeouts: {}. Error: {}",EXCEPTION_TIMEOUTS, error.get());
                                 EXCEPTION_TIMEOUTS.clear();
                                 return waitTime;
                             }
@@ -112,6 +113,8 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
                                 return waitTime;
                             } else {
                                 if (EXCEPTION_TIMEOUTS.get(message).compareTo(currentTime) <= 0) {
+                                    LOGGER.warn("Expired. Error: {}", message);
+
                                     // expired
                                     EXCEPTION_TIMEOUTS.remove(message);
                                     retry.set(false);
