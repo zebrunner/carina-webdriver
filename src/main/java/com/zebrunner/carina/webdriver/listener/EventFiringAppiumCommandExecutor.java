@@ -64,6 +64,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
         do {
             try {
                 if (isNewSessionCommand && DRIVERS_QUEUE_NOT_STARTED_AMOUNT.get() > 10) {
+                    LOGGER.warn("QUEUE: {}",DRIVERS_QUEUE_NOT_STARTED_AMOUNT);
                     CommonUtils.pause(
                             RandomUtils.nextInt(1, initRetryInterval));
                 }
