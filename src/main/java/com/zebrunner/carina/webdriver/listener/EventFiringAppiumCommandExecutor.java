@@ -39,6 +39,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
     private static final AtomicInteger DRIVERS_QUEUE_NOT_STARTED_AMOUNT = new AtomicInteger(0);
     private static final AtomicInteger CURRENT_SESSIONS_AMOUNT = new AtomicInteger(0);
     private static final Map<String, Duration> EXCEPTION_TIMEOUTS = new ConcurrentHashMap<>();
+    private final Integer initRetryInterval;
 
     private final AtomicBoolean retry = new AtomicBoolean(false);
 
@@ -49,6 +50,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
             @Nonnull AppiumClientConfig appiumClientConfig) {
         super(additionalCommands, service, httpClientFactory, appiumClientConfig);
         DRIVERS_QUEUE_NOT_STARTED_AMOUNT.getAndIncrement();
+        initRetryInterval =  Configuration.getRequired(WebDriverConfiguration.Parameter.INIT_RETRY_INTERVAL, Integer.class);
     }
 
     public EventFiringAppiumCommandExecutor(Map<String, CommandInfo> additionalCommands, AppiumClientConfig appiumClientConfig) {
@@ -63,7 +65,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
             try {
                 if (isNewSessionCommand && DRIVERS_QUEUE_NOT_STARTED_AMOUNT.get() > 10) {
                     CommonUtils.pause(
-                            RandomUtils.nextInt(1, Configuration.getRequired(WebDriverConfiguration.Parameter.INIT_RETRY_INTERVAL, Integer.class)));
+                            RandomUtils.nextInt(1, initRetryInterval));
                 }
                 if (DriverCommand.QUIT.equalsIgnoreCase(command.getName())) {
                     CURRENT_SESSIONS_AMOUNT.getAndDecrement();
