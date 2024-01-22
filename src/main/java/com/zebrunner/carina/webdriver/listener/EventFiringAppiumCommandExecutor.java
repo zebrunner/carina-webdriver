@@ -16,9 +16,12 @@ import org.openqa.selenium.remote.DriverCommand;
 import org.openqa.selenium.remote.Response;
 import org.openqa.selenium.remote.http.HttpClient;
 import org.openqa.selenium.remote.service.DriverService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.lang.invoke.MethodHandles;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author akhursevich
  */
 public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final AtomicInteger DRIVERS_QUEUE_NOT_STARTED_AMOUNT = new AtomicInteger(0);
     private static final AtomicInteger CURRENT_SESSIONS_AMOUNT = new AtomicInteger(0);
     private static final Map<String, Duration> EXCEPTION_TIMEOUTS = new ConcurrentHashMap<>();
@@ -82,6 +86,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
                 if (error.isEmpty()) {
                     throw e;
                 }
+                LOGGER.warn("{} - {}", error.get(), ExceptionUtils.getRootCauseMessage(e));
                 retry.set(true);
                 WebDriverConfiguration.getIgnoredNewSessionErrorMessages()
                         .compute(error.get(), (message, waitTime) -> {
