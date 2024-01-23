@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author akhursevich
  */
-public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
+public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final AtomicInteger DRIVERS_QUEUE_NOT_STARTED_AMOUNT = new AtomicInteger(0);
     private static final AtomicInteger CURRENT_SESSIONS_AMOUNT = new AtomicInteger(0);
@@ -87,6 +87,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
                         .filter(message -> StringUtils.containsIgnoreCase(ExceptionUtils.getRootCauseMessage(e), message))
                         .findAny();
                 if (error.isEmpty()) {
+                    DRIVERS_QUEUE_NOT_STARTED_AMOUNT.getAndDecrement();
                     throw e;
                 }
                 LOGGER.warn("{} - {}", error.get(), ExceptionUtils.getRootCauseMessage(e));
@@ -126,6 +127,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
                             }
                         });
                 if (!retry.get()) {
+                    DRIVERS_QUEUE_NOT_STARTED_AMOUNT.getAndDecrement();
                     throw e;
                 }
                 setCommandCodec(null);
