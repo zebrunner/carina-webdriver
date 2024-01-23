@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author akhursevich
  */
 public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final AtomicInteger DRIVERS_QUEUE_NOT_STARTED_AMOUNT = new AtomicInteger(0);
     private static final AtomicInteger CURRENT_SESSIONS_AMOUNT = new AtomicInteger(0);
     private static final Map<String, Duration> EXCEPTION_TIMEOUTS = new ConcurrentHashMap<>();
@@ -50,7 +49,7 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
             @Nonnull AppiumClientConfig appiumClientConfig) {
         super(additionalCommands, service, httpClientFactory, appiumClientConfig);
         DRIVERS_QUEUE_NOT_STARTED_AMOUNT.getAndIncrement();
-        initRetryInterval =  Configuration.getRequired(WebDriverConfiguration.Parameter.INIT_RETRY_INTERVAL, Integer.class);
+        initRetryInterval = Configuration.getRequired(WebDriverConfiguration.Parameter.INIT_RETRY_INTERVAL, Integer.class);
     }
 
     public EventFiringAppiumCommandExecutor(Map<String, CommandInfo> additionalCommands, AppiumClientConfig appiumClientConfig) {
@@ -64,7 +63,6 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
         do {
             try {
                 if (isNewSessionCommand && DRIVERS_QUEUE_NOT_STARTED_AMOUNT.get() > 10) {
-                    LOGGER.warn("QUEUE: {}",DRIVERS_QUEUE_NOT_STARTED_AMOUNT);
                     CommonUtils.pause(
                             RandomUtils.nextInt(1, initRetryInterval));
                 }
@@ -90,7 +88,6 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
                     DRIVERS_QUEUE_NOT_STARTED_AMOUNT.getAndDecrement();
                     throw e;
                 }
-                LOGGER.warn("{} - {}", error.get(), ExceptionUtils.getRootCauseMessage(e));
                 retry.set(true);
                 WebDriverConfiguration.getIgnoredNewSessionErrorMessages()
                         .compute(error.get(), (message, waitTime) -> {
@@ -99,7 +96,6 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
                             }
 
                             if (CURRENT_SESSIONS_AMOUNT.get() > 0) {
-                                LOGGER.warn("Clear timeouts: {}. Error: {}",EXCEPTION_TIMEOUTS, error.get());
                                 EXCEPTION_TIMEOUTS.clear();
                                 return waitTime;
                             }
@@ -115,8 +111,6 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
                                 return waitTime;
                             } else {
                                 if (EXCEPTION_TIMEOUTS.get(message).compareTo(currentTime) <= 0) {
-                                    LOGGER.warn("Expired. Error: {}", message);
-
                                     // expired
                                     EXCEPTION_TIMEOUTS.remove(message);
                                     retry.set(false);
