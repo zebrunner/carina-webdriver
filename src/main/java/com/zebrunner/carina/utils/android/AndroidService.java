@@ -116,9 +116,7 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
      *
      * @param pkg String
      * @param activity String
-     * @deprecated use {@link IAndroidUtils#startActivity(Activity)} ()} instead
      */
-    @Deprecated(forRemoval = true, since = "8.x")
     public void openApp(String pkg, String activity) {
         openApp(pkg.trim() + "/" + activity.trim());
     }
@@ -127,10 +125,7 @@ public class AndroidService implements IDriverPool, IAndroidUtils {
      * openApp
      *
      * @param app String
-     * @deprecated use {@link IAndroidUtils#startActivity(Activity)} ()} or
-     *             {@link IMobileUtils#startApp(String)} ()} instead
      */
-    @Deprecated(forRemoval = true, since = "8.x")
     public void openApp(String app) {
         String result = executeAdbCommand("shell am start -n " + app);
         if (result.contains("Exception")) {
