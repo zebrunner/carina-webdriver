@@ -119,7 +119,7 @@
         <dependency>
             <groupId>com.zebrunner</groupId>
             <artifactId>agent-core</artifactId>
-            <version>1.9.9.427-SNAPSHOT</version>
+            <version>1.9.9.428-SNAPSHOT</version>
         </dependency>
 
         <dependency>
