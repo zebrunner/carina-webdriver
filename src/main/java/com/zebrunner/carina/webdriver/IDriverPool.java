@@ -27,7 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import io.appium.java_client.remote.MobileCapabilityType;
+import io.appium.java_client.remote.options.SupportsUdidOption;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.MutableCapabilities;
@@ -185,7 +185,7 @@ public interface IDriverPool {
             keepProxy = true;
             device = getDevice(drv);
             POOL_LOGGER.debug("Added udid: {} to capabilities for restartDriver on the same device.", device.getUdid());
-            udidCaps.setCapability(MobileCapabilityType.UDID, device.getUdid());
+            udidCaps.setCapability(SupportsUdidOption.UDID_OPTION, device.getUdid());
         }
 
         Capabilities capabilities = null;

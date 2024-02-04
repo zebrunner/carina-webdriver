@@ -29,6 +29,9 @@ import java.util.regex.Pattern;
 import com.zebrunner.agent.core.registrar.Label;
 import com.zebrunner.carina.webdriver.listener.EventFiringAppiumCommandExecutor;
 import io.appium.java_client.MobileCommand;
+import io.appium.java_client.remote.options.SupportsAppOption;
+import io.appium.java_client.remote.options.SupportsAutomationNameOption;
+import io.appium.java_client.remote.options.SupportsUdidOption;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -60,7 +63,6 @@ import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.remote.AutomationName;
-import io.appium.java_client.remote.MobileCapabilityType;
 import io.appium.java_client.remote.MobilePlatform;
 
 /**
@@ -85,19 +87,19 @@ public class MobileFactory extends AbstractFactory {
         if (isCapabilitiesEmpty(capabilities)) {
             capabilities = getCapabilities(name);
         } else if (capabilities.asMap().size() == 1
-                && CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class) != null) {
-            String udid = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class);
+                && CapabilityHelpers.getCapability(capabilities, SupportsUdidOption.UDID_OPTION, String.class) != null) {
+            String udid = CapabilityHelpers.getCapability(capabilities, SupportsUdidOption.UDID_OPTION, String.class);
             capabilities = getCapabilities(name);
             MutableCapabilities udidCaps = new MutableCapabilities();
-            udidCaps.setCapability(MobileCapabilityType.UDID, udid);
+            udidCaps.setCapability(SupportsUdidOption.UDID_OPTION, udid);
             capabilities = capabilities.merge(udidCaps);
             LOGGER.debug("Appended udid to capabilities: {}", capabilities);
         }
 
-        Object mobileAppCapability = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.APP, String.class);
+        Object mobileAppCapability = CapabilityHelpers.getCapability(capabilities, SupportsAppOption.APP_OPTION, String.class);
         if (mobileAppCapability != null) {
             MutableCapabilities appCaps = new MutableCapabilities();
-            appCaps.setCapability(MobileCapabilityType.APP, getAppLink(String.valueOf(mobileAppCapability)));
+            appCaps.setCapability(SupportsAppOption.APP_OPTION, getAppLink(String.valueOf(mobileAppCapability)));
             capabilities = capabilities.merge(appCaps);
         }
 
@@ -189,7 +191,7 @@ public class MobileFactory extends AbstractFactory {
 
     private MutableCapabilities getCapabilities(String name) {
         Optional<String> platform = WebDriverConfiguration.getCapability(CapabilityType.PLATFORM_NAME);
-        Optional<String> automationName = WebDriverConfiguration.getCapability(MobileCapabilityType.AUTOMATION_NAME);
+        Optional<String> automationName = WebDriverConfiguration.getCapability(SupportsAutomationNameOption.AUTOMATION_NAME_OPTION);
 
         AbstractCapabilities<?> capabilities = null;
         if (automationName.isPresent() && AutomationName.ESPRESSO.equalsIgnoreCase(automationName.get())) {

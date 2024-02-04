@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Optional;
 
+import io.appium.java_client.remote.options.SupportsUdidOption;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.remote.CapabilityType;
@@ -11,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.appium.java_client.internal.CapabilityHelpers;
-import io.appium.java_client.remote.MobileCapabilityType;
 import io.appium.java_client.remote.MobilePlatform;
 
 public final class CapabilityUtils {
@@ -26,7 +26,7 @@ public final class CapabilityUtils {
                 ? ((Platform) capabilities.getCapability(CapabilityType.PLATFORM_NAME)).name()
                 : (String) capabilities.getCapability(CapabilityType.PLATFORM_NAME));
         Optional<String> browserName = Optional.ofNullable((String) (capabilities.getCapability(CapabilityType.BROWSER_NAME)));
-        Optional<String> udid = Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class));
+        Optional<String> udid = Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, SupportsUdidOption.UDID_OPTION, String.class));
 
         if (platform.isPresent() && (MobilePlatform.ANDROID.equalsIgnoreCase(platform.get()) ||
                 MobilePlatform.IOS.equalsIgnoreCase(platform.get()) ||
@@ -45,7 +45,7 @@ public final class CapabilityUtils {
                 return DriverType.MOBILE;
             }
             throw new IllegalArgumentException(String.format("Cannot detect driver type. Capabilities '%s', '%s', '%s' are empty.",
-                    CapabilityType.BROWSER_NAME, CapabilityType.PLATFORM_NAME, MobileCapabilityType.UDID));
+                    CapabilityType.BROWSER_NAME, CapabilityType.PLATFORM_NAME, SupportsUdidOption.UDID_OPTION));
         }
 
         if (MobilePlatform.WINDOWS.equalsIgnoreCase(platform.get())) {

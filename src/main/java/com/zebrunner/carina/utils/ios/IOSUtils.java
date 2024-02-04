@@ -38,25 +38,6 @@ public interface IOSUtils extends IMobileUtils {
     }
 
     /**
-     * Hides the keyboard if it is showing. Hiding the keyboard often depends
-     * on the way an app is implemented, no single strategy always
-     * works
-     *
-     * @param strategy HideKeyboardStrategy
-     * @param keyName  a String, representing the text displayed on the button of the keyboard you want to press. For example: "Done"
-     * @throws UnsupportedOperationException if driver does not support this feature
-     */
-    default void hideKeyboard(String strategy, String keyName) {
-        HidesKeyboardWithKeyName driver = null;
-        try {
-            driver = (HidesKeyboardWithKeyName) getDriver();
-        } catch (ClassCastException e) {
-            throw new UnsupportedOperationException("Driver is not support hideKeyboard method", e);
-        }
-        driver.hideKeyboard(strategy, keyName);
-    }
-
-    /**
      * Shake the device
      *
      * @throws UnsupportedOperationException if driver does not support this feature

@@ -29,6 +29,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import io.appium.java_client.remote.options.SupportsAppOption;
+import io.appium.java_client.remote.options.SupportsDeviceNameOption;
+import io.appium.java_client.remote.options.SupportsPlatformVersionOption;
+import io.appium.java_client.remote.options.SupportsUdidOption;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Capabilities;
@@ -49,7 +53,6 @@ import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.core.capability.CapabilityUtils;
 
 import io.appium.java_client.internal.CapabilityHelpers;
-import io.appium.java_client.remote.MobileCapabilityType;
 import io.appium.java_client.remote.MobilePlatform;
 
 public class Device implements IDriverPool {
@@ -92,9 +95,9 @@ public class Device implements IDriverPool {
     // todo refactor - read only from capabilities (original)
     public Device(Capabilities capabilities) {
         setName("");
-        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.DEVICE_NAME, String.class))
+        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, SupportsDeviceNameOption.DEVICE_NAME_OPTION, String.class))
                 .ifPresent(this::setName);
-        WebDriverConfiguration.getCapability(MobileCapabilityType.DEVICE_NAME).ifPresent(this::setName);
+        WebDriverConfiguration.getCapability(SupportsDeviceNameOption.DEVICE_NAME_OPTION).ifPresent(this::setName);
 
         // TODO: should we register default device type as phone?
         setType(SpecialKeywords.PHONE);
@@ -104,13 +107,13 @@ public class Device implements IDriverPool {
         setOs(WebDriverConfiguration.getCapability(CapabilityType.PLATFORM_NAME).orElse("*"));
 
         setOsVersion("");
-        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.PLATFORM_VERSION, String.class))
+        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, SupportsPlatformVersionOption.PLATFORM_VERSION_OPTION, String.class))
                 .ifPresent(this::setOsVersion);
-        WebDriverConfiguration.getCapability(MobileCapabilityType.PLATFORM_VERSION).ifPresent(this::setOsVersion);
+        WebDriverConfiguration.getCapability(SupportsPlatformVersionOption.PLATFORM_VERSION_OPTION).ifPresent(this::setOsVersion);
 
         setUdid("");
-        WebDriverConfiguration.getCapability(MobileCapabilityType.UDID).ifPresent(this::setUdid);
-        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.UDID, String.class))
+        WebDriverConfiguration.getCapability(SupportsUdidOption.UDID_OPTION).ifPresent(this::setUdid);
+        Optional.ofNullable(CapabilityHelpers.getCapability(capabilities, SupportsUdidOption.UDID_OPTION, String.class))
                 .ifPresent(this::setUdid);
 
         setProxyPort("");
@@ -123,7 +126,7 @@ public class Device implements IDriverPool {
                 .getZebrunnerCapability(capabilities, SpecialKeywords.SLOT_CAPABILITIES, Object.class)
                 .orElse(null);
         try {
-            if (slotCap != null && slotCap.containsKey(MobileCapabilityType.UDID)) {
+            if (slotCap != null && slotCap.containsKey(SupportsUdidOption.UDID_OPTION)) {
 
                 // restore device information from custom slotCapabilities map
                 /*
@@ -138,11 +141,11 @@ public class Device implements IDriverPool {
                  */
 
                 // That's a trusted information from Zebrunner Device Farm so we can override all values
-                setName((String) slotCap.get(MobileCapabilityType.DEVICE_NAME));
+                setName((String) slotCap.get(SupportsDeviceNameOption.DEVICE_NAME_OPTION));
                 setOs((String) slotCap.get(CapabilityType.PLATFORM_NAME));
-                setOsVersion((String) slotCap.get(MobileCapabilityType.PLATFORM_VERSION));
+                setOsVersion((String) slotCap.get(SupportsPlatformVersionOption.PLATFORM_VERSION_OPTION));
                 setType((String) slotCap.get("deviceType"));
-                setUdid((String) slotCap.get(MobileCapabilityType.UDID));
+                setUdid((String) slotCap.get(SupportsUdidOption.UDID_OPTION));
                 if (slotCap.containsKey("vnc")) {
                     setVnc((String) slotCap.get("vnc"));
                 }
@@ -385,7 +388,7 @@ public class Device implements IDriverPool {
     }
 
     public void clearAppData() {
-        clearAppData(CapabilityHelpers.getCapability(getCapabilities(), MobileCapabilityType.APP, String.class));
+        clearAppData(CapabilityHelpers.getCapability(getCapabilities(), SupportsAppOption.APP_OPTION, String.class));
     }
 
     public void clearAppData(String app) {
@@ -561,7 +564,7 @@ public class Device implements IDriverPool {
         if (MobilePlatform.ANDROID.equalsIgnoreCase(getOs())
                 && Configuration.get(WebDriverConfiguration.Parameter.UNINSTALL_RELATED_APPS, Boolean.class).orElse(false)
                 && !CLEARED_DEVICE_UDIDS.contains(getUdid())) {
-            String mobileApp = CapabilityHelpers.getCapability(getCapabilities(), MobileCapabilityType.APP, String.class);
+            String mobileApp = CapabilityHelpers.getCapability(getCapabilities(), SupportsAppOption.APP_OPTION, String.class);
             if (mobileApp == null) {
                 mobileApp = "";
             }

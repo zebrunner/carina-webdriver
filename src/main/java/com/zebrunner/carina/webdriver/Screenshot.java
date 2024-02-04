@@ -33,6 +33,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.imageio.ImageIO;
 
+import io.appium.java_client.remote.options.SupportsDeviceNameOption;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -66,7 +67,6 @@ import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import com.zebrunner.carina.webdriver.screenshot.IScreenshotRule;
 
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.remote.MobileCapabilityType;
 import ru.yandex.qatools.ashot.AShot;
 import ru.yandex.qatools.ashot.comparison.DiffMarkupPolicy;
 import ru.yandex.qatools.ashot.comparison.ImageDiff;
@@ -615,7 +615,7 @@ public class Screenshot {
                 } else {
                     int deviceWidth = driver.manage().window().getSize().getWidth();
                     String deviceName = String.valueOf(((HasCapabilities) driver).getCapabilities()
-                            .getCapability(MobileCapabilityType.DEVICE_NAME));
+                            .getCapability(SupportsDeviceNameOption.DEVICE_NAME_OPTION));
                     ashot = new AShot().shootingStrategy(getScreenshotShuttingStrategy(deviceWidth, deviceName));
                 }
             } else {

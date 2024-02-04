@@ -1336,7 +1336,7 @@ public interface IAndroidUtils extends IMobileUtils {
                 UTILS_LOGGER.info("Device TimeZone was changed to timeZone '{}' : {}. Device Language was changed to language '{}': {}",
                         timeZone, timeZoneChanged, deviceLanguage, languageChanged);
                 if (returnAppFocus) {
-                    androidService.startActivity(activity);
+                    startApp(activity.getAppPackage());
                 }
             } else {
                 UTILS_LOGGER.info("Current OS is {}. But we can set default TimeZone and Language only for Android.", os);
@@ -1360,36 +1360,6 @@ public interface IAndroidUtils extends IMobileUtils {
             throw new UnsupportedOperationException("Driver is not support getBatteryInfo method", e);
         }
         return driver.getBatteryInfo();
-    }
-
-    /**
-     * This method should start arbitrary activity during a test. If the activity belongs to
-     * another application, that application is started and the activity is opened.
-     * <p>
-     * Usage:
-     * </p>
-     *
-     * <pre>
-     * {
-     *     &#64;code
-     *     Activity activity = new Activity("app package goes here", "app activity goes here");
-     *     activity.setWaitAppPackage("app wait package goes here");
-     *     activity.setWaitAppActivity("app wait activity goes here");
-     *     driver.startActivity(activity);
-     * }
-     * </pre>
-     *
-     * @param activity The {@link Activity} object
-     * @throws UnsupportedOperationException if driver does not support this feature
-     */
-    default void startActivity(Activity activity) {
-        StartsActivity driver = null;
-        try {
-            driver = (StartsActivity) getDriver();
-        } catch (ClassCastException e) {
-            throw new UnsupportedOperationException("Driver is not support startActivity method", e);
-        }
-        driver.startActivity(activity);
     }
 
     /**
@@ -1704,39 +1674,6 @@ public interface IAndroidUtils extends IMobileUtils {
             throw new UnsupportedOperationException("Driver is not support setLocation method", e);
         }
         driver.setLocation(location);
-    }
-
-    /**
-     * Switch to focused app to interact with it (be it a native app or a browser)<br>
-     * Application will not be restarted<br>
-     */
-    default void switchToApp() {
-        switchToApp(getCurrentPackage(), getCurrentActivity(), false);
-    }
-
-    /**
-     * Switch to focused app to interact with it (be it a native app or a browser)<br>
-     *
-     * @param isRerun set true if you want to reopen app
-     */
-    default void switchToApp(boolean isRerun) {
-        switchToApp(getCurrentPackage(), getCurrentActivity(), isRerun);
-    }
-
-    /**
-     * Switch to another app to interact with it (be it a native app or a browser)<br>
-     * If you need more control over the activity settings of the launched application, use {@link #startActivity(Activity)}
-     *
-     * @param packageName  name of the package, for example {@code com.solvd.carinademoapplication}
-     * @param activityName name of the activity in app, for example {@code .ActivityTestScreens}
-     * @param isRerun      set true if you want to reopen app
-     */
-    default void switchToApp(String packageName, String activityName, boolean isRerun) {
-        Activity activity = new Activity(packageName, activityName);
-        activity.setAppWaitPackage(packageName);
-        activity.setAppWaitActivity(activityName);
-        activity.setStopApp(isRerun);
-        startActivity(activity);
     }
 
     /**

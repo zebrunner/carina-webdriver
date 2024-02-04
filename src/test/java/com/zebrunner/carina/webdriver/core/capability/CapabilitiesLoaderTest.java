@@ -18,6 +18,8 @@ package com.zebrunner.carina.webdriver.core.capability;
 import java.io.UncheckedIOException;
 import java.util.HashMap;
 
+import io.appium.java_client.remote.options.SupportsAutomationNameOption;
+import io.appium.java_client.remote.options.SupportsPlatformVersionOption;
 import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.remote.Browser;
@@ -28,7 +30,6 @@ import org.testng.annotations.Test;
 import com.zebrunner.carina.utils.R;
 
 import io.appium.java_client.remote.AutomationName;
-import io.appium.java_client.remote.MobileCapabilityType;
 
 public class CapabilitiesLoaderTest {
 
@@ -68,9 +69,9 @@ public class CapabilitiesLoaderTest {
         Assert.assertEquals(capabilities.getCapability(CapabilityType.BROWSER_NAME), Browser.CHROME.browserName(),
                 "Capabilities should contains chrome browser name.");
 
-        Assert.assertEquals(capabilities.getCapability(MobileCapabilityType.AUTOMATION_NAME), AutomationName.ESPRESSO.toLowerCase(),
+        Assert.assertEquals(capabilities.getCapability(SupportsAutomationNameOption.AUTOMATION_NAME_OPTION), AutomationName.ESPRESSO.toLowerCase(),
                 "Capabilities should contains espresso automation name without prefix.");
-        Assert.assertEquals(capabilities.getCapability("appium:" + MobileCapabilityType.PLATFORM_VERSION), 11,
+        Assert.assertEquals(capabilities.getCapability("appium:" + SupportsPlatformVersionOption.PLATFORM_VERSION_OPTION), 11,
                 "Capabilities should contains 11 platfrom version as integer.");
 
         Assert.assertEquals(capabilities.getCapability("zebrunner:enableLog"), true);

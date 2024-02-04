@@ -67,7 +67,6 @@ import io.appium.java_client.LocksDevice;
 import io.appium.java_client.PullsFiles;
 import io.appium.java_client.PushesFiles;
 import io.appium.java_client.Setting;
-import io.appium.java_client.SupportsLegacyAppManagement;
 import io.appium.java_client.appmanagement.ApplicationState;
 import io.appium.java_client.appmanagement.BaseActivateApplicationOptions;
 import io.appium.java_client.appmanagement.BaseInstallApplicationOptions;
@@ -975,27 +974,6 @@ public interface IMobileUtils extends IDriverPool {
         return driver.terminateApp(bundleId, options);
     }
 
-    /**
-     * The application that has its package name set to current driver's
-     * capabilities will be closed to background IN CASE IT IS CURRENTLY IN
-     * FOREGROUND. Will be in recent app's list;
-     *
-     * @throws UnsupportedOperationException if driver does not support this feature
-     * @deprecated https://github.com/appium/appium/issues/1580
-     */
-    @Deprecated(since = "8.x")
-    default void closeApp() {
-        UTILS_LOGGER.info("Application will be closed to background");
-        SupportsLegacyAppManagement driver = null;
-        try {
-            driver = (SupportsLegacyAppManagement) getDriver();
-        } catch (ClassCastException e) {
-            throw new UnsupportedOperationException("Driver is not support closeApp method", e);
-        }
-
-        driver.closeApp();
-    }
-
     // TODO Update this method using findByImage strategy
 
     /**
@@ -1175,24 +1153,6 @@ public interface IMobileUtils extends IDriverPool {
             throw new UnsupportedOperationException("Driver is not support runAppInBackground method", e);
         }
         driver.runAppInBackground(duration);
-    }
-
-    /**
-     * Method to reset test application.<br>
-     * App's settings will be reset. User will be logged out. Application will be closed to background.
-     *
-     * @deprecated https://github.com/appium/appium/issues/15807
-     */
-    @Deprecated(since = "8.x")
-    default void clearAppCache() {
-        UTILS_LOGGER.info("Initiation application reset...");
-        SupportsLegacyAppManagement driver = null;
-        try {
-            driver = (SupportsLegacyAppManagement) getDriver();
-        } catch (ClassCastException e) {
-            throw new UnsupportedOperationException("Driver is not support deprecated clearAppCache  method", e);
-        }
-        driver.resetApp();
     }
 
     /**

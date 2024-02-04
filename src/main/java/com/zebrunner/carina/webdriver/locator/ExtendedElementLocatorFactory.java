@@ -18,6 +18,7 @@ package com.zebrunner.carina.webdriver.locator;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 
+import io.appium.java_client.remote.options.SupportsAutomationNameOption;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.HasCapabilities;
@@ -37,7 +38,6 @@ import com.zebrunner.carina.webdriver.decorator.annotations.ClassChain;
 import com.zebrunner.carina.webdriver.decorator.annotations.Predicate;
 
 import io.appium.java_client.internal.CapabilityHelpers;
-import io.appium.java_client.remote.MobileCapabilityType;
 
 public final class ExtendedElementLocatorFactory implements ElementLocatorFactory, IDriverPool {
 
@@ -59,7 +59,7 @@ public final class ExtendedElementLocatorFactory implements ElementLocatorFactor
         if (this.webDriver instanceof HasCapabilities) {
             Capabilities capabilities = ((HasCapabilities) this.webDriver).getCapabilities();
             this.platform = CapabilityHelpers.getCapability(capabilities, CapabilityType.PLATFORM_NAME, String.class);
-            this.automation = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.AUTOMATION_NAME, String.class);
+            this.automation = CapabilityHelpers.getCapability(capabilities, SupportsAutomationNameOption.AUTOMATION_NAME_OPTION, String.class);
             browserName = CapabilityHelpers.getCapability(capabilities, CapabilityType.BROWSER_NAME, String.class);
             this.driverType = detectDriverType(browserName, platform);
         } else {

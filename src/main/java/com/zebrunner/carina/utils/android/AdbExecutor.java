@@ -25,13 +25,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.zebrunner.carina.utils.android.recorder.utils.ProcessBuilderExecutor;
+import io.appium.java_client.android.options.adb.SupportsAdbExecTimeoutOption;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
-
-import io.appium.java_client.remote.AndroidMobileCapabilityType;
 
 /**
  * Created by YP.
@@ -65,7 +64,7 @@ public class AdbExecutor {
             executor = new ProcessBuilderExecutor(cmd);
 
             Process process = executor.start();
-            if (!process.waitFor(Integer.parseInt(WebDriverConfiguration.getCapability(AndroidMobileCapabilityType.ADB_EXEC_TIMEOUT).orElse("20000")),
+            if (!process.waitFor(Integer.parseInt(WebDriverConfiguration.getCapability(SupportsAdbExecTimeoutOption.ADB_EXEC_TIMEOUT_OPTION).orElse("20000")),
                     TimeUnit.MILLISECONDS)) {
                 throw new TimeoutException("Waiting time elapsed before the adb execution command has exited");
             }

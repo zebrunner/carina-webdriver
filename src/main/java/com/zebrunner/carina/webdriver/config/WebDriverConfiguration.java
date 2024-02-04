@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
+import io.appium.java_client.remote.options.SupportsUdidOption;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DurationUtils;
 import org.openqa.selenium.remote.CapabilityType;
@@ -25,7 +26,6 @@ import com.zebrunner.carina.webdriver.core.capability.AbstractCapabilities;
 import com.zebrunner.carina.webdriver.core.capability.DriverType;
 
 import io.appium.java_client.internal.CapabilityHelpers;
-import io.appium.java_client.remote.MobileCapabilityType;
 
 public final class WebDriverConfiguration extends Configuration {
     private static final Map<String, Duration> RETRY_NEW_DRIVER_SESSION_IGNORE_MESSAGES = new ConcurrentHashMap<>();
@@ -447,7 +447,7 @@ public final class WebDriverConfiguration extends Configuration {
 
         if (platform.isEmpty()) {
             throw new IllegalArgumentException(String.format("Cannot detect driver type. Capabilities '%s', '%s', '%s' are empty.",
-                    CapabilityType.BROWSER_NAME, CapabilityType.PLATFORM_NAME, MobileCapabilityType.UDID));
+                    CapabilityType.BROWSER_NAME, CapabilityType.PLATFORM_NAME, SupportsUdidOption.UDID_OPTION));
         }
 
         if (SpecialKeywords.WINDOWS.equalsIgnoreCase(platform.get())) {
