@@ -55,15 +55,15 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
     @Override
     public Response execute(Command command) throws WebDriverException {
         boolean isNewSessionCommand = DriverCommand.NEW_SESSION.equals(command.getName());
-        if (isNewSessionCommand) {
-            try {
-                BLOCKING_QUEUE.put(UUID.randomUUID().toString() + System.currentTimeMillis());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
         Response response = null;
         do {
+            if (isNewSessionCommand) {
+                try {
+                    BLOCKING_QUEUE.put(UUID.randomUUID().toString() + System.currentTimeMillis());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
             try {
                 if (DriverCommand.QUIT.equalsIgnoreCase(command.getName())) {
                     CURRENT_SESSIONS_AMOUNT.getAndDecrement();
