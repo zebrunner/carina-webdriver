@@ -1,12 +1,10 @@
 package com.zebrunner.carina.webdriver.listener;
 
-import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.remote.AppiumCommandExecutor;
-import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openqa.selenium.WebDriverException;
@@ -16,16 +14,16 @@ import org.openqa.selenium.remote.DriverCommand;
 import org.openqa.selenium.remote.Response;
 import org.openqa.selenium.remote.http.HttpClient;
 import org.openqa.selenium.remote.service.DriverService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.lang.invoke.MethodHandles;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,10 +33,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author akhursevich
  */
 public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
-    private static final AtomicInteger DRIVERS_QUEUE_NOT_STARTED_AMOUNT = new AtomicInteger(0);
     private static final AtomicInteger CURRENT_SESSIONS_AMOUNT = new AtomicInteger(0);
     private static final Map<String, Duration> EXCEPTION_TIMEOUTS = new ConcurrentHashMap<>();
-    private final Integer initRetryInterval;
+    private static final BlockingQueue<String> BLOCKING_QUEUE = new LinkedBlockingQueue<>(
+            Configuration.getRequired(WebDriverConfiguration.Parameter.MAX_NEW_SESSION_QUEUE, Integer.class));
 
     private final AtomicBoolean retry = new AtomicBoolean(false);
 
@@ -48,8 +46,6 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
             @Nullable HttpClient.Factory httpClientFactory,
             @Nonnull AppiumClientConfig appiumClientConfig) {
         super(additionalCommands, service, httpClientFactory, appiumClientConfig);
-        DRIVERS_QUEUE_NOT_STARTED_AMOUNT.getAndIncrement();
-        initRetryInterval = Configuration.getRequired(WebDriverConfiguration.Parameter.INIT_RETRY_INTERVAL, Integer.class);
     }
 
     public EventFiringAppiumCommandExecutor(Map<String, CommandInfo> additionalCommands, AppiumClientConfig appiumClientConfig) {
@@ -59,20 +55,22 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
     @Override
     public Response execute(Command command) throws WebDriverException {
         boolean isNewSessionCommand = DriverCommand.NEW_SESSION.equals(command.getName());
+        if (isNewSessionCommand) {
+            try {
+                BLOCKING_QUEUE.put(UUID.randomUUID().toString() + System.currentTimeMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
         Response response = null;
         do {
             try {
-                if (isNewSessionCommand && DRIVERS_QUEUE_NOT_STARTED_AMOUNT.get() > 10) {
-                    CommonUtils.pause(
-                            RandomUtils.nextInt(1, initRetryInterval));
-                }
                 if (DriverCommand.QUIT.equalsIgnoreCase(command.getName())) {
                     CURRENT_SESSIONS_AMOUNT.getAndDecrement();
                 }
                 response = super.execute(command);
                 if (isNewSessionCommand) {
                     CURRENT_SESSIONS_AMOUNT.getAndIncrement();
-                    DRIVERS_QUEUE_NOT_STARTED_AMOUNT.getAndDecrement();
                     retry.set(false);
                 }
             } catch (Throwable e) {
@@ -85,7 +83,6 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
                         .filter(message -> StringUtils.containsIgnoreCase(ExceptionUtils.getRootCauseMessage(e), message))
                         .findAny();
                 if (error.isEmpty()) {
-                    DRIVERS_QUEUE_NOT_STARTED_AMOUNT.getAndDecrement();
                     throw e;
                 }
                 retry.set(true);
@@ -121,10 +118,17 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
                             }
                         });
                 if (!retry.get()) {
-                    DRIVERS_QUEUE_NOT_STARTED_AMOUNT.getAndDecrement();
                     throw e;
                 }
                 setCommandCodec(null);
+            } finally {
+                if (isNewSessionCommand) {
+                    try {
+                        BLOCKING_QUEUE.take();
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
             }
         } while (retry.get());
         return response;

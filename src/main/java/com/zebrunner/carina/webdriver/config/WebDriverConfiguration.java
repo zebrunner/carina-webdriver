@@ -335,7 +335,12 @@ public final class WebDriverConfiguration extends Configuration {
         /**
          * todo add description
          */
-        SCROLL_TO_ELEMENT_Y_OFFSET("scroll_to_element_y_offset");
+        SCROLL_TO_ELEMENT_Y_OFFSET("scroll_to_element_y_offset"),
+
+        /**
+         * todo add description
+         */
+        MAX_NEW_SESSION_QUEUE("max_new_session_queue");
 
         private final String name;
 
