@@ -1,10 +1,12 @@
 package com.zebrunner.carina.webdriver.listener;
 
+import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.webdriver.IDriverPool;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import io.appium.java_client.AppiumClientConfig;
 import io.appium.java_client.remote.AppiumCommandExecutor;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openqa.selenium.WebDriverException;
@@ -39,6 +41,7 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
             Configuration.getRequired(WebDriverConfiguration.Parameter.MAX_NEW_SESSION_QUEUE, Integer.class));
 
     private final AtomicBoolean retry = new AtomicBoolean(false);
+    private final Integer newSessionPause;
 
     public EventFiringAppiumCommandExecutor(
             @Nonnull Map<String, CommandInfo> additionalCommands,
@@ -46,6 +49,7 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
             @Nullable HttpClient.Factory httpClientFactory,
             @Nonnull AppiumClientConfig appiumClientConfig) {
         super(additionalCommands, service, httpClientFactory, appiumClientConfig);
+        newSessionPause = Configuration.getRequired(WebDriverConfiguration.Parameter.MAX_NEW_SESSION_QUEUE, Integer.class) * 3;
     }
 
     public EventFiringAppiumCommandExecutor(Map<String, CommandInfo> additionalCommands, AppiumClientConfig appiumClientConfig) {
@@ -120,6 +124,7 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
                 if (!retry.get()) {
                     throw e;
                 }
+                CommonUtils.pause(RandomUtils.nextInt(1, newSessionPause + 1));
                 setCommandCodec(null);
             } finally {
                 if (isNewSessionCommand) {
