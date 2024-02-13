@@ -17,14 +17,12 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
 import org.openqa.selenium.By;
-import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedCondition;
+import org.openqa.selenium.interactions.Action;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.Sleeper;
-import org.openqa.selenium.support.ui.Wait;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,15 +39,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-public interface IExtendedWebElementHelper extends IDriverPool {
+@SuppressWarnings({ "unused", "unchecked" })
+public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
     Logger I_EXTENDED_WEB_ELEMENT_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     @SuppressWarnings("squid:S2386")
     Map<String, LinkedList<LocatorConverter>> LOCATOR_CONVERTERS = new ConcurrentHashMap<>();
     @SuppressWarnings("squid:S2386")
     Map<String, By> ORIGINAL_LOCATORS = new ConcurrentHashMap<>();
-    Duration DEFAULT_EXPLICIT_TIMEOUT = Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class));
     Duration SHORT_TIMEOUT = Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class) / 3);
-    Duration DEFAULT_RETRY_INTERVAL = Duration.ofMillis(Configuration.getRequired(WebDriverConfiguration.Parameter.RETRY_INTERVAL, Long.class));
 
     /**
      * Method which quickly looks for all element and check that they present
@@ -58,8 +55,8 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      * @param elements ExtendedWebElement...
      * @return boolean return true only if all elements present.
      */
-    default <T extends ExtendedWebElement> boolean allElementsPresent(T... elements) {
-        return allElementsPresent(getWaitTimeout(), elements);
+    default <T extends ExtendedWebElement> boolean allElementsPresent(final T... elements) {
+        return allElementsPresent(getDefaultWaitTimeout(), elements);
     }
 
     /**
@@ -264,7 +261,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      * @return element with text existence status.
      */
     default <T extends ExtendedWebElement> boolean isElementWithTextPresent(final T extWebElement, final String text) {
-        return isElementWithTextPresent(extWebElement, text, getWaitTimeout());
+        return isElementWithTextPresent(extWebElement, text, getDefaultWaitTimeout());
     }
 
     /**
@@ -298,7 +295,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      * @return element non-existence status.
      */
     default <T extends ExtendedWebElement> boolean isElementNotPresent(final T extWebElement) {
-        return isElementNotPresent(extWebElement, getWaitTimeout());
+        return isElementNotPresent(extWebElement, getDefaultWaitTimeout());
     }
 
     /**
@@ -329,7 +326,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      * @param elements ExtendedWebElements to click
      */
     default <T extends ExtendedWebElement> void clickAny(T... elements) {
-        clickAny(getWaitTimeout(), elements);
+        clickAny(getDefaultWaitTimeout(), elements);
     }
 
     /**
@@ -358,7 +355,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
             WebElement possiblyFoundElement = null;
 
             for (ExtendedWebElement element : elements) {
-                List<WebElement> foundElements = drv.findElements(element.getLocator().orElseThrow());
+                List<WebElement> foundElements = drv.findElements(element.getBy());
                 if (!foundElements.isEmpty()) {
                     possiblyFoundElement = foundElements.get(0);
                     break;
@@ -385,7 +382,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      * @return {@link ExtendedWebElement} if exists, {@code null} otherwise
      */
     default ExtendedWebElement findExtendedWebElement(By by) {
-        return findExtendedWebElement(by, by.toString(), getWaitTimeout().toSeconds());
+        return findExtendedWebElement(by, by.toString(), getDefaultWaitTimeout().toSeconds());
     }
 
     /**
@@ -407,7 +404,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      * @return {@link ExtendedWebElement} if exists, {@code null} otherwise
      */
     default ExtendedWebElement findExtendedWebElement(final By by, String name) {
-        return findExtendedWebElement(by, name, getWaitTimeout().toSeconds());
+        return findExtendedWebElement(by, name, getDefaultWaitTimeout().toSeconds());
     }
 
     /**
@@ -426,7 +423,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
             return null;
         }
         ExtendedWebElement element = new ExtendedWebElement(getDriver(), getDriver());
-        element.setLocator(by);
+        element.setBy(by);
         element.setName(name);
         return element;
     }
@@ -438,7 +435,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      * @return list of {@link ExtendedWebElement}s, empty list otherwise
      */
     default List<ExtendedWebElement> findExtendedWebElements(By by) {
-        return findExtendedWebElements(by, getWaitTimeout().toSeconds());
+        return findExtendedWebElements(by, getDefaultWaitTimeout().toSeconds());
     }
 
     /**
@@ -474,7 +471,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      * @return {@link ExtendedWebElement} if exists, {@code null} otherwise
      */
     default <T extends ExtendedWebElement> T findExtendedWebElement(T extendedElement, By by) {
-        return findExtendedWebElement(extendedElement, by, getWaitTimeout());
+        return findExtendedWebElement(extendedElement, by, getDefaultWaitTimeout());
     }
 
     /**
@@ -498,7 +495,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      * @return {@link ExtendedWebElement} if exists, {@code null} otherwise
      */
     default <T extends ExtendedWebElement> T findExtendedWebElement(T extendedElement, final By by, String name) {
-        return findExtendedWebElement(extendedElement, by, name, getWaitTimeout());
+        return findExtendedWebElement(extendedElement, by, name, getDefaultWaitTimeout());
     }
 
     /**
@@ -519,7 +516,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
         }
         try {
             T foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(), extendedElement);
-            foundElement.setLocator(by);
+            foundElement.setBy(by);
             foundElement.setName(name);
             return foundElement;
         } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException e) {
@@ -536,7 +533,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
      */
     @SuppressWarnings("unused")
     default <T extends ExtendedWebElement> List<T> findExtendedWebElements(T extendedElement, By by) {
-        return findExtendedWebElements(extendedElement, by, getWaitTimeout());
+        return findExtendedWebElements(extendedElement, by, getDefaultWaitTimeout());
     }
 
     /**
@@ -568,61 +565,6 @@ public interface IExtendedWebElementHelper extends IDriverPool {
         } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException e) {
             return ExceptionUtils.rethrow(e);
         }
-    }
-
-    /**
-     * Wait until any condition happens.
-     *
-     * @param condition {@link ExpectedCondition}
-     * @param timeout {@link Duration}
-     * @return true if condition happen
-     */
-    default boolean waitUntil(ExpectedCondition<?> condition, long timeout) {
-        return waitUntil(condition, Duration.ofSeconds(timeout));
-    }
-
-    /**
-     * Wait until any condition happens.
-     *
-     * @param condition {@link ExpectedCondition}
-     * @param timeout {@link Duration}
-     * @return true if condition happen
-     */
-    default boolean waitUntil(ExpectedCondition<?> condition, Duration timeout) {
-        if (timeout.toSeconds() < 1) {
-            I_EXTENDED_WEB_ELEMENT_LOGGER.warn("Fluent wait less than 1sec timeout might hangs! Updating to 1 sec.");
-            timeout = Duration.ofSeconds(1);
-        }
-
-        // try to use better tickMillis clock
-        Wait<WebDriver> wait = new WebDriverWait(getDriver(), timeout, getWaitInterval(timeout),
-                java.time.Clock.tickMillis(java.time.ZoneId.systemDefault()), Sleeper.SYSTEM_SLEEPER)
-                        .withTimeout(timeout);
-
-        // [VD] Notes:
-        // do not ignore TimeoutException or NoSuchSessionException otherwise you can wait for minutes instead of timeout!
-        // [VD] note about NoSuchSessionException is pretty strange. Let's ignore here and return false only in case of
-        // TimeoutException putting details into the debug log message. All the rest shouldn't be ignored
-
-        // 7.3.17-SNAPSHOT. Removed NoSuchSessionException (Mar-11-2022)
-        // .ignoring(NoSuchSessionException.class) // why do we ignore noSuchSession? Just to minimize errors?
-
-        // 7.3.20.1686-SNAPSHOT. Removed ignoring WebDriverException (Jun-03-2022).
-        // Goal to test if inside timeout happens first and remove interruption and future call
-        // removed ".ignoring(NoSuchElementException.class);" as NotFoundException ignored by waiter itself
-        // added explicit .withTimeout(Duration.ofSeconds(timeout));
-
-        I_EXTENDED_WEB_ELEMENT_LOGGER.debug("waitUntil: starting... timeout: {}", timeout);
-        boolean res = false;
-        try {
-            wait.until(condition);
-            res = true;
-        } catch (TimeoutException e) {
-            I_EXTENDED_WEB_ELEMENT_LOGGER.debug("waitUntil: org.openqa.selenium.TimeoutException", e);
-        } finally {
-            I_EXTENDED_WEB_ELEMENT_LOGGER.debug("waiter is finished. conditions: {}", condition);
-        }
-        return res;
     }
 
     /**
@@ -684,7 +626,7 @@ public interface IExtendedWebElementHelper extends IDriverPool {
         }
         FormatLocatorConverter converter = new FormatLocatorConverter(objects);
         converters.addFirst(converter);
-        formatElement.setLocator(buildConvertedBy(ORIGINAL_LOCATORS.get(extendedElement.getUuid()), converters));
+        formatElement.setBy(buildConvertedBy(ORIGINAL_LOCATORS.get(extendedElement.getUuid()), converters));
         return formatElement;
     }
 
@@ -718,12 +660,11 @@ public interface IExtendedWebElementHelper extends IDriverPool {
             List<T> extendedElements = new ArrayList<>();
             T tempExtendedElement = format(extendedElement, objects);
             int index = 0;
-            for (WebElement element : extendedElement.findElements(tempExtendedElement.getLocator()
-                    .orElseThrow(() -> new IllegalStateException("Element do not contains locator.")))) {
+            for (WebElement element : extendedElement.findElements(Objects.requireNonNull(tempExtendedElement.getBy()))) {
                 T extendedElementOfList = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(),
                         extendedElement);
                 extendedElementOfList.setElement(element);
-                extendedElementOfList.setLocator(null);
+                extendedElementOfList.setBy(null);
                 extendedElementOfList.setName(String.format("%s - [%s]", extendedElement.getName(), index++));
                 extendedElements.add(extendedElementOfList);
             }
@@ -733,29 +674,64 @@ public interface IExtendedWebElementHelper extends IDriverPool {
         }
     }
 
-    /**
-     * Get waiting timeout.
-     *
-     * @return {@link Duration}
-     */
-    default Duration getWaitTimeout() {
-        return DEFAULT_EXPLICIT_TIMEOUT;
+    default <T extends ExtendedWebElement> void assertElementPresent(final T extWebElement) {
+        assertElementPresent(extWebElement, getDefaultWaitTimeout().toSeconds());
+    }
+
+    default <T extends ExtendedWebElement> void assertElementPresent(final T extWebElement, long timeout) {
+        extWebElement.assertElementPresent(timeout);
+    }
+
+    default <T extends ExtendedWebElement> void assertElementWithTextPresent(final T extWebElement, final String text) {
+        assertElementWithTextPresent(extWebElement, text, getDefaultWaitTimeout().toSeconds());
+    }
+
+    default <T extends ExtendedWebElement> void assertElementWithTextPresent(final T extWebElement, final String text, long timeout) {
+        extWebElement.assertElementWithTextPresent(text, timeout);
     }
 
     /**
-     * Get waiting interval
+     * Executes a script on an element
+     * <p>
+     * Really should only be used when the web driver is sucking at exposing
+     * functionality natively
      *
-     * @param timeout timeout
-     * @return {@link Duration}
+     * @param script The script to execute
+     * @param element The target of the script, referenced as arguments[0]
+     * @return Object
      */
-    default Duration getWaitInterval(Duration timeout) {
-        Duration interval = DEFAULT_RETRY_INTERVAL;
-        if (timeout.toSeconds() >= 3 && timeout.toSeconds() <= 10) {
-            interval = Duration.ofMillis(500);
+    default Object trigger(String script, WebElement element) {
+        return ((JavascriptExecutor) getDriver()).executeScript(script, element);
+    }
+
+    /**
+     * Drags and drops element to specified place.
+     *
+     * @param from element to drag.
+     * @param to element to drop to.
+     */
+    default void dragAndDropElement(final ExtendedWebElement from, final ExtendedWebElement to) {
+        if (from.isElementPresent() && to.isElementPresent()) {
+            WebDriver drv = getDriver();
+            if (!drv.toString().contains("safari")) {
+                Actions builder = new Actions(drv);
+                Action dragAndDrop = builder.clickAndHold(from.getElement()).moveToElement(to.getElement())
+                        .release(to.getElement()).build();
+                dragAndDrop.perform();
+            } else {
+                WebElement locatorfrom = from.getElement();
+                WebElement locatorTo = to.getElement();
+                String xto = Integer.toString(locatorTo.getLocation().x);
+                String yto = Integer.toString(locatorTo.getLocation().y);
+                ((JavascriptExecutor) getDriver())
+                        .executeScript(
+                                "function simulate(f,c,d,e){var b,a=null;for(b in eventMatchers)if(eventMatchers[b].test(c)){a=b;break}if(!a)return!1;document.createEvent?(b=document.createEvent(a),a==\"HTMLEvents\"?b.initEvent(c,!0,!0):b.initMouseEvent(c,!0,!0,document.defaultView,0,d,e,d,e,!1,!1,!1,!1,0,null),f.dispatchEvent(b)):(a=document.createEventObject(),a.detail=0,a.screenX=d,a.screenY=e,a.clientX=d,a.clientY=e,a.ctrlKey=!1,a.altKey=!1,a.shiftKey=!1,a.metaKey=!1,a.button=1,f.fireEvent(\"on\"+c,a));return!0} var eventMatchers={HTMLEvents:/^(?:load|unload|abort|error|select|change|submit|reset|focus|blur|resize|scroll)$/,MouseEvents:/^(?:click|dblclick|mouse(?:down|up|over|move|out))$/}; "
+                                        + "simulate(arguments[0],\"mousedown\",0,0); simulate(arguments[0],\"mousemove\",arguments[1],arguments[2]); simulate(arguments[0],\"mouseup\",arguments[1],arguments[2]); ",
+                                locatorfrom, xto, yto);
+            }
+            Messager.ELEMENTS_DRAGGED_AND_DROPPED.info(from.getName(), to.getName());
+        } else {
+            Messager.ELEMENTS_NOT_DRAGGED_AND_DROPPED.error(from.getNameWithLocator(), to.getNameWithLocator());
         }
-        if (timeout.toSeconds() > 10) {
-            interval = Duration.ofMillis(1000);
-        }
-        return interval;
     }
 }

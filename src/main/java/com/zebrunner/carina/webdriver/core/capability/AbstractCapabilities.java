@@ -31,6 +31,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.zebrunner.carina.webdriver.proxy.ZebrunnerProxyBuilder;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.MutableCapabilities;
@@ -58,6 +59,7 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
 
     private static final String ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY = "zebrunner:Mitm";
     private static final String ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY = "zebrunner:MitmArgs";
+    private static final String ZEBRUNNER_MITMPROXY_TYPE_CAPABILITY = "zebrunner:MitmType";
 
     /**
      * Get capabilities from the configuration ({@link R#CONFIG}).
@@ -66,6 +68,25 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
      * @return see {@link T}
      */
     public abstract T getCapability(String testName);
+
+    protected void addAppiumProxy(T capabilities) {
+        Optional<String> proxyType = Configuration.get(WebDriverConfiguration.Parameter.PROXY_TYPE);
+
+        if (proxyType.isEmpty()) {
+            return;
+        }
+
+        if (proxyType.get().equalsIgnoreCase("Zebrunner")) {
+            capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, true);
+            Configuration.get(WebDriverConfiguration.Parameter.PROXY_ZEBRUNNER_ARGS)
+                    .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args));
+            Configuration.get(ZebrunnerProxyBuilder.PROXY_TYPE_PARAMETER)
+                    .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_TYPE_CAPABILITY, args));
+            return;
+        }
+        throw new InvalidConfigurationException(String.format("Invalid proxy type: %s", proxyType.get()));
+
+    }
 
     /**
      * Add proxy capability. Should only be used for Selenium session only.
@@ -83,6 +104,8 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
             capabilities.setCapability(ZEBRUNNER_MITMPROXY_ENABLED_CAPABILITY, true);
             Configuration.get(WebDriverConfiguration.Parameter.PROXY_ZEBRUNNER_ARGS)
                     .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_ARGS_CAPABILITY, args));
+            Configuration.get(ZebrunnerProxyBuilder.PROXY_TYPE_PARAMETER)
+                    .ifPresent(args -> capabilities.setCapability(ZEBRUNNER_MITMPROXY_TYPE_CAPABILITY, args));
             return;
         }
 

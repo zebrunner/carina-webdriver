@@ -447,7 +447,7 @@ public interface IAndroidUtils extends IMobileUtils {
 
     /**
      * Scrolls into view in a container specified by it's instance (index)
-     * 
+     *
      * @param scrollToEle has to be id, text, contentDesc or className
      * @param scrollableContainer ExtendedWebElement type
      * @param containerSelectorType has to be id, text, textContains, textStartsWith, Description, DescriptionContains or className
@@ -509,7 +509,7 @@ public interface IAndroidUtils extends IMobileUtils {
 
     /**
      * Scrolls into view in specified container
-     * 
+     *
      * @param scrollToEle has to be id, text, contentDesc or className
      * @param scrollableContainer ExtendedWebElement type
      * @param containerSelectorType has to be id, text, textContains, textStartsWith, Description, DescriptionContains or className
@@ -574,7 +574,7 @@ public interface IAndroidUtils extends IMobileUtils {
 
     /**
      * Scrolls into view in specified container
-     * 
+     *
      * @param scrollToEle has to be id, text, contentDesc or className
      * @param scrollableContainer ExtendedWebElement type
      * @param containerSelectorType container Selector type: has to be id, text, textContains, textStartsWith, Description, DescriptionContains or
@@ -635,7 +635,7 @@ public interface IAndroidUtils extends IMobileUtils {
 
     /**
      * Scrolls into view in specified container
-     * 
+     *
      * @param scrollableContainer ExtendedWebElement type
      * @param containerSelectorType Selector type: has to be id, text, contentDesc or className
      * @return scrollViewContainerFinder String
@@ -647,54 +647,47 @@ public interface IAndroidUtils extends IMobileUtils {
 
         switch (containerSelectorType) {
         case TEXT:
-            scrollableContainerBy = scrollableContainer.getLocator()
-                    .orElseThrow()
+            scrollableContainerBy = scrollableContainer.getBy()
                     .toString()
                     .replace("By.text:", "").trim();
             scrollViewContainerFinder = "new UiSelector().text(\"" + scrollableContainerBy + "\")";
             break;
         case TEXT_CONTAINS:
-            scrollableContainerBy = scrollableContainer.getLocator()
-                    .orElseThrow()
+            scrollableContainerBy = scrollableContainer.getBy()
                     .toString()
                     .replace("By.textContains:", "").trim();
             scrollViewContainerFinder = "new UiSelector().textContains(\"" + scrollableContainerBy + "\")";
             break;
         case TEXT_STARTS_WITH:
-            scrollableContainerBy = scrollableContainer.getLocator()
-                    .orElseThrow()
+            scrollableContainerBy = scrollableContainer.getBy()
                     .toString()
                     .replace("By.textStartsWith:", "")
                     .trim();
             scrollViewContainerFinder = "new UiSelector().textStartsWith(\"" + scrollableContainerBy + "\")";
             break;
         case ID:
-            scrollableContainerBy = scrollableContainer.getLocator()
-                    .orElseThrow()
+            scrollableContainerBy = scrollableContainer.getBy()
                     .toString()
                     .replace("By.id:", "")
                     .trim();
             scrollViewContainerFinder = "new UiSelector().resourceId(\"" + scrollableContainerBy + "\")";
             break;
         case DESCRIPTION:
-            scrollableContainerBy = scrollableContainer.getLocator()
-                    .orElseThrow()
+            scrollableContainerBy = scrollableContainer.getBy()
                     .toString()
                     .replace("By.description:", "")
                     .trim();
             scrollViewContainerFinder = "new UiSelector().description(\"" + scrollableContainerBy + "\")";
             break;
         case DESCRIPTION_CONTAINS:
-            scrollableContainerBy = scrollableContainer.getLocator()
-                    .orElseThrow()
+            scrollableContainerBy = scrollableContainer.getBy()
                     .toString()
                     .replace("By.descriptionContains:", "")
                     .trim();
             scrollViewContainerFinder = "new UiSelector().descriptionContains(\"" + scrollableContainerBy + "\")";
             break;
         case CLASS_NAME:
-            scrollableContainerBy = scrollableContainer.getLocator()
-                    .orElseThrow()
+            scrollableContainerBy = scrollableContainer.getBy()
                     .toString()
                     .replace("By.className:", "")
                     .trim();
@@ -711,7 +704,7 @@ public interface IAndroidUtils extends IMobileUtils {
 
     /**
      * Scrolls into view in specified container
-     * 
+     *
      * @param scrollToEle String type
      * @param eleSelectorType Selector type: has to be id, text, contentDesc or className
      * @return String
@@ -831,7 +824,7 @@ public interface IAndroidUtils extends IMobileUtils {
 
     /**
      * Execute android-specific commands throw driver using adb
-     * 
+     *
      * @param command adb-shell command represented as single String where 1st literal is a command itself.
      *            Everything that follow is treated as arguments.<br>
      *
@@ -908,7 +901,7 @@ public interface IAndroidUtils extends IMobileUtils {
      * <b>For internal use only</b>
      *
      * Execute scripts
-     * 
+     *
      * @param driver WebDriver instance
      * @param scriptType name of script type, for example {@code mobile:deepLink}
      */
@@ -1050,7 +1043,7 @@ public interface IAndroidUtils extends IMobileUtils {
      *
      * @param link URL to trigger
      */
-    default void openURL(String link) {
+    default void triggerDeeplink(String link) {
         UTILS_LOGGER.info("Following link will be triggered via ADB: {}", link);
         executeShell(String.format("am start -a android.intent.action.VIEW %s", link));
     }
@@ -1209,7 +1202,7 @@ public interface IAndroidUtils extends IMobileUtils {
 
     /**
      * Method enters an App's menu within device System Settings
-     * 
+     *
      * @param appName - Name of the app as it appears in the device's Apps list (Language specific)
      */
     default void openAppMenuFromDeviceSettings(String appName) {
@@ -1225,7 +1218,7 @@ public interface IAndroidUtils extends IMobileUtils {
 
     /**
      * Toggles a specified app's ability to recieve Push Notifications on the system level
-     * 
+     *
      * @param appName - The app name as it appears within device System Settings
      * @param setValue - The value you wish to set the toggle to
      */
@@ -1375,7 +1368,7 @@ public interface IAndroidUtils extends IMobileUtils {
      * <p>
      * Usage:
      * </p>
-     * 
+     *
      * <pre>
      * {
      *     &#64;code

@@ -16,23 +16,32 @@ import org.openqa.selenium.remote.DriverCommand;
 import org.openqa.selenium.remote.Response;
 import org.openqa.selenium.remote.http.HttpClient;
 import org.openqa.selenium.remote.service.DriverService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.lang.invoke.MethodHandles;
+import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * EventFiringAppiumCommandExecutor triggers event listener before/after execution of the command.
  *
  * @author akhursevich
  */
-public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private final Integer initRetryInterval;
-    private boolean startPause = false;
+public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
+    private static final AtomicInteger CURRENT_SESSIONS_AMOUNT = new AtomicInteger(0);
+    private static final Map<String, Duration> EXCEPTION_TIMEOUTS = new ConcurrentHashMap<>();
+    private static final BlockingQueue<String> BLOCKING_QUEUE = new LinkedBlockingQueue<>(
+            Configuration.getRequired(WebDriverConfiguration.Parameter.MAX_NEW_SESSION_QUEUE, Integer.class));
+
+    private final AtomicBoolean retry = new AtomicBoolean(false);
+    private final Integer newSessionPause;
 
     public EventFiringAppiumCommandExecutor(
             @Nonnull Map<String, CommandInfo> additionalCommands,
@@ -40,11 +49,7 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
             @Nullable HttpClient.Factory httpClientFactory,
             @Nonnull AppiumClientConfig appiumClientConfig) {
         super(additionalCommands, service, httpClientFactory, appiumClientConfig);
-        initRetryInterval = Configuration.getRequired(WebDriverConfiguration.Parameter.INIT_RETRY_INTERVAL, Integer.class);
-        // On current level we have no access to the TestConfiguration.Parameter.THREAD_COUNT, so we will use "thread_count" instead
-        if (Configuration.getRequired("thread_count", Integer.class) >= 75) {
-            startPause = true;
-        }
+        newSessionPause = Configuration.getRequired(WebDriverConfiguration.Parameter.MAX_NEW_SESSION_QUEUE, Integer.class) * 3;
     }
 
     public EventFiringAppiumCommandExecutor(Map<String, CommandInfo> additionalCommands, AppiumClientConfig appiumClientConfig) {
@@ -53,30 +58,84 @@ public class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor impl
 
     @Override
     public Response execute(Command command) throws WebDriverException {
-        boolean retry = false;
+        boolean isNewSessionCommand = DriverCommand.NEW_SESSION.equals(command.getName());
         Response response = null;
         do {
-            try {
-                if (startPause && DriverCommand.NEW_SESSION.equals(command.getName())) {
-                    CommonUtils.pause(RandomUtils.nextInt(1, initRetryInterval));
-                    startPause = false;
-                }
-                response = super.execute(command);
-                retry = false;
-            } catch (Throwable e) {
-                if (DriverCommand.NEW_SESSION.equals(command.getName()) &&
-                        WebDriverConfiguration.getIgnoredNewSessionErrorMessages()
-                                .stream()
-                                .anyMatch(message -> StringUtils.containsIgnoreCase(ExceptionUtils.getRootCauseMessage(e), message))) {
-                    LOGGER.debug("NEW_SESSION exception (retry): {}", ExceptionUtils.getRootCauseMessage(e));
-                    setCommandCodec(null);
-                    retry = true;
-                    CommonUtils.pause(RandomUtils.nextInt(1, initRetryInterval));
-                } else {
-                    throw e;
+            if (isNewSessionCommand) {
+                try {
+                    BLOCKING_QUEUE.put(UUID.randomUUID().toString() + System.currentTimeMillis());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                 }
             }
-        } while (retry);
+            try {
+                if (DriverCommand.QUIT.equalsIgnoreCase(command.getName())) {
+                    CURRENT_SESSIONS_AMOUNT.getAndDecrement();
+                }
+                response = super.execute(command);
+                if (isNewSessionCommand) {
+                    CURRENT_SESSIONS_AMOUNT.getAndIncrement();
+                    retry.set(false);
+                }
+            } catch (Throwable e) {
+                if (!isNewSessionCommand) {
+                    throw e;
+                }
+                Optional<String> error = WebDriverConfiguration.getIgnoredNewSessionErrorMessages()
+                        .keySet()
+                        .stream()
+                        .filter(message -> StringUtils.containsIgnoreCase(ExceptionUtils.getRootCauseMessage(e), message))
+                        .findAny();
+                if (error.isEmpty()) {
+                    throw e;
+                }
+                retry.set(true);
+                WebDriverConfiguration.getIgnoredNewSessionErrorMessages()
+                        .compute(error.get(), (message, waitTime) -> {
+                            if (waitTime.isZero()) {
+                                return waitTime;
+                            }
+
+                            if (CURRENT_SESSIONS_AMOUNT.get() > 0) {
+                                EXCEPTION_TIMEOUTS.clear();
+                                return waitTime;
+                            }
+
+                            if (waitTime.isNegative()) {
+                                retry.set(false);
+                                return waitTime;
+                            }
+
+                            Duration currentTime = Duration.ofMillis(System.currentTimeMillis());
+                            if (!EXCEPTION_TIMEOUTS.containsKey(message)) {
+                                EXCEPTION_TIMEOUTS.put(message, currentTime.plus(waitTime));
+                                return waitTime;
+                            } else {
+                                if (EXCEPTION_TIMEOUTS.get(message).compareTo(currentTime) <= 0) {
+                                    // expired
+                                    EXCEPTION_TIMEOUTS.remove(message);
+                                    retry.set(false);
+                                    return Duration.ofSeconds(1)
+                                            .negated();
+                                }
+                                return waitTime;
+                            }
+                        });
+                if (!retry.get()) {
+                    throw e;
+                }
+                CommonUtils.pause(RandomUtils.nextInt(1, newSessionPause + 1));
+                setCommandCodec(null);
+            } finally {
+                if (isNewSessionCommand) {
+                    try {
+                        BLOCKING_QUEUE.take();
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+        } while (retry.get());
         return response;
     }
 }

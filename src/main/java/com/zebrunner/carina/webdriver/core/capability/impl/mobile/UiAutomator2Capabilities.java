@@ -33,6 +33,7 @@ public class UiAutomator2Capabilities extends AbstractCapabilities<UiAutomator2O
     @Override
     public UiAutomator2Options getCapability(String testName) {
         UiAutomator2Options options = new UiAutomator2Options();
+        addAppiumProxy(options);
         // this step should be executed before initCapabilities() to be able to override this capabilities by default appium approach.
         setLocaleAndLanguage(options);
         addConfigurationCapabilities(options);

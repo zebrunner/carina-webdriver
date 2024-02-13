@@ -32,6 +32,7 @@ public class XCUITestCapabilities extends AbstractCapabilities<XCUITestOptions> 
     @Override
     public XCUITestOptions getCapability(String testName) {
         XCUITestOptions options = new XCUITestOptions();
+        addAppiumProxy(options);
         // this step should be executed before initCapabilities() to be able to override this capabilities by default appium approach.
         setLocaleAndLanguage(options);
         addConfigurationCapabilities(options);

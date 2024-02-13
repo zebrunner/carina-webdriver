@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.slf4j.Logger;
@@ -72,12 +73,20 @@ public interface IChromeDevToolsHelper extends IDriverPool {
             String url = String.format("%s%s%s", Configuration.getRequired(WebDriverConfiguration.Parameter.SELENIUM_URL,
                     StandardConfigurationOption.DECRYPT)
                     .replace("/wd/hub", "/devtools/")
-                    .replaceFirst("^.+@", "wss://"),
+                    // pattern for Selenium URL with/without credentials
+                    .replaceFirst("(^.+@)|(http(s)?:\\/\\/)", "wss://"),
                     DriverListener.castDriver(getDriver(), RemoteWebDriver.class).getSessionId(),
                     endpoint);
 
-            WebSocketService webSocketService = WebSocketServiceImpl
-                    .create(new URI(url));
+            WebSocketService webSocketService;
+            try {
+                webSocketService = WebSocketServiceImpl
+                        .create(new URI(url));
+            } catch (WebSocketServiceException e) {
+                I_CHROME_DEV_TOOLS_HELPER_LOGGER.warn("Grid does not support 'wss' connection for DevTools. Trying to use 'ws' instead...");
+                webSocketService = WebSocketServiceImpl
+                        .create(new URI(StringUtils.replaceOnce(url, "wss://", "ws://")));
+            }
             CommandInvocationHandler commandInvocationHandler = new CommandInvocationHandler();
             Map<Method, Object> commandsCache = new ConcurrentHashMap<>();
             ChromeDevToolsService devtools = ProxyUtils.createProxyFromAbstract(
