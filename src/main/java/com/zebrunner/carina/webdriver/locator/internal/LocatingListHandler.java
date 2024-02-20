@@ -24,9 +24,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.zebrunner.carina.webdriver.helper.IExtendedWebElementHelper;
 import com.zebrunner.carina.webdriver.locator.ImmutableUIList;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -38,7 +40,7 @@ import com.zebrunner.carina.webdriver.locator.LocatorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocatingListHandler implements InvocationHandler {
+public class LocatingListHandler implements InvocationHandler, IExtendedWebElementHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final ExtendedElementLocator locator;
     private final Class<?> clazz;
@@ -65,7 +67,15 @@ public class LocatingListHandler implements InvocationHandler {
 
         List<ExtendedWebElement> extendedElements = new ArrayList<>();
         int i = 0;
-        for (WebElement element : locator.findElements()) {
+        List<WebElement> elements;
+        try {
+            elements = locator.getSearchContext().findElements(buildConvertedBy(locator.getBy(), locator.getLocatorConverters()));
+        } catch (NoSuchElementException e) {
+            LOGGER.debug("Unable to find elements: {}", e.getMessage());
+            elements = List.of();
+        }
+
+        for (WebElement element : elements) {
             ExtendedWebElement extendedElement;
             try {
                 if (ConstructorUtils.getAccessibleConstructor(clazz, WebDriver.class, SearchContext.class) != null) {
@@ -91,9 +101,9 @@ public class LocatingListHandler implements InvocationHandler {
                 return ExceptionUtils.rethrow(e);
             }
             if (field.isAnnotationPresent(ImmutableUIList.class)) {
-                Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(locator.getBy());
+                Optional<LocatorType> locatorType = LocatorUtils.getLocatorType(buildConvertedBy(locator.getBy(), locator.getLocatorConverters()));
                 if (locatorType.isPresent() && locatorType.get().isIndexSupport()) {
-                    extendedElement.setBy(locatorType.get().buildLocatorWithIndex(locator.getBy().toString(), i));
+                    extendedElement.setBy(locatorType.get().buildLocatorWithIndex(buildConvertedBy(locator.getBy(), locator.getLocatorConverters()).toString(), i));
                 } else {
                     throw new IllegalStateException(String.format("'%s' locator does not supported by '%s' annotation.", locator.getBy(),
                             ImmutableUIList.class.getSimpleName()));
