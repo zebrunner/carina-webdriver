@@ -50,6 +50,8 @@ import com.zebrunner.carina.webdriver.config.WebDriverConfiguration.Parameter;
 import com.zebrunner.carina.webdriver.core.factory.DriverFactory;
 import com.zebrunner.carina.webdriver.device.Device;
 
+import javax.annotation.Nullable;
+
 public interface IDriverPool {
 
     Logger POOL_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -177,6 +179,10 @@ public interface IDriverPool {
      * @return WebDriver
      */
     default WebDriver restartDriver(boolean isSameDevice) {
+       return restartDriver(isSameDevice, null);
+    }
+
+    default WebDriver restartDriver(boolean isSameDevice, @Nullable Capabilities additionalOptions) {
         WebDriver drv = getDriver(DEFAULT);
         Device device = nullDevice;
         MutableCapabilities udidCaps = new MutableCapabilities();
@@ -187,6 +193,7 @@ public interface IDriverPool {
             POOL_LOGGER.debug("Added udid: {} to capabilities for restartDriver on the same device.", device.getUdid());
             udidCaps.setCapability(MobileCapabilityType.UDID, device.getUdid());
         }
+        udidCaps = udidCaps.merge(additionalOptions);
 
         Capabilities capabilities = null;
         POOL_LOGGER.debug("before restartDriver: {}", driversPool);
