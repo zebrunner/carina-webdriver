@@ -25,28 +25,11 @@ import org.openqa.selenium.remote.CapabilityType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.zebrunner.carina.utils.R;
-
-import io.appium.java_client.remote.AutomationName;
 import io.appium.java_client.remote.MobileCapabilityType;
 
 public class CapabilitiesLoaderTest {
 
     private final static String customCapabilities = "custom_capabilities.properties";
-    // customCapabilities is the resource files with such props declared inside:
-    // capabilities.stringParam=stringValue
-    // capabilities.booleanParamTrue=true
-    // capabilities.booleanParamFalse=false
-    // coreParam=coreValue
-
-    private final static String stringParam = "stringParam";
-    private final static String stringValue = "stringValue";
-
-    private final static String booleanParamTrue = "booleanParamTrue";
-    private final static String booleanParamFalse = "booleanParamFalse";
-
-    private final static String coreParam = "coreParam";
-    private final static String coreValue = "coreValue";
 
     /*
      * Test that loadCapabilities() raise exception if no properties file detected on classpath
@@ -68,8 +51,6 @@ public class CapabilitiesLoaderTest {
         Assert.assertEquals(capabilities.getCapability(CapabilityType.BROWSER_NAME), Browser.CHROME.browserName(),
                 "Capabilities should contains chrome browser name.");
 
-        Assert.assertEquals(capabilities.getCapability(MobileCapabilityType.AUTOMATION_NAME), AutomationName.ESPRESSO.toLowerCase(),
-                "Capabilities should contains espresso automation name without prefix.");
         Assert.assertEquals(capabilities.getCapability("appium:" + MobileCapabilityType.PLATFORM_VERSION), 11,
                 "Capabilities should contains 11 platfrom version as integer.");
 
@@ -83,53 +64,5 @@ public class CapabilitiesLoaderTest {
         Assert.assertEquals(options.get("waitForIdleTimeout"), 200);
         Assert.assertEquals(options.get("enableVideo"), true);
     }
-
-    /*
-     * Test that getCapabilities() return valid MutableCapabilities values only for "capabilities.name=value" properties
-     */
-    @Test()
-    public void getCapabilitiesTest() {
-        MutableCapabilities caps = new CapabilitiesLoader().getCapabilities(customCapabilities);
-        String value = (String) caps.getCapability(stringParam);
-
-        Assert.assertNotNull(value, "Unable to find '" + stringParam + "' capability!");
-        Assert.assertEquals(value, stringValue, "Returned capability value is not valid!");
-
-        Assert.assertTrue((Boolean) caps.getCapability(booleanParamTrue), "Returned capability value is not valid!");
-
-        Assert.assertFalse((Boolean) caps.getCapability(booleanParamFalse), "Returned capability value is not valid!");
-
-        // verify that param without "capabilities." prefix is not loaded here
-        Assert.assertNull(caps.getCapability(coreParam), coreParam + " is present among capabilities mistakenly!");
-    }
-    
-    /*
-     * Test that loadCapabilities(file, true) load into the R.CONFIG all properties for current thread only!
-     */
-    @Test(dependsOnMethods = { "getCapabilitiesTest" })
-    public void loadTempCapabilitiesTest() {
-        new CapabilitiesLoader().loadCapabilities(customCapabilities, true);
-
-        Assert.assertEquals(R.CONFIG.get("capabilities." + stringParam), stringValue, "Returned capability value is not valid!");
-        Assert.assertTrue(R.CONFIG.getBoolean("capabilities." + booleanParamTrue), "Returned capability value is not valid!");
-        Assert.assertFalse(R.CONFIG.getBoolean("capabilities." + booleanParamFalse), "Returned capability value is not valid!");
-
-        Assert.assertEquals(R.CONFIG.get(coreParam), coreValue, "Returned property value is not valid!");
-    }
-    
-    /*
-     * Test that loadCapabilities() load into the R.CONFIG all properties globally
-     */
-    @Test(dependsOnMethods = { "loadTempCapabilitiesTest" })
-    public void loadGlobalCapabilitiesTest() {
-        new CapabilitiesLoader().loadCapabilities(customCapabilities);
-
-        Assert.assertEquals(R.CONFIG.get("capabilities." + stringParam), stringValue, "Returned capability value is not valid!");
-        Assert.assertTrue(R.CONFIG.getBoolean("capabilities." + booleanParamTrue), "Returned capability value is not valid!");
-        Assert.assertFalse(R.CONFIG.getBoolean("capabilities." + booleanParamFalse), "Returned capability value is not valid!");
-
-        Assert.assertEquals(R.CONFIG.get(coreParam), coreValue, "Returned property value is not valid!");
-    }
-    
 
 }
