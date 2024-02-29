@@ -362,7 +362,7 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
                     throw new InvalidArgumentException(String.format("Invalid value '%s' for '%s' capability. It should be true or false.",
                             capabilityValue, capabilityName));
                 }
-            } else if(StringUtils.containsAnyIgnoreCase(capabilityName, "enableLog", "enableVideo", "enableVNC", "provider", "memory", "cpu") && !StringUtils.contains(capabilityName, ":")) {
+            } else if(StringUtils.containsAnyIgnoreCase(capabilityName, "enableLog", "enableVideo", "enableVNC", "provider", "memory", "cpu", "newSessionWaitTimeout") && !StringUtils.contains(capabilityName, ":")) {
                 LOGGER.warn("Capability '{}' will not be added to the session because it does not comply with the w3c style.", capabilityName);
                 return null;
             } else if (isNumber(capabilityValue)) {
