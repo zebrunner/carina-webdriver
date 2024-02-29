@@ -660,9 +660,10 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
             List<T> extendedElements = new ArrayList<>();
             T tempExtendedElement = format(extendedElement, objects);
             int index = 0;
-            for (WebElement element : extendedElement.findElements(Objects.requireNonNull(tempExtendedElement.getBy()))) {
+            for (WebElement element : extendedElement.getSearchContext()
+                    .findElements(Objects.requireNonNull(tempExtendedElement.getBy()))) {
                 T extendedElementOfList = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(),
-                        extendedElement);
+                        extendedElement.getSearchContext());
                 extendedElementOfList.setElement(element);
                 extendedElementOfList.setBy(null);
                 extendedElementOfList.setName(String.format("%s - [%s]", extendedElement.getName(), index++));
