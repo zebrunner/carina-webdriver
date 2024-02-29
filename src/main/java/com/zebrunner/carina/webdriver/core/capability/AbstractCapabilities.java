@@ -20,11 +20,13 @@ import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -32,6 +34,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.zebrunner.carina.webdriver.proxy.ZebrunnerProxyBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.MutableCapabilities;
@@ -44,6 +47,8 @@ import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.config.Configuration;
 import com.zebrunner.carina.utils.exception.InvalidConfigurationException;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
+
+import javax.annotation.Nullable;
 
 public abstract class AbstractCapabilities<T extends MutableCapabilities> {
     // TODO: [VD] reorganize in the same way Firefox profiles args/options if any and review other browsers
@@ -225,6 +230,7 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
                     return pair;
                 })
                 .map(p -> parseCapabilityType(p.getLeft(), p.getRight()))
+                .filter(Objects::nonNull) // null-safe
                 .collect(Collectors.toMap(MutablePair::getLeft, MutablePair::getRight));
     }
 
@@ -248,6 +254,7 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
                     return pair;
                 })
                 .map(p -> parseCapabilityType(p.getLeft(), p.getRight()))
+                .filter(Objects::nonNull) // null-safe
                 .collect(Collectors.toMap(MutablePair::getLeft, MutablePair::getRight));
     }
 
@@ -310,9 +317,9 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
      *
      * @param capabilityName name of the capability, for example {@code platformName} or {zebrunner:options.enableVideo[boolean]}
      * @param capabilityValue capability value. Since we take it from the configuration file, it is immediately of type String
-     * @return {@link MutablePair}, where left is the capability name and right is the value
+     * @return {@link MutablePair}, where left is the capability name and right is the value, or null if capability is not w3c
      */
-    static MutablePair<String, Object> parseCapabilityType(String capabilityName, String capabilityValue) {
+    static @Nullable MutablePair<String, Object> parseCapabilityType(String capabilityName, String capabilityValue) {
         MutablePair<String, Object> pair = new MutablePair<>();
         Matcher matcher = CAPABILITY_WITH_TYPE_PATTERN.matcher(capabilityName);
         if (matcher.find()) {
@@ -355,6 +362,9 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
                     throw new InvalidArgumentException(String.format("Invalid value '%s' for '%s' capability. It should be true or false.",
                             capabilityValue, capabilityName));
                 }
+            } else if(!StringUtils.contains(capabilityName, ":")) {
+                LOGGER.warn("Capability '{}' will not be added to the session because it does not comply with the w3c style.", capabilityName);
+                return null;
             } else if (isNumber(capabilityValue)) {
                 pair.setRight(Integer.parseInt(capabilityValue));
             } else if ("true".equalsIgnoreCase(capabilityValue)) {
