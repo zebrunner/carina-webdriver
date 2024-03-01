@@ -42,7 +42,7 @@ public abstract class AbstractUIObject extends ExtendedWebElement {
     public AbstractUIObject(WebDriver driver) {
         this(driver, driver);
         //hotfix for custom elements (without ExtendedFieldDecorator)
-        setBy(By.xpath("/*"));
+        setBy(By.xpath("(/*)[1]"));
     }
 
     /**
