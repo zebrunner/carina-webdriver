@@ -18,6 +18,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Action;
@@ -515,7 +516,18 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
             return null;
         }
         try {
-            T foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(), extendedElement);
+            T foundElement;
+            if (ConstructorUtils.getAccessibleConstructor(extendedElement.getClass(), WebDriver.class, SearchContext.class) != null) {
+                foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(),
+                        new Object[] { extendedElement.getDriver(), extendedElement },
+                        new Class<?>[] { WebDriver.class, SearchContext.class });
+            } else if (ConstructorUtils.getAccessibleConstructor(extendedElement.getClass(), WebDriver.class) != null) {
+                foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), new Object[] { extendedElement.getDriver() },
+                        new Class<?>[] { WebDriver.class });
+            }  else {
+                throw new NoSuchMethodException(
+                        String.format("Could not find suitable constructor (WebDriver) or (WebDriver, SearchContext) in '%s' class.", extendedElement.getClass()));
+            }
             foundElement.setBy(by);
             foundElement.setName(name);
             return foundElement;
@@ -555,7 +567,18 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
 
             int i = 0;
             for (WebElement webElement : extendedElement.findElements(by)) {
-                T foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(), extendedElement);
+                T foundElement;
+                if (ConstructorUtils.getAccessibleConstructor(extendedElement.getClass(), WebDriver.class, SearchContext.class) != null) {
+                    foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(),
+                            new Object[] { extendedElement.getDriver(), extendedElement },
+                            new Class<?>[] { WebDriver.class, SearchContext.class });
+                } else if (ConstructorUtils.getAccessibleConstructor(extendedElement.getClass(), WebDriver.class) != null) {
+                    foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), new Object[] { extendedElement.getDriver() },
+                            new Class<?>[] { WebDriver.class });
+                }  else {
+                    throw new NoSuchMethodException(
+                            String.format("Could not find suitable constructor (WebDriver) or (WebDriver, SearchContext) in '%s' class.", extendedElement.getClass()));
+                }
                 foundElement.setName(String.format("ExtendedWebElement - [%d]", i));
                 foundElement.setElement(webElement);
                 extendedWebElements.add(foundElement);
