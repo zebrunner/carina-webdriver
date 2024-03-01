@@ -510,7 +510,7 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
     @SuppressWarnings("unchecked")
     default <T extends ExtendedWebElement> T findExtendedWebElement(T extendedElement, final By by, String name, Duration timeout) {
         DriverListener.setMessages(Messager.ELEMENT_FOUND.getMessage(name), Messager.ELEMENT_NOT_FOUND.getMessage(name));
-        if (!waitUntil(ExpectedConditions.presenceOfElementLocated(Objects.requireNonNull(by)), timeout)) {
+        if (!waitUntil(ExpectedConditions.presenceOfNestedElementLocatedBy(extendedElement.getElement(), Objects.requireNonNull(by)), timeout)) {
             Messager.ELEMENT_NOT_FOUND.error(name);
             return null;
         }
@@ -548,7 +548,7 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
     default <T extends ExtendedWebElement> List<T> findExtendedWebElements(T extendedElement, final By by, Duration timeout) {
         try {
             List<T> extendedWebElements = new ArrayList<>();
-            if (!waitUntil(ExpectedConditions.presenceOfElementLocated(by), timeout)) {
+            if (!waitUntil(ExpectedConditions.presenceOfNestedElementLocatedBy(extendedElement.getElement(), Objects.requireNonNull(by)), timeout)) {
                 Messager.ELEMENT_NOT_FOUND.info(by.toString());
                 return extendedWebElements;
             }
