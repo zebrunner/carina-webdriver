@@ -649,7 +649,9 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
         }
         FormatLocatorConverter converter = new FormatLocatorConverter(objects);
         converters.addFirst(converter);
-        formatElement.setBy(buildConvertedBy(ORIGINAL_LOCATORS.get(extendedElement.getUuid()), converters));
+        By originalBy = ORIGINAL_LOCATORS.get(extendedElement.getUuid()) != null ?
+                ORIGINAL_LOCATORS.get(extendedElement.getUuid()) : extendedElement.getBy();
+        formatElement.setBy(buildConvertedBy(originalBy, converters));
         return formatElement;
     }
 
