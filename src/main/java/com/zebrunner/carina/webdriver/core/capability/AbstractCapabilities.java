@@ -320,6 +320,10 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
      * @return {@link MutablePair}, where left is the capability name and right is the value, or null if capability is not w3c
      */
     static @Nullable MutablePair<String, Object> parseCapabilityType(String capabilityName, String capabilityValue) {
+        if(StringUtils.containsAnyIgnoreCase(capabilityName, "enableLog", "enableVideo", "enableVNC", "provider", "memory", "cpu", "newSessionWaitTimeout") && !StringUtils.contains(capabilityName, ":")) {
+            LOGGER.warn("Capability '{}' will not be added to the session because it does not comply with the w3c style.", capabilityName);
+            return null;
+        }
         MutablePair<String, Object> pair = new MutablePair<>();
         Matcher matcher = CAPABILITY_WITH_TYPE_PATTERN.matcher(capabilityName);
         if (matcher.find()) {
@@ -362,9 +366,6 @@ public abstract class AbstractCapabilities<T extends MutableCapabilities> {
                     throw new InvalidArgumentException(String.format("Invalid value '%s' for '%s' capability. It should be true or false.",
                             capabilityValue, capabilityName));
                 }
-            } else if(StringUtils.containsAnyIgnoreCase(capabilityName, "enableLog", "enableVideo", "enableVNC", "provider", "memory", "cpu", "newSessionWaitTimeout") && !StringUtils.contains(capabilityName, ":")) {
-                LOGGER.warn("Capability '{}' will not be added to the session because it does not comply with the w3c style.", capabilityName);
-                return null;
             } else if (isNumber(capabilityValue)) {
                 pair.setRight(Integer.parseInt(capabilityValue));
             } else if ("true".equalsIgnoreCase(capabilityValue)) {
