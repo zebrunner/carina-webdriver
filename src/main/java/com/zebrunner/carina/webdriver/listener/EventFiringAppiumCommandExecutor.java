@@ -1,14 +1,23 @@
 package com.zebrunner.carina.webdriver.listener;
 
+import com.zebrunner.carina.commons.artifact.IArtifactManager;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.config.Configuration;
-import com.zebrunner.carina.webdriver.IDriverPool;
+import com.zebrunner.carina.utils.mobile.ArtifactProvider;
 import com.zebrunner.carina.webdriver.config.WebDriverConfiguration;
 import io.appium.java_client.AppiumClientConfig;
+import io.appium.java_client.internal.CapabilityHelpers;
 import io.appium.java_client.remote.AppiumCommandExecutor;
+import io.appium.java_client.remote.AppiumNewSessionCommandPayload;
+import io.appium.java_client.remote.options.SupportsAppOption;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.remote.Command;
 import org.openqa.selenium.remote.CommandInfo;
@@ -34,14 +43,22 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author akhursevich
  */
-public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor implements IDriverPool {
+public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecutor {
     private static final AtomicInteger CURRENT_SESSIONS_AMOUNT = new AtomicInteger(0);
     private static final Map<String, Duration> EXCEPTION_TIMEOUTS = new ConcurrentHashMap<>();
     private static final BlockingQueue<String> BLOCKING_QUEUE = new LinkedBlockingQueue<>(
             Configuration.getRequired(WebDriverConfiguration.Parameter.MAX_NEW_SESSION_QUEUE, Integer.class));
 
+    private static final LazyInitializer<IArtifactManager> ARTIFACT_PROVIDERS = new LazyInitializer<>() {
+        @Override
+        protected IArtifactManager initialize() throws ConcurrentException {
+            return ArtifactProvider.getInstance();
+        }
+    };
+
     private final AtomicBoolean retry = new AtomicBoolean(false);
     private final Integer newSessionPause;
+    private Capabilities capabilities;
 
     public EventFiringAppiumCommandExecutor(
             @Nonnull Map<String, CommandInfo> additionalCommands,
@@ -56,6 +73,10 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
         this(additionalCommands, null, null, appiumClientConfig);
     }
 
+    public void setCapabilities(Capabilities capabilities) {
+        this.capabilities = capabilities;
+    }
+
     @Override
     public Response execute(Command command) throws WebDriverException {
         boolean isNewSessionCommand = DriverCommand.NEW_SESSION.equals(command.getName());
@@ -64,9 +85,22 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
             if (isNewSessionCommand) {
                 try {
                     BLOCKING_QUEUE.put(UUID.randomUUID().toString() + System.currentTimeMillis());
+                    String app = CapabilityHelpers.getCapability(capabilities, SupportsAppOption.APP_OPTION, String.class);
+                    if (app != null) {
+                        MutableCapabilities appCaps = new MutableCapabilities();
+                        appCaps.setCapability(SupportsAppOption.APP_OPTION, ARTIFACT_PROVIDERS.get()
+                                .getDirectLink(app));
+                        FieldUtils.writeField(FieldUtils.getField(Command.class, "payload", true),
+                                command,
+                                new AppiumNewSessionCommandPayload(capabilities.merge(appCaps)),
+                                true);
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                } catch (ConcurrentException | IllegalAccessException e) {
+                    return ExceptionUtils.rethrow(e);
                 }
+
             }
             try {
                 if (DriverCommand.QUIT.equalsIgnoreCase(command.getName())) {

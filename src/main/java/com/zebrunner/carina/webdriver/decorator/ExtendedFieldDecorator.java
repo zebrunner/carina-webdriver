@@ -23,9 +23,6 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.List;
 
-import com.zebrunner.carina.webdriver.gui.AbstractPage;
-import com.zebrunner.carina.webdriver.helper.IExtendedWebElementHelper;
-import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
@@ -36,7 +33,10 @@ import org.openqa.selenium.support.pagefactory.FieldDecorator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.zebrunner.carina.webdriver.gui.AbstractPage;
+import com.zebrunner.carina.webdriver.helper.IExtendedWebElementHelper;
 import com.zebrunner.carina.webdriver.locator.ExtendedElementLocator;
+import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
 import com.zebrunner.carina.webdriver.locator.internal.LocatingListHandler;
 
 public class ExtendedFieldDecorator implements FieldDecorator, IExtendedWebElementHelper {
@@ -83,16 +83,16 @@ public class ExtendedFieldDecorator implements FieldDecorator, IExtendedWebEleme
         if (ClassUtils.isAssignable(fieldType, ExtendedWebElement.class)) {
             try {
                 ExtendedWebElement element;
-                if (ConstructorUtils.getAccessibleConstructor(fieldType, WebDriver.class) != null) {
-                    element = (ExtendedWebElement) ConstructorUtils.invokeConstructor(fieldType, new Object[] { locator.getDriver() },
-                            new Class<?>[] { WebDriver.class });
-                } else if (ConstructorUtils.getAccessibleConstructor(fieldType, WebDriver.class, SearchContext.class) != null) {
+                if (ConstructorUtils.getAccessibleConstructor(fieldType, WebDriver.class, SearchContext.class) != null) {
                     element = (ExtendedWebElement) ConstructorUtils.invokeConstructor(fieldType,
                             new Object[] { locator.getDriver(), locator.getSearchContext() },
                             new Class<?>[] { WebDriver.class, SearchContext.class });
+                } else if (ConstructorUtils.getAccessibleConstructor(fieldType, WebDriver.class) != null) {
+                    element = (ExtendedWebElement) ConstructorUtils.invokeConstructor(fieldType, new Object[] { locator.getDriver() },
+                            new Class<?>[] { WebDriver.class });
                 } else {
                     throw new NoSuchMethodException(
-                            String.format("Could not find suitable constructor (WebDriver) or (WebDriver, SearchContext) in '%s' class.", fieldType));
+                            String.format("Could not find suitable constructor (WebDriver, SearchContext) or (WebDriver) in '%s' class.", fieldType));
                 }
 
                 element.setBy(buildConvertedBy(locator.getBy(), locator.getLocatorConverters()));

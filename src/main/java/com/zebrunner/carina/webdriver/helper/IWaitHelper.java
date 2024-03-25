@@ -76,7 +76,7 @@ public interface IWaitHelper extends IDriverPool {
             long timePassed = System.currentTimeMillis() - startMillis;
             // timePassed is time in ms timeout in sec so we have to adjust
             if (timePassed > 2 * timeout.toSeconds() * 1000) {
-                I_WAIT_HELPER_LOGGER.error("Your retry_interval is too low: {} ms! Increase it or upgrade your hardware",
+                I_WAIT_HELPER_LOGGER.debug("Your retry_interval is too low: {} ms! Increase it or upgrade your hardware",
                         getDefaultWaitInterval(timeout));
             }
         }

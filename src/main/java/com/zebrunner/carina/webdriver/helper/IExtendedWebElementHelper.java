@@ -18,6 +18,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Action;
@@ -510,12 +511,23 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
     @SuppressWarnings("unchecked")
     default <T extends ExtendedWebElement> T findExtendedWebElement(T extendedElement, final By by, String name, Duration timeout) {
         DriverListener.setMessages(Messager.ELEMENT_FOUND.getMessage(name), Messager.ELEMENT_NOT_FOUND.getMessage(name));
-        if (!waitUntil(ExpectedConditions.presenceOfElementLocated(Objects.requireNonNull(by)), timeout)) {
+        if (!waitUntil(ExpectedConditions.presenceOfNestedElementLocatedBy(extendedElement.getElement(), Objects.requireNonNull(by)), timeout)) {
             Messager.ELEMENT_NOT_FOUND.error(name);
             return null;
         }
         try {
-            T foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(), extendedElement);
+            T foundElement;
+            if (ConstructorUtils.getAccessibleConstructor(extendedElement.getClass(), WebDriver.class, SearchContext.class) != null) {
+                foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(),
+                        new Object[] { extendedElement.getDriver(), extendedElement },
+                        new Class<?>[] { WebDriver.class, SearchContext.class });
+            } else if (ConstructorUtils.getAccessibleConstructor(extendedElement.getClass(), WebDriver.class) != null) {
+                foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), new Object[] { extendedElement.getDriver() },
+                        new Class<?>[] { WebDriver.class });
+            }  else {
+                throw new NoSuchMethodException(
+                        String.format("Could not find suitable constructor (WebDriver) or (WebDriver, SearchContext) in '%s' class.", extendedElement.getClass()));
+            }
             foundElement.setBy(by);
             foundElement.setName(name);
             return foundElement;
@@ -548,14 +560,25 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
     default <T extends ExtendedWebElement> List<T> findExtendedWebElements(T extendedElement, final By by, Duration timeout) {
         try {
             List<T> extendedWebElements = new ArrayList<>();
-            if (!waitUntil(ExpectedConditions.presenceOfElementLocated(by), timeout)) {
+            if (!waitUntil(ExpectedConditions.presenceOfNestedElementLocatedBy(extendedElement.getElement(), Objects.requireNonNull(by)), timeout)) {
                 Messager.ELEMENT_NOT_FOUND.info(by.toString());
                 return extendedWebElements;
             }
 
             int i = 0;
             for (WebElement webElement : extendedElement.findElements(by)) {
-                T foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(), extendedElement);
+                T foundElement;
+                if (ConstructorUtils.getAccessibleConstructor(extendedElement.getClass(), WebDriver.class, SearchContext.class) != null) {
+                    foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(),
+                            new Object[] { extendedElement.getDriver(), extendedElement },
+                            new Class<?>[] { WebDriver.class, SearchContext.class });
+                } else if (ConstructorUtils.getAccessibleConstructor(extendedElement.getClass(), WebDriver.class) != null) {
+                    foundElement = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), new Object[] { extendedElement.getDriver() },
+                            new Class<?>[] { WebDriver.class });
+                }  else {
+                    throw new NoSuchMethodException(
+                            String.format("Could not find suitable constructor (WebDriver) or (WebDriver, SearchContext) in '%s' class.", extendedElement.getClass()));
+                }
                 foundElement.setName(String.format("ExtendedWebElement - [%d]", i));
                 foundElement.setElement(webElement);
                 extendedWebElements.add(foundElement);
@@ -626,7 +649,9 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
         }
         FormatLocatorConverter converter = new FormatLocatorConverter(objects);
         converters.addFirst(converter);
-        formatElement.setBy(buildConvertedBy(ORIGINAL_LOCATORS.get(extendedElement.getUuid()), converters));
+        By originalBy = ORIGINAL_LOCATORS.get(extendedElement.getUuid()) != null ?
+                ORIGINAL_LOCATORS.get(extendedElement.getUuid()) : extendedElement.getBy();
+        formatElement.setBy(buildConvertedBy(originalBy, converters));
         return formatElement;
     }
 
@@ -660,9 +685,10 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
             List<T> extendedElements = new ArrayList<>();
             T tempExtendedElement = format(extendedElement, objects);
             int index = 0;
-            for (WebElement element : extendedElement.findElements(Objects.requireNonNull(tempExtendedElement.getBy()))) {
+            for (WebElement element : extendedElement.getSearchContext()
+                    .findElements(Objects.requireNonNull(tempExtendedElement.getBy()))) {
                 T extendedElementOfList = (T) ConstructorUtils.invokeConstructor(extendedElement.getClass(), extendedElement.getDriver(),
-                        extendedElement);
+                        extendedElement.getSearchContext());
                 extendedElementOfList.setElement(element);
                 extendedElementOfList.setBy(null);
                 extendedElementOfList.setName(String.format("%s - [%s]", extendedElement.getName(), index++));
