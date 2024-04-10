@@ -94,13 +94,6 @@ public class MobileFactory extends AbstractFactory {
             LOGGER.debug("Appended udid to capabilities: {}", capabilities);
         }
 
-        Object mobileAppCapability = CapabilityHelpers.getCapability(capabilities, MobileCapabilityType.APP, String.class);
-        if (mobileAppCapability != null) {
-            MutableCapabilities appCaps = new MutableCapabilities();
-            appCaps.setCapability(MobileCapabilityType.APP, getAppLink(String.valueOf(mobileAppCapability)));
-            capabilities = capabilities.merge(appCaps);
-        }
-
         LOGGER.debug("capabilities: {}", capabilities);
 
         try {
@@ -112,6 +105,7 @@ public class MobileFactory extends AbstractFactory {
                 clientConfig = clientConfig.readTimeout(Duration.ofSeconds(readTimeout.get()));
             }
             EventFiringAppiumCommandExecutor commandExecutor = new EventFiringAppiumCommandExecutor(MobileCommand.commandRepository, clientConfig);
+            commandExecutor.setCapabilities(capabilities);
 
             if (MobilePlatform.ANDROID.equalsIgnoreCase(mobilePlatformName)) {
                 driver = new AndroidDriver(commandExecutor, capabilities);
@@ -257,5 +251,5 @@ public class MobileFactory extends AbstractFactory {
 
         return paramValue;
     }
-    
+
 }

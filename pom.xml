@@ -66,7 +66,9 @@
         <hamcrest.version>1.3</hamcrest.version>
         <org.json.version>20231013</org.json.version>
         <joda-time.version>2.9.9</joda-time.version>
+        <apiguardian-api.version>1.1.2</apiguardian-api.version>
         <mockito-core.version>3.2.4</mockito-core.version>
+        <slf4j-simple.version>2.0.12</slf4j-simple.version>
         <testng.version>7.8.0</testng.version>
         <guava.version>32.1.2-jre</guava.version>
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
@@ -303,9 +305,22 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apiguardian</groupId>
+            <artifactId>apiguardian-api</artifactId>
+            <version>${apiguardian-api.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito-core.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j-simple.version}</version>
             <scope>test</scope>
         </dependency>
 

@@ -41,6 +41,8 @@ public abstract class AbstractUIObject extends ExtendedWebElement {
     @SuppressWarnings("squid:S5993")
     public AbstractUIObject(WebDriver driver) {
         this(driver, driver);
+        //hotfix for custom elements (without ExtendedFieldDecorator)
+        setBy(By.xpath("(/*)[1]"));
     }
 
     /**
