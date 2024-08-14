@@ -18,8 +18,9 @@ package com.zebrunner.carina.webdriver;
 import static org.mockito.Mockito.mock;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 import org.mockito.Mock;
 import org.openqa.selenium.WebDriver;
@@ -66,10 +67,9 @@ public class DriverPoolTest implements IDriverPool {
 
         this.mockDriverSuite = mock(WebDriver.class);
         registerDriver(mockDriverSuite, BEFORE_SUITE_DRIVER_NAME);
-        Assert.assertEquals(driversPool.size(), 1,
+        Assert.assertEquals(DRIVERS.get(Thread.currentThread().getId()).size(), 1,
                 "Driver pool is empty after before suite driver has been registered");
         Assert.assertEquals(getDriver(BEFORE_SUITE_DRIVER_NAME), mockDriverSuite, "Incorrect driver has been returned");
-        changeBeforeSuiteDriverThread();
 
         this.mockDriverDefault = mock(WebDriver.class);
         this.mockDriverCustom1 = mock(WebDriver.class);
@@ -111,7 +111,7 @@ public class DriverPoolTest implements IDriverPool {
 
         Assert.assertEquals(getDriver(), mockDriverDefault, "Returned driver is not the same as registered!");
     }
-    
+
     @Test(dependsOnMethods = "registerDefaultDriver", expectedExceptions = {
             AssertionError.class }, expectedExceptionsMessageRegExp = "Driver 'default' is already registered for thread: 1")
     public void registerTwiceDefaultDriver() {
@@ -135,7 +135,7 @@ public class DriverPoolTest implements IDriverPool {
         quitDrivers(Phase.BEFORE_METHOD);
         Assert.assertEquals(getDrivers().size(), 0, "Number of registered driver is not valid!");
     }
-    
+
     @Test(dependsOnMethods = { "quitDriverByPhase" })
     public void quitDefaultDriver() {
         TestPhase.setActivePhase(Phase.METHOD);
@@ -144,7 +144,7 @@ public class DriverPoolTest implements IDriverPool {
         quitDriver();
         Assert.assertEquals(getDrivers().size(), 0, "Number of registered driver is not valid!");
     }
-    
+
     @Test(dependsOnMethods = { "quitDefaultDriver" })
     public void quitDriverByName() {
         TestPhase.setActivePhase(Phase.METHOD);
@@ -153,7 +153,7 @@ public class DriverPoolTest implements IDriverPool {
         quitDriver(DEFAULT);
         Assert.assertEquals(0, getDrivers().size(), "Number of registered driver is not valid!");
     }
-    
+
     @Test(dependsOnMethods = { "quitDriverByName" })
     public void registerCustom1Driver() {
         registerDriver(mockDriverCustom1, CUSTOM1);
@@ -194,30 +194,21 @@ public class DriverPoolTest implements IDriverPool {
         Assert.assertEquals(getDrivers().size(), 1, "Number of registered driver is not valid!");
         registerDriver(mockDriverCustom1, CUSTOM1);
         Assert.assertEquals(getDrivers().size(), 2, "Number of registered driver is not valid!");
-        
+
         quitDrivers(Phase.ALL);
         Assert.assertEquals(getDrivers().size(), 0, "Number of registered driver is not valid!");
     }
-    
+
     @Test(dependsOnMethods = { "deregisterAllDrivers" })
     public void registerDriverWithDevice() {
         WebDriver deviceDriver = mock(WebDriver.class);
         Device device = new Device("name", "type", "os", "osVersion", "udid", "remoteUrl", "vnc", "proxyPort");
         registerDriver(deviceDriver, DEFAULT, device);
         Assert.assertEquals(getDrivers().size(), 1, "Number of registered driver is not valid!");
-        
+
         Assert.assertEquals(getDriver(), deviceDriver, "Returned driver is not the same as registered!");
         Assert.assertEquals(getDevice(), device, "Returned device is not the same as registered!");
         quitDrivers(Phase.ALL);
-    }
-    
-    private void changeBeforeSuiteDriverThread() {
-        for (CarinaDriver cDriver : driversPool) {
-            if (Phase.BEFORE_SUITE.equals(cDriver.getPhase())) {
-                long newThreadID = cDriver.getThreadId() + 1;
-                cDriver.setThreadId(newThreadID);
-            }
-        }
     }
 
     /**
@@ -232,6 +223,7 @@ public class DriverPoolTest implements IDriverPool {
     private void registerDriver(WebDriver driver, String name) {
         registerDriver(driver, name, IDriverPool.getNullDevice());
     }
+
     /**
      * Register driver in the DriverPool with device
      * 
@@ -245,7 +237,7 @@ public class DriverPoolTest implements IDriverPool {
      */
     private void registerDriver(WebDriver driver, String name, Device device) {
         Long threadId = Thread.currentThread().getId();
-        ConcurrentHashMap<String, CarinaDriver> currentDrivers = getDrivers();
+        Map<String, CarinaDriver> currentDrivers = getDrivers();
 
         int maxDriverCount = Configuration.getRequired(WebDriverConfiguration.Parameter.MAX_DRIVER_COUNT, Integer.class);
 
@@ -258,7 +250,7 @@ public class DriverPoolTest implements IDriverPool {
 
         // new 6.0 approach to manipulate drivers via regular Set
         CarinaDriver carinaDriver = new CarinaDriver(name, driver, device, TestPhase.getActivePhase(), threadId, null);
-        driversPool.add(carinaDriver);
+        DRIVERS.get(Thread.currentThread().getId()).put(name, carinaDriver);
     }
 
     /**
@@ -270,7 +262,8 @@ public class DriverPoolTest implements IDriverPool {
      */
     private void deregisterDriver(WebDriver drv) {
 
-        Iterator<CarinaDriver> iter = driversPool.iterator();
+        Iterator<CarinaDriver> iter = DRIVERS.computeIfAbsent(Thread.currentThread().getId(),
+                id -> new HashMap<>(1)).values().iterator();
 
         while (iter.hasNext()) {
             CarinaDriver carinaDriver = iter.next();

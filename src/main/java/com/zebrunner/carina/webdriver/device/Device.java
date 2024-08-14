@@ -319,24 +319,28 @@ public class Device implements IDriverPool {
     }
 
     public void disconnectRemote() {
-        if (!isAdbEnabled)
-            return;
-        
-        if (isNull())
-            return;
+        try {
+            if (!isAdbEnabled)
+                return;
 
-        String connectUrl = getAdbName();
-        if (StringUtils.isEmpty(connectUrl)) {
-            LOGGER.error("Unable to use adb as ADB remote url is not available!");
-            return;
+            if (isNull())
+                return;
+
+            String connectUrl = getAdbName();
+            if (StringUtils.isEmpty(connectUrl)) {
+                LOGGER.error("Unable to use adb as ADB remote url is not available!");
+                return;
+            }
+
+            // [VD] No need to do adb command as stopping STF session do it correctly
+            // in new STF we have huge problems with sessions disconnect
+            LOGGER.debug("adb disconnect {}", getRemoteURL());
+            String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "disconnect", connectUrl);
+            executor.execute(cmd);
+            isAdbEnabled = false;
+        } catch (Throwable e) {
+            LOGGER.error("Could not disconnect '{}' device due to exception.", e.getMessage(), e);
         }
-
-        // [VD] No need to do adb command as stopping STF session do it correctly
-        // in new STF we have huge problems with sessions disconnect
-        LOGGER.debug("adb disconnect {}", getRemoteURL());
-        String[] cmd = CmdLine.insertCommandsAfter(executor.getDefaultCmd(), "disconnect", connectUrl);
-        executor.execute(cmd);
-        isAdbEnabled = false;
     }
 
     public String getFullPackageByName(final String name) {

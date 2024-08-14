@@ -22,15 +22,14 @@ import com.zebrunner.carina.webdriver.TestPhase.Phase;
 import com.zebrunner.carina.webdriver.device.Device;
 
 public class CarinaDriver {
-	private String name;
-	private WebDriver driver;
-	private Device device;
-	private Phase phase;
-	private long threadId;
+	private final String name;
+	private final WebDriver driver;
+	private final Device device;
+	private final Phase phase;
+	private final long threadId;
 	private final Capabilities originalCapabilities;
 
 	public CarinaDriver(String name, WebDriver driver, Device device, Phase phase, long threadId, Capabilities originalCapabilities) {
-		super();
 		this.name = name;
 		this.driver = driver;
 		this.device = device;
@@ -59,14 +58,10 @@ public class CarinaDriver {
 		return phase;
 	}
 
-    protected void setThreadId(long threadId) {
-        this.threadId = threadId;
-    }
-
     /**
      * Get capabilities that used for creating driver.<br>
      * <b>For internal usage only</b>
-     * 
+     *
      * @return {@link Capabilities}
      */
     public Capabilities getOriginalCapabilities() {

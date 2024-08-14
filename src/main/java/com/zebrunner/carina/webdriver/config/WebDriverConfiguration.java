@@ -214,6 +214,12 @@ public final class WebDriverConfiguration extends Configuration {
          * <b>Default: {@code 20}</b>
          */
         EXPLICIT_TIMEOUT("explicit_timeout"),
+
+        /**
+         * Timeout in seconds to wait for driver closed.
+         * <b>Default: 10</b>
+         */
+        DRIVER_QUIT_TIMEOUT("driver_quit_timeout"),
         /**
          * Timeout is seconds to read response from Selenium/Appium. <b>Default: {@code 660}</b>
          */
