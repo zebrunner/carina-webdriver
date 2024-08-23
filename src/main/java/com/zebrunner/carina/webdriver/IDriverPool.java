@@ -134,7 +134,7 @@ public interface IDriverPool {
      */
     @API(status = API.Status.STABLE)
     default WebDriver getDriver(String name, @Nullable Capabilities capabilities, @Nullable String seleniumHost) {
-        return getCarinaDriver(name)
+        return getCarinaDriver(name, Thread.currentThread().getId())
                 .orElseGet(() -> {
                     if (!(TestPhase.getActivePhase() == TestPhase.Phase.BEFORE_METHOD ||
                             TestPhase.getActivePhase() == TestPhase.Phase.BEFORE_SUITE ||
@@ -256,7 +256,7 @@ public interface IDriverPool {
      */
     @API(status = API.Status.MAINTAINED)
     default WebDriver restartDriver(String name, boolean isSameDevice, @Nullable Capabilities additionalOptions) {
-        CarinaDriver drv = getCarinaDriver(name)
+        CarinaDriver drv = getCarinaDriver(name, Thread.currentThread().getId())
                 .orElseThrow(() -> new DriverPoolException(
                         String.format("Could not restart '%s' driver due to there are no such driver in current thread.", name)));
         MutableCapabilities udidCaps = new MutableCapabilities();
@@ -294,11 +294,12 @@ public interface IDriverPool {
      */
     @API(status = API.Status.STABLE)
     default void quitDriver(String name) {
-        Optional<CarinaDriver> driver = getCarinaDriver(name);
+        Long threadId = Thread.currentThread().getId();
+        Optional<CarinaDriver> driver = getCarinaDriver(name, threadId);
         if (driver.isEmpty()) {
             throw new DriverPoolException(String.format("Unable to find driver '%s' in pool!", name));
         } else {
-            quitCarinaDriver(name);
+            quitCarinaDriver(name, threadId);
         }
     }
 
@@ -345,7 +346,7 @@ public interface IDriverPool {
      */
     @API(status = API.Status.STABLE)
     default boolean isDriverRegistered(String name) {
-        return getCarinaDriver(name)
+        return getCarinaDriver(name, Thread.currentThread().getId())
                 .isPresent();
     }
 
@@ -381,7 +382,7 @@ public interface IDriverPool {
      */
     @API(status = API.Status.STABLE)
     default Device getDevice(String name) {
-        Optional<CarinaDriver> driver = getCarinaDriver(name);
+        Optional<CarinaDriver> driver = getCarinaDriver(name, Thread.currentThread().getId());
         if (driver.isEmpty()) {
             return nullDevice;
         }
@@ -463,7 +464,8 @@ public interface IDriverPool {
         return CURRENT_DEVICE.get() != nullDevice;
     }
 
-    private static Optional<CarinaDriver> getCarinaDriver(String name) {
+    @API(status = API.Status.INTERNAL)
+    public static Optional<CarinaDriver> getCarinaDriver(String name, Long threadId) {
         if (BEFORE_SUITE_DRIVER_REGISTERED.get()) {
             return Optional.of(DRIVERS.values()
                     .stream()
@@ -475,12 +477,13 @@ public interface IDriverPool {
                     .orElseThrow(() -> new DriverPoolException("Cannot find before suite driver! But looks like we registered driver previously.")));
         }
         return Optional.ofNullable(
-                getDriversMapByThread(Thread.currentThread().getId())
+                getDriversMapByThread(threadId)
                         .get(name));
     }
 
-    private static void quitCarinaDriver(String name) {
-        getCarinaDriver(name).ifPresent(drv -> {
+    @API(status = API.Status.INTERNAL)
+    public static void quitCarinaDriver(String name, Long threadId) {
+        getCarinaDriver(name, threadId).ifPresent(drv -> {
             // default timeout for driver quit 1/2 of explicit
             long timeout = Configuration.getRequired(Parameter.DRIVER_QUIT_TIMEOUT, Integer.class);
             drv.getDevice().disconnectRemote();
@@ -502,12 +505,12 @@ public interface IDriverPool {
                     DRIVERS.clear();
                     POOL_LOGGER.warn("Removed driver created in the before suite.");
                 } else {
-                    Map<String, CarinaDriver> drvs = DRIVERS.get(Thread.currentThread().getId());
+                    Map<String, CarinaDriver> drvs = DRIVERS.get(threadId);
                     if (drvs.size() > 1) {
                         drvs.remove(name);
                     } else {
                         drvs.remove(name);
-                        DRIVERS.remove(Thread.currentThread().getId());
+                        DRIVERS.remove(threadId);
                         CURRENT_DEVICE.remove();
                     }
                 }
