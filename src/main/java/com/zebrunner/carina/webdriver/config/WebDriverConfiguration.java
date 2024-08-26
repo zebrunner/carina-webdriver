@@ -210,6 +210,11 @@ public final class WebDriverConfiguration extends Configuration {
         ALLOW_FULLSIZE_SCREENSHOT("allow_fullsize_screenshot"),
 
         /**
+         * Driver close timeout (in seconds). <b>Default: 20</b>
+         */
+        DRIVER_CLOSE_TIMEOUT("driver_close_timeout"),
+
+        /**
          * Timeout is seconds to wait for a certain condition to occur before proceeding further in the code.
          * <b>Default: {@code 20}</b>
          */

@@ -16,16 +16,12 @@
 package com.zebrunner.carina.webdriver;
 
 import java.lang.invoke.MethodHandles;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import io.appium.java_client.remote.MobileCapabilityType;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -36,10 +32,10 @@ import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.SessionId;
 import org.openqa.selenium.support.decorators.Decorated;
+import org.openqa.selenium.support.ui.FluentWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.zebrunner.agent.core.registrar.Label;
 import com.zebrunner.carina.utils.R;
 import com.zebrunner.carina.utils.common.CommonUtils;
 import com.zebrunner.carina.utils.commons.SpecialKeywords;
@@ -286,38 +282,27 @@ public interface IDriverPool {
     private void quitDriver(CarinaDriver carinaDriver, @Deprecated boolean keepProxyDuring) {
         try {
             carinaDriver.getDevice().disconnectRemote();
-
             // castDriver to disable DriverListener operations on quit
-            WebDriver drv = castDriver(carinaDriver.getDriver());
             POOL_LOGGER.debug("start driver quit: {}", carinaDriver.getName());
-
-            Future<?> future = Executors.newSingleThreadExecutor().submit((Callable<Void>) () -> {
-                if (Configuration.get(WebDriverConfiguration.Parameter.CHROME_CLOSURE, Boolean.class).orElse(false)) {
-                    // workaround to not cleaned chrome profiles on hard drive
-                    POOL_LOGGER.debug("Starting drv.close()");
-                    drv.close();
-                    POOL_LOGGER.debug("Finished drv.close()");
-                }
-                POOL_LOGGER.debug("Starting drv.quit()");
-                drv.quit();
-                POOL_LOGGER.debug("Finished drv.quit()");
-                return null;
-            });
-
             // default timeout for driver quit 1/2 of explicit
-            long timeout = Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Integer.class) / 2;
+            Duration timeout = Duration.ofSeconds(Configuration.getRequired(Parameter.DRIVER_CLOSE_TIMEOUT, Integer.class));
             try {
-                future.get(timeout, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                POOL_LOGGER.error("InterruptedException: Unable to quit driver!", e);
-                Thread.currentThread().interrupt();
-            } catch (ExecutionException e) {
-                if (e.getMessage() != null && e.getMessage().contains("not found in active sessions")) {
-                    POOL_LOGGER.warn("Skip driver quit for already disconnected session!");
-                } else {
-                    POOL_LOGGER.error("ExecutionException: Unable to quit driver!", e);
-                }
-            } catch (java.util.concurrent.TimeoutException e) {
+                new FluentWait<>(castDriver(carinaDriver.getDriver()))
+                        .pollingEvery(timeout.plus(Duration.ofSeconds(5)))
+                        .withTimeout(timeout)
+                        .until(driver -> {
+                            if (Configuration.get(WebDriverConfiguration.Parameter.CHROME_CLOSURE, Boolean.class).orElse(false)) {
+                                // workaround to not cleaned chrome profiles on hard drive
+                                POOL_LOGGER.debug("Starting drv.close()");
+                                driver.close();
+                                POOL_LOGGER.debug("Finished drv.close()");
+                            }
+                            POOL_LOGGER.debug("Starting drv.quit()");
+                            driver.quit();
+                            POOL_LOGGER.debug("Finished drv.quit()");
+                            return true;
+                        });
+            } catch (org.openqa.selenium.TimeoutException e) {
                 POOL_LOGGER.error("Unable to quit driver for {} sec!", timeout, e);
             }
         } catch (WebDriverException e) {
@@ -327,12 +312,6 @@ public interface IDriverPool {
             POOL_LOGGER.error("Error discovered during driver quit!", e);
         } finally {
             POOL_LOGGER.debug("finished driver quit: {}", carinaDriver.getName());
-            if (!keepProxyDuring) {
-//                ProxyPool.stopProxy();
-//                if (com.zebrunner.carina.proxy.ProxyPool.isProxyRegistered()) {
-//                    com.zebrunner.carina.proxy.ProxyPool.stopProxy();
-//                }
-            }
         }
     }
 
