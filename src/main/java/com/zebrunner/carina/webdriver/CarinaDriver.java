@@ -15,6 +15,8 @@
  *******************************************************************************/
 package com.zebrunner.carina.webdriver;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.WebDriver;
 
@@ -22,10 +24,10 @@ import com.zebrunner.carina.webdriver.TestPhase.Phase;
 import com.zebrunner.carina.webdriver.device.Device;
 
 public class CarinaDriver {
-	private String name;
-	private WebDriver driver;
-	private Device device;
-	private Phase phase;
+	private final String name;
+	private final WebDriver driver;
+	private final Device device;
+	private final Phase phase;
 	private long threadId;
 	private final Capabilities originalCapabilities;
 
@@ -66,11 +68,28 @@ public class CarinaDriver {
     /**
      * Get capabilities that used for creating driver.<br>
      * <b>For internal usage only</b>
-     * 
+     *
      * @return {@link Capabilities}
      */
     public Capabilities getOriginalCapabilities() {
         return originalCapabilities;
     }
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+
+		if (o == null || getClass() != o.getClass())
+			return false;
+
+		CarinaDriver driver = (CarinaDriver) o;
+
+		return new EqualsBuilder().append(threadId, driver.threadId).append(name, driver.name).isEquals();
+	}
+
+	@Override
+	public int hashCode() {
+		return new HashCodeBuilder(17, 37).append(name).append(threadId).toHashCode();
+	}
 }
