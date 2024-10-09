@@ -59,23 +59,38 @@ public interface IDriverPool {
     @API(status = API.Status.INTERNAL)
     Logger I_DRIVER_POOL_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    /**
+     * Store drivers by thread id and driver name
+     */
     @SuppressWarnings("squid:S2386")
     @API(status = API.Status.INTERNAL)
     ConcurrentHashMap<Long, Map<String, CarinaDriver>> DRIVERS_POOL = new ConcurrentHashMap<>();
 
+    /**
+     * Background process for closing drivers. Scalable depends on requirements.
+     * In carina-core in the shutdown logic we wait until all tasks will be completed
+     */
     @API(status = API.Status.INTERNAL)
     ExecutorService EXECUTOR_SERVICE = new ThreadPoolExecutor(10, Integer.MAX_VALUE, 120L, TimeUnit.SECONDS,
             new SynchronousQueue<>());
 
+    /**
+     * Store device object for current thread
+     */
+    // todo remove this storage
     @API(status = API.Status.INTERNAL)
     ThreadLocal<Device> CURRENT_DEVICE = new ThreadLocal<>();
 
+    // todo check if it is possible to remove usage of this object and reuse Optional for methods that return Device object
     @API(status = API.Status.INTERNAL)
     Device nullDevice = new Device();
 
     @API(status = API.Status.INTERNAL)
     ThreadLocal<Capabilities> CUSTOM_CAPABILITIES = new ThreadLocal<>();
 
+    /**
+     * Default driver name
+     */
     @API(status = API.Status.STABLE)
     String DEFAULT = "default";
 
@@ -102,19 +117,19 @@ public interface IDriverPool {
     }
 
     /**
-     * Get driver by name. If no driver discovered it will be created for current test (thread) with provided capabilities.
+     * Get driver by name. If no driver discovered it will be created for current test (thread) with provided capabilities
      *
      * @param name driver name
      * @param capabilities {@link Capabilities}
      * @return {@link WebDriver}
      */
     @API(status = API.Status.STABLE)
-    default WebDriver getDriver(String name, Capabilities capabilities) {
+    default WebDriver getDriver(String name, @Nullable Capabilities capabilities) {
         return getDriver(name, capabilities, null);
     }
 
     /**
-     * Get driver by name. If no driver discovered it will be created using custom capabilities and custom selenium server.
+     * Get driver by name. If no driver discovered it will be created using custom capabilities and custom selenium server host
      *
      * @param name driver name
      * @param capabilities {@link Capabilities}
@@ -122,7 +137,7 @@ public interface IDriverPool {
      * @return {@link WebDriver}
      */
     @API(status = API.Status.STABLE)
-    default WebDriver getDriver(String name, Capabilities capabilities, String seleniumHost) {
+    default WebDriver getDriver(String name, @Nullable Capabilities capabilities, @Nullable String seleniumHost) {
         Optional<CarinaDriver> carinaDriver = getCarinaDriver(name);
         if (carinaDriver.isPresent()) {
             if (TestPhase.Phase.BEFORE_SUITE.equals(carinaDriver.get().getPhase())) {
@@ -299,7 +314,7 @@ public interface IDriverPool {
     }
 
     /**
-     * Set custom capabilities
+     * Set custom capabilities that will be used for current thread (test).
      *
      * @param capabilities {@link Capabilities}
      */
