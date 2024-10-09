@@ -329,6 +329,12 @@ public interface IDriverPool {
         }
     }
 
+    /**
+     * Get {@link CarinaDriver} registered for current thread (test) (if it exists)
+     * 
+     * @param name driver name
+     * @return {@link Optional} of {@link CarinaDriver}
+     */
     @API(status = API.Status.INTERNAL)
     private static Optional<CarinaDriver> getCarinaDriver(String name) {
         long threadId = Thread.currentThread().getId();
@@ -336,6 +342,12 @@ public interface IDriverPool {
                 .getOrDefault(name, null));
     }
 
+    /**
+     * Get driver without listeners, for example without {@link DriverListener}
+     * 
+     * @param drv {@link WebDriver}
+     * @return {@link WebDriver}
+     */
     @API(status = API.Status.INTERNAL)
     private static WebDriver castDriver(WebDriver drv) {
         if (drv instanceof Decorated<?>) {
@@ -345,15 +357,15 @@ public interface IDriverPool {
     }
 
     /**
-     * Create driver with custom capabilities
+     * Create driver
      *
-     * @param name String driver name
-     * @param capabilities capabilities
-     * @param seleniumHost String
+     * @param name driver name
+     * @param capabilities {@link Capabilities}
+     * @param seleniumHost selenium host url
      * @return {@link ImmutablePair} with {@link WebDriver} and original {@link Capabilities}
      */
     @API(status = API.Status.INTERNAL)
-    private static CarinaDriver createDriver(String name, Capabilities capabilities, String seleniumHost) {
+    private static CarinaDriver createDriver(String name, @Nullable Capabilities capabilities, @Nullable String seleniumHost) {
         int count = 0;
         CarinaDriver drv = null;
         Device device = nullDevice;
@@ -402,7 +414,7 @@ public interface IDriverPool {
     }
 
     /**
-     * Verify if driver with provided name is registered in current thread
+     * Verify if driver with provided name is registered in current thread (test)
      *
      * @param name driver name
      * @return true if registered, false otherwise
@@ -413,7 +425,7 @@ public interface IDriverPool {
     }
 
     /**
-     * Return drivers registered in the DriverPool for current thread
+     * Get drivers registered for the current thread (test)
      *
      * @return {@link Map} of driver names and {@link CarinaDriver}
      */
@@ -426,7 +438,7 @@ public interface IDriverPool {
     // ------------------------ DEVICE POOL METHODS -----------------------
 
     /**
-     * Get device registered to default driver. If no default driver discovered {@link #nullDevice} will be returned.
+     * Get device registered to default driver. If no default driver discovered {@link #nullDevice} will be returned
      *
      * @return {@link Device}
      */
@@ -436,7 +448,7 @@ public interface IDriverPool {
     }
 
     /**
-     * Get device registered to the driver with provided name. If no driver discovered {@link #nullDevice} will be returned.
+     * Get {@link Device} registered to the driver with provided name. If no driver discovered {@link #nullDevice} will be returned
      *
      * @param name driver name
      * @return {@link Device}
@@ -452,7 +464,7 @@ public interface IDriverPool {
     }
 
     /**
-     * Get device registered for the provided driver. If no driver discovered nullDevice will be returned.
+     * Get device registered for the provided driver. If no driver discovered nullDevice will be returned
      *
      * @param driver {@link WebDriver}
      * @return {@link Device}
@@ -470,7 +482,7 @@ public interface IDriverPool {
     }
 
     /**
-     * Register device information for current thread
+     * Register device information for current thread (test)
      *
      * @param device {@link Device}
      * @return {@link Device}
@@ -491,9 +503,9 @@ public interface IDriverPool {
     }
 
     /**
-     * Return last registered device information for current thread.
+     * Return last registered device information for current thread
      *
-     * @return Device device
+     * @return {@link Device} if device information registered, {@link #nullDevice} otherwise
      * @deprecated use {@link #getDevice(String)} instead
      */
     @Deprecated(forRemoval = true)
@@ -510,11 +522,23 @@ public interface IDriverPool {
         return device;
     }
 
-    @API(status = API.Status.INTERNAL)
+    /**
+     * Get {@link #nullDevice} device. It is not recommended to use such method,
+     * because nullDevice can be removed in future releases
+     * 
+     * @return {@link Device}
+     */
+    @API(status = API.Status.DEPRECATED)
     static Device getNullDevice() {
         return nullDevice;
     }
 
+    /**
+     * Check if device is registered for current thread (test)
+     * 
+     * @return true if registered, false otherwise
+     * @deprecated should not be used on client / module side
+     */
     @Deprecated(forRemoval = true)
     default boolean isDeviceRegistered() {
         Device device = CURRENT_DEVICE.get();
