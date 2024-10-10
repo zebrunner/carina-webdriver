@@ -611,7 +611,7 @@ public class Device implements IDriverPool {
             return Optional.empty();
 		}
         
-        if (getDrivers().size() == 0) {
+        if (IDriverPool.getDrivers().size() == 0) {
             LOGGER.debug("There is no active drivers in the pool.");
             return Optional.empty();
         }
