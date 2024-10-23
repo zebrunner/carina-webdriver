@@ -1716,6 +1716,9 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     @SuppressWarnings("squid:S1452")
     protected ExpectedCondition<?> getDefaultElementWaitCondition() {
         clearElementState();
+        if(loadingStrategy == ElementLoadingStrategy.NONE) {
+            return (ExpectedCondition<Boolean>) input -> true;
+        }
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
         if (loadingStrategy == ElementLoadingStrategy.BY_PRESENCE || loadingStrategy == ElementLoadingStrategy.BY_PRESENCE_OR_VISIBILITY) {
             if (element != null) {
