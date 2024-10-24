@@ -87,8 +87,8 @@ public final class EventFiringAppiumCommandExecutor extends AppiumCommandExecuto
                     BLOCKING_QUEUE.put(UUID.randomUUID().toString() + System.currentTimeMillis());
                     String app = CapabilityHelpers.getCapability(capabilities, SupportsAppOption.APP_OPTION, String.class);
                     if (app != null) {
-                        MutableCapabilities appCaps = new MutableCapabilities();
-                        appCaps.setCapability(SupportsAppOption.APP_OPTION, ARTIFACT_PROVIDERS.get()
+                        MutableCapabilities appCaps = new MutableCapabilities().merge(capabilities);
+                        appCaps.setCapability("appium:" + SupportsAppOption.APP_OPTION, ARTIFACT_PROVIDERS.get()
                                 .getDirectLink(app));
                         FieldUtils.writeField(FieldUtils.getField(Command.class, "payload", true),
                                 command,
