@@ -1722,23 +1722,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         List<ExpectedCondition<?>> conditions = new ArrayList<>();
         if (loadingStrategy == ElementLoadingStrategy.BY_PRESENCE || loadingStrategy == ElementLoadingStrategy.BY_PRESENCE_OR_VISIBILITY) {
             if (element != null) {
-                conditions.add(
-                        new ExpectedCondition<Boolean>() {
-                            @Override
-                            public Boolean apply(WebDriver ignored) {
-                                try {
-                                    // Calling any method forces a staleness check
-                                    return element.isDisplayed();
-                                } catch (StaleElementReferenceException expected) {
-                                    return false;
-                                }
-                            }
-
-                            @Override
-                            public String toString() {
-                                return String.format("element (%s) to become stale", element);
-                            }
-                        });
+                conditions.add(ExpectedConditions.not(ExpectedConditions.stalenessOf(element)));
             }
             if (by != null) {
                 conditions.add(getSearchContext() instanceof WebElement
