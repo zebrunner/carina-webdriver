@@ -474,6 +474,15 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.9.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                        </configuration>
+                    </plugin>
                 </plugins>
                 <pluginManagement>
                     <plugins>
@@ -559,11 +568,6 @@
     </build>
 
     <distributionManagement>
-        <repository>
-            <id>Maven_Nexus</id>
-            <name>Maven Releases</name>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-        </repository>
         <snapshotRepository>
             <id>ZBR_Nexus</id>
             <name>Zebrunner Snapshots</name>

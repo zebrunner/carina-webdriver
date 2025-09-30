@@ -114,7 +114,7 @@ public class DriverPoolTest implements IDriverPool {
     }
     
     @Test(dependsOnMethods = "registerDefaultDriver", expectedExceptions = {
-            AssertionError.class }, expectedExceptionsMessageRegExp = "Driver 'default' is already registered for thread: 1")
+            AssertionError.class }, expectedExceptionsMessageRegExp = "Driver 'default' is already registered for thread: \\d+")
     public void registerTwiceDefaultDriver() {
         registerDriver(mockDriverDefault, DEFAULT);
     }

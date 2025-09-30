@@ -1,0 +1,79 @@
+name: Maven Central Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure tag is on master
+        run: |
+          BRANCH=$(git branch -r --contains $GITHUB_SHA | grep "origin/master" || true)
+          if [ -z "$BRANCH" ]; then
+            echo "Tag must point to master branch"
+            exit 1
+          fi
+
+      - name: Install OpenJDK 11 (vanilla, from Ubuntu repos)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y openjdk-11-jdk
+          java -version
+          javac -version
+
+      - name: Import GPG private key
+        run: |
+          gpg --batch --import <(echo "$GPG_PRIVATE_KEY" | base64 --decode)
+          gpg --list-secret-keys --keyid-format LONG
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: Import GPG public key (refresh expiration)
+        run: |
+          gpg --batch --import <(echo "$GPG_PUBLIC_KEY" | base64 --decode)
+          gpg --list-keys --keyid-format LONG
+        env:
+          GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
+
+      - name: Configure Maven settings
+        run: |
+          mkdir -p ~/.m2
+          install -m 600 /dev/null ~/.m2/settings.xml
+          cat > ~/.m2/settings.xml <<EOL
+          <settings>
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${MAVEN_CENTRAL_USERNAME}</username>
+                <password>${MAVEN_CENTRAL_PASSWORD}</password>
+              </server>
+            </servers>
+          </settings>
+          EOL
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+
+      - name: Set project version from tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "Releasing version $VERSION"
+          mvn versions:set -DnewVersion=$VERSION
+          mvn versions:commit
+
+      - name: Build & Deploy to Maven Central
+        run: mvn --batch-mode clean deploy -P release -Dgpg.passphrase="$GPG_PASSPHRASE"
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
