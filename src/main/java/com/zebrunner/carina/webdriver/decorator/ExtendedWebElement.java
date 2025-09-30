@@ -20,10 +20,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import com.zebrunner.carina.utils.factory.ICustomTypePageFactory;
 import com.zebrunner.carina.webdriver.helper.IClipboardHelper;
@@ -33,6 +30,7 @@ import com.zebrunner.carina.webdriver.helper.IPageActionsHelper;
 import com.zebrunner.carina.webdriver.helper.IPageDataHelper;
 import com.zebrunner.carina.webdriver.helper.IPageStorageHelper;
 import com.zebrunner.carina.webdriver.helper.IWaitHelper;
+import com.zebrunner.carina.webdriver.locator.converter.LocatorConverter;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -87,10 +85,11 @@ import javax.annotation.Nullable;
 public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWebElementHelper, ICommonsHelper, IWaitHelper, ICustomTypePageFactory,
         IClipboardHelper, IPageStorageHelper, IPageDataHelper, IPageActionsHelper, Cloneable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private final String udid;
     protected WebDriver driver;
     private SearchContext searchContext;
     private By by = null;
+    private By originalBy;
+    private LinkedList<LocatorConverter> locatorConverters;
     /**
      * @deprecated will be hided in the next release. Use {@link #getElement()} instead
      */
@@ -109,7 +108,6 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
     public ExtendedWebElement(WebDriver driver, SearchContext searchContext) {
         this.driver = driver;
         this.searchContext = searchContext;
-        this.udid = UUID.randomUUID().toString() + System.currentTimeMillis();
         this.loadingStrategy = ElementLoadingStrategy.valueOf(Configuration.getRequired(WebDriverConfiguration.Parameter.ELEMENT_LOADING_STRATEGY));
     }
 
@@ -171,10 +169,6 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
         this.name = Objects.requireNonNull(name);
     }
 
-    public final String getUuid() {
-        return udid;
-    }
-
     /**
      * Get locator
      * 
@@ -191,6 +185,22 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
      */
     public final void setBy(@Nullable By by) {
         this.by = by;
+    }
+
+    public final void setOriginalBy(@Nullable By originalBy) {
+        this.originalBy = originalBy;
+    }
+
+    public By getOriginalBy() {
+        return originalBy;
+    }
+
+    public final void setLocatorConverters(@Nullable LinkedList<LocatorConverter> locatorConverters) {
+        this.locatorConverters = locatorConverters;
+    }
+
+    public LinkedList<LocatorConverter> getLocatorConverters() {
+        return locatorConverters;
     }
 
     public final SearchContext getSearchContext() {
@@ -1778,8 +1788,7 @@ public class ExtendedWebElement implements IWebElement, WebElement, IExtendedWeb
 
     private String getDetailedInfo() {
         return this.getClass() + "{" +
-                "udid='" + udid + '\'' +
-                ", driver=" + driver +
+                "driver=" + driver +
                 ", searchContext=" + searchContext +
                 ", by=" + by +
                 ", element=" + element +

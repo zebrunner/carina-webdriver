@@ -96,14 +96,13 @@ public class ExtendedFieldDecorator implements FieldDecorator, IExtendedWebEleme
                 }
 
                 element.setBy(buildConvertedBy(locator.getBy(), locator.getLocatorConverters()));
+                element.setOriginalBy(locator.getBy());
                 element.setName(field.getName());
 
-                String uuid = element.getUuid();
                 List<LocatorConverter> converters = locator.getLocatorConverters();
                 if (!converters.isEmpty()) {
-                    LOCATOR_CONVERTERS.put(uuid, locator.getLocatorConverters());
+                    element.setLocatorConverters(locator.getLocatorConverters());
                 }
-                ORIGINAL_LOCATORS.put(uuid, locator.getBy());
                 return element;
             } catch (Exception e) {
                 return ExceptionUtils.rethrow(e);

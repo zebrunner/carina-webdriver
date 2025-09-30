@@ -43,10 +43,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings({ "unused", "unchecked" })
 public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
     Logger I_EXTENDED_WEB_ELEMENT_LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    @SuppressWarnings("squid:S2386")
-    Map<String, LinkedList<LocatorConverter>> LOCATOR_CONVERTERS = new ConcurrentHashMap<>();
-    @SuppressWarnings("squid:S2386")
-    Map<String, By> ORIGINAL_LOCATORS = new ConcurrentHashMap<>();
     Duration SHORT_TIMEOUT = Duration.ofSeconds(Configuration.getRequired(WebDriverConfiguration.Parameter.EXPLICIT_TIMEOUT, Long.class) / 3);
 
     /**
@@ -638,7 +634,7 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
         if (Arrays.stream(objects).findAny().isEmpty()) {
             return extendedElement;
         }
-        LinkedList<LocatorConverter> converters = new LinkedList<>(Optional.ofNullable(LOCATOR_CONVERTERS.get(extendedElement.getUuid()))
+        LinkedList<LocatorConverter> converters = new LinkedList<>(Optional.ofNullable(extendedElement.getLocatorConverters())
                 .orElseGet(LinkedList::new));
         boolean isTextContainsL10N = Arrays.stream(objects)
                 .map(String::valueOf)
@@ -649,8 +645,8 @@ public interface IExtendedWebElementHelper extends IDriverPool, IWaitHelper {
         }
         FormatLocatorConverter converter = new FormatLocatorConverter(objects);
         converters.addFirst(converter);
-        By originalBy = ORIGINAL_LOCATORS.get(extendedElement.getUuid()) != null ?
-                ORIGINAL_LOCATORS.get(extendedElement.getUuid()) : extendedElement.getBy();
+        By originalBy = extendedElement.getOriginalBy() != null ?
+                extendedElement.getOriginalBy() : extendedElement.getBy();
         formatElement.setBy(buildConvertedBy(originalBy, converters));
         return formatElement;
     }
